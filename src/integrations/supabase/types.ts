@@ -138,6 +138,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_customers_by_ids: {
+        Args: { _ids: string[] }
+        Returns: {
+          full_name: string
+          id: string
+          loyalty_card_number: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
