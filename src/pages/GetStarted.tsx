@@ -13,11 +13,11 @@ const GetStarted = () => {
           Welcome to <span className="text-secondary">Perk Back</span>
         </h1>
         <p className="text-muted-foreground text-lg mb-8 animate-fade-up-delay-1">
-          You're one step away from earning rewards everywhere. Sign up is coming soon!
+          You're one step away from earning rewards everywhere. Create your account to get started!
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up-delay-2">
-          <Button variant="hero" size="xl">
-            Join the Waitlist
+          <Button variant="hero" size="xl" asChild>
+            <Link to="/customer/auth">Sign Up / Sign In</Link>
           </Button>
           <Button variant="hero-outline" size="lg" asChild>
             <Link to="/">
