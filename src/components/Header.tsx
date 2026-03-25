@@ -41,7 +41,10 @@ const Header = () => {
         </nav>
 
         {/* CTA */}
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/customer/auth">Sign In</Link>
+          </Button>
           <Button variant="hero" size="lg" asChild>
             <Link to="/get-started">Explore Now</Link>
           </Button>
@@ -70,6 +73,9 @@ const Header = () => {
                 {link.label}
               </a>
             ))}
+            <Button variant="ghost" size="lg" asChild>
+              <Link to="/customer/auth">Sign In</Link>
+            </Button>
             <Button variant="hero" size="lg" asChild>
               <Link to="/get-started">Explore Now</Link>
             </Button>
