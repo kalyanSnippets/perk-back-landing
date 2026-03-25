@@ -50,32 +50,62 @@ export type Database = {
         }
         Relationships: []
       }
+      merchants: {
+        Row: {
+          created_at: string
+          id: string
+          store_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          store_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          store_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           created_at: string
           customer_id: string
           id: string
+          merchant_id: string | null
           merchant_name: string
           points_awarded: number
           purchase_amount: number
+          source: string | null
           transaction_date: string
         }
         Insert: {
           created_at?: string
           customer_id: string
           id?: string
+          merchant_id?: string | null
           merchant_name: string
           points_awarded?: number
           purchase_amount: number
+          source?: string | null
           transaction_date?: string
         }
         Update: {
           created_at?: string
           customer_id?: string
           id?: string
+          merchant_id?: string | null
           merchant_name?: string
           points_awarded?: number
           purchase_amount?: number
+          source?: string | null
           transaction_date?: string
         }
         Relationships: [
@@ -86,6 +116,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -93,7 +130,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_points_to_customer: {
+        Args: {
+          _loyalty_card_number: string
+          _merchant_id: string
+          _purchase_amount: number
+        }
+        Returns: Json
+      }
+      get_customers_by_ids: {
+        Args: { _ids: string[] }
+        Returns: {
+          full_name: string
+          id: string
+          loyalty_card_number: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
