@@ -8,6 +8,7 @@ const navLinks = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Rewards", href: "#rewards" },
   { label: "About", href: "#benefits" },
+  { label: "For Merchants", href: "/merchant/auth", isRoute: true },
   { label: "Contact", href: "#contact" },
 ];
 
