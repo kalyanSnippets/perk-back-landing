@@ -73,6 +73,9 @@ const Header = () => {
                 {link.label}
               </a>
             ))}
+            <Button variant="ghost" size="lg" asChild>
+              <Link to="/customer/auth">Sign In</Link>
+            </Button>
             <Button variant="hero" size="lg" asChild>
               <Link to="/get-started">Explore Now</Link>
             </Button>
