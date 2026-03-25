@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogOut, Star, Calendar, Hash, User, CreditCard, ShieldCheck, ScanBarcode, Gift, Smartphone } from "lucide-react";
+import {
+  LogOut, Star, Calendar, Hash, User, CreditCard,
+  ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
+  Clock, Tag, ArrowRight, Shield
+} from "lucide-react";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 
@@ -24,11 +28,35 @@ interface TransactionData {
   transaction_date: string;
 }
 
+const STAMPS_TOTAL = 10;
+
+const activeOffers = [
+  {
+    title: "Double Points Weekend",
+    description: "Earn 2x points on all purchases this weekend at any partner store.",
+    expiry: "2026-04-01",
+    icon: Sparkles,
+  },
+  {
+    title: "Free Coffee at 10 Stamps",
+    description: "Complete your coffee stamp card and get a free coffee on us.",
+    expiry: "2026-06-30",
+    icon: Coffee,
+  },
+  {
+    title: "20% Off Next Purchase",
+    description: "Redeem 200 points for 20% off at selected merchants.",
+    expiry: "2026-05-15",
+    icon: Tag,
+  },
+];
+
 const AccessCard = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pointsVisible, setPointsVisible] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -36,10 +64,7 @@ const AccessCard = () => {
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/customer/auth");
-      return;
-    }
+    if (!user) { navigate("/customer/auth"); return; }
 
     const { data: customerData, error } = await supabase
       .from("customers")
@@ -47,19 +72,11 @@ const AccessCard = () => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (error || !customerData) {
-      navigate("/customer/auth");
-      return;
-    }
-
-    if (!customerData.loyalty_card_number) {
-      navigate("/customer/confirmation");
-      return;
-    }
+    if (error || !customerData) { navigate("/customer/auth"); return; }
+    if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
 
     setCustomer(customerData);
 
-    // Fetch transactions
     const { data: txData } = await supabase
       .from("transactions")
       .select("*")
@@ -68,6 +85,7 @@ const AccessCard = () => {
 
     setTransactions(txData || []);
     setLoading(false);
+    setTimeout(() => setPointsVisible(true), 300);
   };
 
   const handleLogout = async () => {
@@ -78,8 +96,11 @@ const AccessCard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading your card...</div>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center animate-pulse">
+          <Star className="text-primary-foreground" size={24} />
+        </div>
+        <p className="text-muted-foreground text-sm">Loading your rewards...</p>
       </div>
     );
   }
@@ -88,126 +109,196 @@ const AccessCard = () => {
 
   const issuedDate = customer.card_issued_at
     ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
+        day: "numeric", month: "long", year: "numeric",
       })
     : "—";
 
+  const coffeeStamps = transactions.length % STAMPS_TOTAL;
+
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="absolute inset-0 bg-gradient-to-br from-light-blue via-background to-background -z-10 h-[400px]" />
+    <div className="min-h-screen bg-muted/20">
+      {/* Gradient backdrop */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
+        <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
+      </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-8">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="container mx-auto flex items-center justify-between h-14 px-4 lg:px-8">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">P</span>
             </div>
-            <span className="text-xl font-bold text-foreground">
+            <span className="text-lg font-bold text-foreground">
               Perk <span className="text-secondary">Back</span>
             </span>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground hover:text-foreground">
             <LogOut size={16} />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
           </Button>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 lg:px-8 py-8 max-w-3xl">
-        {/* Loyalty Card */}
-        <ScrollReveal>
-          <div className="bg-gradient-to-br from-primary to-secondary rounded-3xl p-8 text-primary-foreground shadow-card-hover relative overflow-hidden">
-            {/* Decorative circles */}
-            <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-primary-foreground/5 -translate-y-1/2 translate-x-1/4" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-primary-foreground/5 translate-y-1/2 -translate-x-1/4" />
+      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-lg space-y-6 pb-20">
 
-            <div className="relative z-10">
-              <div className="flex items-start justify-between mb-6">
+        {/* ─── Loyalty Card ─── */}
+        <ScrollReveal>
+          <div className="relative rounded-3xl overflow-hidden shadow-card-hover">
+            {/* Card gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
+            {/* Shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
+            {/* Decorative elements */}
+            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-primary-foreground/10" />
+            <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full border border-primary-foreground/8" />
+            <div className="absolute top-1/2 right-6 w-20 h-20 rounded-full bg-primary-foreground/5 blur-2xl" />
+
+            <div className="relative z-10 p-6 pb-5">
+              {/* Card header */}
+              <div className="flex items-start justify-between mb-5">
                 <div>
-                  <p className="text-primary-foreground/60 text-xs uppercase tracking-widest mb-1">Loyalty Card</p>
-                  <h2 className="text-2xl font-bold">Perk Back</h2>
+                  <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.2em] mb-0.5">Digital Loyalty Card</p>
+                  <h2 className="text-xl font-bold text-primary-foreground">Perk Back</h2>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                  <Star className="text-accent-foreground" size={20} />
+                <div className="w-10 h-10 rounded-xl bg-accent/90 flex items-center justify-center shadow-lg">
+                  <Star className="text-accent-foreground" size={18} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Card details */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5">
                 <div>
-                  <p className="text-primary-foreground/60 text-xs flex items-center gap-1"><User size={12} /> Full Name</p>
-                  <p className="font-semibold">{customer.full_name || "—"}</p>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                    <User size={10} /> Name
+                  </p>
+                  <p className="text-primary-foreground font-semibold text-sm truncate">{customer.full_name || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-primary-foreground/60 text-xs flex items-center gap-1"><Hash size={12} /> CRN</p>
-                  <p className="font-semibold font-mono">{customer.crn}</p>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                    <Hash size={10} /> CRN
+                  </p>
+                  <p className="text-primary-foreground font-semibold font-mono text-sm">{customer.crn}</p>
                 </div>
                 <div>
-                  <p className="text-primary-foreground/60 text-xs flex items-center gap-1"><CreditCard size={12} /> Card Number</p>
-                  <p className="font-semibold font-mono text-sm">{customer.loyalty_card_number}</p>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                    <CreditCard size={10} /> Card No.
+                  </p>
+                  <p className="text-primary-foreground font-semibold font-mono text-xs tracking-wide">{customer.loyalty_card_number}</p>
                 </div>
                 <div>
-                  <p className="text-primary-foreground/60 text-xs flex items-center gap-1"><Calendar size={12} /> Issued</p>
-                  <p className="font-semibold text-sm">{issuedDate}</p>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                    <Calendar size={10} /> Issued
+                  </p>
+                  <p className="text-primary-foreground font-semibold text-sm">{issuedDate}</p>
                 </div>
               </div>
 
               {/* Barcode */}
-              <div className="bg-primary-foreground rounded-xl p-4 flex justify-center">
-                <Barcode value={customer.loyalty_card_number || ""} />
+              <div className="bg-primary-foreground rounded-2xl p-3 flex justify-center">
+                <Barcode value={customer.loyalty_card_number || ""} height={60} />
               </div>
             </div>
           </div>
         </ScrollReveal>
 
-        {/* Points Balance */}
+        {/* ─── Points Balance ─── */}
         <ScrollReveal delay={100}>
-          <div className="mt-8 bg-card rounded-2xl p-8 shadow-card text-center">
-            <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">Points Balance</p>
-            <div className="flex items-center justify-center gap-3">
-              <Star className="text-accent fill-accent" size={32} />
-              <span className="text-5xl font-bold text-foreground">{customer.points_balance}</span>
+          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 text-center">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3">Points Balance</p>
+            <div className={`flex items-center justify-center gap-3 transition-all duration-700 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+              <div className="w-12 h-12 rounded-2xl bg-accent/15 flex items-center justify-center">
+                <Star className="text-accent fill-accent" size={24} />
+              </div>
+              <span className="text-5xl font-bold text-foreground tabular-nums">{customer.points_balance}</span>
             </div>
-            <p className="text-muted-foreground text-sm mt-2">Keep earning to unlock rewards!</p>
+            <p className="text-muted-foreground text-xs mt-3">Keep earning to unlock exclusive rewards!</p>
           </div>
         </ScrollReveal>
 
-        {/* Transactions */}
+        {/* ─── Coffee Stamps ─── */}
+        <ScrollReveal delay={150}>
+          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Coffee size={16} className="text-accent" />
+                Coffee Stamps
+              </h3>
+              <span className="text-xs text-muted-foreground font-medium">{coffeeStamps}/{STAMPS_TOTAL}</span>
+            </div>
+            <div className="grid grid-cols-10 gap-1.5 mb-3">
+              {Array.from({ length: STAMPS_TOTAL }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`aspect-square rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    i < coffeeStamps
+                      ? 'bg-accent/20 border-2 border-accent'
+                      : 'bg-muted/60 border-2 border-transparent'
+                  }`}
+                  style={{ transitionDelay: `${i * 60}ms` }}
+                >
+                  {i < coffeeStamps ? (
+                    <Coffee size={12} className="text-accent-foreground" />
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/40">{i + 1}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="w-full h-2 bg-muted/60 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-accent to-accent/70 rounded-full animate-progress"
+                style={{ "--progress-width": `${(coffeeStamps / STAMPS_TOTAL) * 100}%` } as React.CSSProperties}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2 text-center">
+              {coffeeStamps === 0
+                ? "Start collecting stamps for a free coffee!"
+                : `${STAMPS_TOTAL - coffeeStamps} more ${STAMPS_TOTAL - coffeeStamps === 1 ? 'stamp' : 'stamps'} until your free coffee ☕`}
+            </p>
+          </div>
+        </ScrollReveal>
+
+        {/* ─── Points Earned (Transactions) ─── */}
         <ScrollReveal delay={200}>
-          <div className="mt-8 bg-card rounded-2xl p-8 shadow-card">
-            <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-              <ShieldCheck size={20} className="text-secondary" />
+          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50">
+            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+              <Shield size={16} className="text-secondary" />
               Points Earned
             </h3>
             {transactions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Gift size={40} className="mx-auto mb-3 text-muted-foreground/40" />
-                <p>No transactions yet.</p>
-                <p className="text-sm mt-1">Visit a partner store to start earning!</p>
+              <div className="text-center py-10">
+                <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3">
+                  <Gift size={24} className="text-muted-foreground/40" />
+                </div>
+                <p className="text-sm text-muted-foreground">No transactions yet.</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Visit a partner store to start earning!</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors duration-200"
+                    className="flex items-center justify-between p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 cursor-default"
                   >
-                    <div>
-                      <p className="font-semibold text-foreground">{tx.merchant_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        ${tx.purchase_amount.toFixed(2)} •{" "}
-                        {new Date(tx.transaction_date).toLocaleDateString("en-AU", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm text-foreground truncate">{tx.merchant_name}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-xs text-muted-foreground">${tx.purchase_amount.toFixed(2)}</span>
+                        <span className="text-muted-foreground/30">·</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock size={10} />
+                          {new Date(tx.transaction_date).toLocaleDateString("en-AU", {
+                            day: "numeric", month: "short",
+                          })}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-secondary">+{tx.points_awarded}</span>
-                      <p className="text-xs text-muted-foreground">pts</p>
+                    <div className="text-right pl-3">
+                      <span className="text-base font-bold text-accent-foreground bg-accent/15 px-2.5 py-1 rounded-lg">
+                        +{tx.points_awarded}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -216,30 +307,74 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* How to claim */}
+        {/* ─── Active Offers ─── */}
+        <ScrollReveal delay={250}>
+          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50">
+            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+              <Sparkles size={16} className="text-accent" />
+              Active Offers
+            </h3>
+            <div className="space-y-3">
+              {activeOffers.map((offer, i) => (
+                <div
+                  key={i}
+                  className="group flex items-start gap-3 p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 cursor-default"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <offer.icon size={18} className="text-accent-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground">{offer.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{offer.description}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1.5 flex items-center gap-1">
+                      <Clock size={10} />
+                      Expires {new Date(offer.expiry).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                  <ArrowRight size={14} className="text-muted-foreground/30 group-hover:text-secondary transition-colors mt-1 shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* ─── Ways to Claim Points ─── */}
         <ScrollReveal delay={300}>
-          <div className="mt-8 bg-card rounded-2xl p-8 shadow-card mb-12">
-            <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-              <Gift size={20} className="text-accent" />
+          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50">
+            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+              <Gift size={16} className="text-secondary" />
               Ways to Claim Points
             </h3>
-            <ul className="space-y-4">
+            <div className="space-y-3">
               {[
                 { icon: ScanBarcode, text: "Show your loyalty barcode or number at checkout" },
                 { icon: Smartphone, text: "Merchant scans or enters your number" },
                 { icon: Star, text: "Points are added instantly" },
                 { icon: Gift, text: "Track your rewards anytime in Perk Back" },
               ].map((item, i) => (
-                <li key={i} className="flex items-center gap-4 text-foreground">
-                  <div className="w-9 h-9 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
-                    <item.icon size={18} className="text-accent-foreground" />
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+                    <item.icon size={16} className="text-secondary" />
                   </div>
-                  <span className="text-sm">{item.text}</span>
-                </li>
+                  <span className="text-sm text-foreground/80">{item.text}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </ScrollReveal>
+
+        {/* ─── Logout ─── */}
+        <div className="pt-2 pb-4">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleLogout}
+            className="w-full gap-2 text-muted-foreground border-border/50 hover:bg-muted/50"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </Button>
+        </div>
       </div>
     </div>
   );
