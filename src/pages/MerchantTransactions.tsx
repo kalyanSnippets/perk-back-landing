@@ -71,12 +71,11 @@ const MerchantTransactions = () => {
       return;
     }
 
-    // Fetch customer details for each unique customer_id
+    // Fetch customer details using security definer function
     const customerIds = [...new Set(txData.map((t) => t.customer_id))];
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("id, full_name, loyalty_card_number")
-      .in("id", customerIds);
+    const { data: customers } = await supabase.rpc("get_customers_by_ids", {
+      _ids: customerIds,
+    });
 
     const customerMap = new Map(
       (customers || []).map((c) => [c.id, c])
