@@ -14,7 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          card_issued_at: string | null
+          created_at: string
+          crn: string | null
+          full_name: string | null
+          id: string
+          loyalty_card_number: string | null
+          points_balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_issued_at?: string | null
+          created_at?: string
+          crn?: string | null
+          full_name?: string | null
+          id?: string
+          loyalty_card_number?: string | null
+          points_balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_issued_at?: string | null
+          created_at?: string
+          crn?: string | null
+          full_name?: string | null
+          id?: string
+          loyalty_card_number?: string | null
+          points_balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          merchant_name: string
+          points_awarded: number
+          purchase_amount: number
+          transaction_date: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          merchant_name: string
+          points_awarded?: number
+          purchase_amount: number
+          transaction_date?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          merchant_name?: string
+          points_awarded?: number
+          purchase_amount?: number
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
