@@ -99,7 +99,10 @@ const Header = () => {
               )
             )}
             <Button variant="ghost" size="lg" asChild>
-              <Link to="/customer/auth">Sign In</Link>
+              <Link to="/customer/auth">Customer Login</Link>
+            </Button>
+            <Button variant="ghost" size="lg" asChild>
+              <Link to="/merchant/auth">Merchant Login</Link>
             </Button>
             <Button variant="hero" size="lg" asChild>
               <Link to="/get-started">Explore Now</Link>
