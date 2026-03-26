@@ -149,26 +149,60 @@ const GetStarted = () => {
         emailRedirectTo: window.location.origin,
       },
     });
-    if (error) throw error;
 
-    // If merchant signup, also create merchant record for existing user
-    // The trigger handles new users, but for existing users adding merchant profile:
-    if (role === "merchant") {
+    // Handle "User already registered" — sign in and add missing profile
+    if (error && (error.message?.includes("User already registered") || error.status === 422)) {
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: validEmail,
+        password,
+      });
+      if (loginError) {
+        throw new Error("Account exists but password is incorrect. Try logging in instead.");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: existingMerchant } = await supabase
+      if (!user) throw new Error("Authentication failed");
+
+      if (role === "merchant") {
+        const { data: existing } = await supabase
           .from("merchants")
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (!existingMerchant) {
-          await supabase.from("merchants").insert({
+        if (!existing) {
+          const { error: insertErr } = await supabase.from("merchants").insert({
             user_id: user.id,
             store_name: storeName.trim(),
+            address: address.trim() || null,
+            contact_number: contactNumber.trim() || null,
+            industry_type: industryType.trim() || null,
           });
+          if (insertErr) throw insertErr;
         }
+        toast.success("Merchant profile added to your existing account!");
+        navigate("/merchant/dashboard");
+      } else {
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("loyalty_card_number")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!existing) {
+          const { error: insertErr } = await supabase.from("customers").insert({
+            user_id: user.id,
+            full_name: fullName.trim(),
+            phone: phone.trim() || null,
+            date_of_birth: dob || null,
+          });
+          if (insertErr) throw insertErr;
+        }
+        toast.success("Customer profile added to your existing account!");
+        navigate(existing?.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
       }
+      return;
     }
+
+    if (error) throw error;
 
     await supabase.auth.signOut();
     toast.success("Account created! Please sign in.");
