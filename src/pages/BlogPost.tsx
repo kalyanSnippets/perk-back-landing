@@ -84,9 +84,10 @@ const BlogPost = () => {
                   )}
                 </div>
 
-                <div className="prose prose-sm sm:prose-base max-w-none text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                  {post.content}
-                </div>
+                <div
+                  className="prose prose-sm sm:prose-base max-w-none text-foreground/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+                />
               </article>
             </ScrollReveal>
           )}
