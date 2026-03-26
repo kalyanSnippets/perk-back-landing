@@ -277,6 +277,9 @@ const GetStarted = () => {
                     {isSignUp ? "Already registered? Sign in" : "New merchant? Register your store"}
                   </button>
                 </div>
+                <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline">
+                  Forgot password?
+                </button>
                 <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                   <ShieldCheck size={12} /> Your data is securely encrypted
                 </p>
