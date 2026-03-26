@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
-
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 const navLinks = [
   { label: "Home", href: "/", isRoute: true },
@@ -16,6 +16,7 @@ const navLinks = [
 
 const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAdmin } = useIsAdmin();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
@@ -50,6 +51,11 @@ const Header = () => {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
+          {isAdmin && (
+            <Link to="/admin" className="text-sm font-medium text-accent hover:text-accent-foreground transition-colors">
+              Admin
+            </Link>
+          )}
           <Button variant="hero" size="lg" asChild>
             <Link to="/get-started">Sign Up / Sign In</Link>
           </Button>
@@ -89,6 +95,11 @@ const Header = () => {
                   {link.label}
                 </a>
               )
+            )}
+            {isAdmin && (
+              <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-base font-medium text-accent hover:text-accent-foreground transition-colors py-1">
+                Admin Panel
+              </Link>
             )}
             <Button variant="hero" size="lg" className="mt-2" asChild>
               <Link to="/get-started" onClick={() => setMobileOpen(false)}>Sign Up / Sign In</Link>
