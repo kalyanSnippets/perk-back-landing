@@ -51,6 +51,11 @@ const Header = () => {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
+          {isAdmin && (
+            <Link to="/admin" className="text-sm font-medium text-accent hover:text-accent-foreground transition-colors">
+              Admin
+            </Link>
+          )}
           <Button variant="hero" size="lg" asChild>
             <Link to="/get-started">Sign Up / Sign In</Link>
           </Button>
