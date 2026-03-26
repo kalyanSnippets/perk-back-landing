@@ -19,9 +19,11 @@ export type Database = {
           card_issued_at: string | null
           created_at: string
           crn: string | null
+          date_of_birth: string | null
           full_name: string | null
           id: string
           loyalty_card_number: string | null
+          phone: string | null
           points_balance: number
           updated_at: string
           user_id: string
@@ -30,9 +32,11 @@ export type Database = {
           card_issued_at?: string | null
           created_at?: string
           crn?: string | null
+          date_of_birth?: string | null
           full_name?: string | null
           id?: string
           loyalty_card_number?: string | null
+          phone?: string | null
           points_balance?: number
           updated_at?: string
           user_id: string
@@ -41,9 +45,11 @@ export type Database = {
           card_issued_at?: string | null
           created_at?: string
           crn?: string | null
+          date_of_birth?: string | null
           full_name?: string | null
           id?: string
           loyalty_card_number?: string | null
+          phone?: string | null
           points_balance?: number
           updated_at?: string
           user_id?: string
@@ -52,22 +58,31 @@ export type Database = {
       }
       merchants: {
         Row: {
+          address: string | null
+          contact_number: string | null
           created_at: string
           id: string
+          industry_type: string | null
           store_name: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
+          contact_number?: string | null
           created_at?: string
           id?: string
+          industry_type?: string | null
           store_name: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
+          contact_number?: string | null
           created_at?: string
           id?: string
+          industry_type?: string | null
           store_name?: string
           updated_at?: string
           user_id?: string

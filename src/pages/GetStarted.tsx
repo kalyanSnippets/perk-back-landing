@@ -6,22 +6,75 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Mail, Lock, User, Store, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Mail, Lock, User, Store, ArrowLeft, ShieldCheck, Phone, Calendar, MapPin, Briefcase } from "lucide-react";
 import { z } from "zod";
 
 const emailSchema = z.string().trim().email("Invalid email address").max(255);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(128);
 const nameSchema = z.string().trim().min(1, "Name is required").max(100);
+const phoneSchema = z.string().trim().max(20).optional();
+
+type Role = "customer" | "merchant";
 
 const GetStarted = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("customer");
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [role, setRole] = useState<Role>("customer");
+  const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [loading, setLoading] = useState(false);
+
+  // Shared fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Customer fields
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState("");
+
+  // Merchant fields
   const [storeName, setStoreName] = useState("");
+  const [address, setAddress] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [industryType, setIndustryType] = useState("");
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: merchant } = await supabase
+          .from("merchants")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("loyalty_card_number")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (role === "merchant" && merchant) {
+          navigate("/merchant/dashboard");
+        } else if (role === "customer" && customer?.loyalty_card_number) {
+          navigate("/customer/access-card");
+        } else if (role === "customer" && customer) {
+          navigate("/customer/confirmation");
+        }
+      }
+    };
+    checkSession();
+  }, []);
+
+  const resetForm = () => {
+    setEmail("");
+    setPassword("");
+    setFullName("");
+    setPhone("");
+    setDob("");
+    setStoreName("");
+    setAddress("");
+    setContactNumber("");
+    setIndustryType("");
+  };
 
   const handleForgotPassword = async () => {
     const emailResult = emailSchema.safeParse(email);
@@ -40,147 +93,122 @@ const GetStarted = () => {
     }
   };
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Route based on existing records
-        const { data: merchant } = await supabase
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) { toast.error(emailResult.error.errors[0].message); return; }
+    const passResult = passwordSchema.safeParse(password);
+    if (!passResult.success) { toast.error(passResult.error.errors[0].message); return; }
+
+    if (authMode === "signup") {
+      if (role === "customer") {
+        const nameResult = nameSchema.safeParse(fullName);
+        if (!nameResult.success) { toast.error(nameResult.error.errors[0].message); return; }
+      } else {
+        const nameResult = nameSchema.safeParse(storeName);
+        if (!nameResult.success) { toast.error("Store name is required"); return; }
+      }
+    }
+
+    setLoading(true);
+    try {
+      if (authMode === "signup") {
+        await handleSignUp(emailResult.data);
+      } else {
+        await handleLogin(emailResult.data);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (validEmail: string) => {
+    const metadata: Record<string, string> = {};
+
+    if (role === "customer") {
+      metadata.full_name = fullName.trim();
+      metadata.role = "customer";
+      if (phone) metadata.phone = phone.trim();
+      if (dob) metadata.date_of_birth = dob;
+    } else {
+      metadata.full_name = storeName.trim();
+      metadata.role = "merchant";
+      if (address) metadata.address = address.trim();
+      if (contactNumber) metadata.contact_number = contactNumber.trim();
+      if (industryType) metadata.industry_type = industryType.trim();
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email: validEmail,
+      password,
+      options: {
+        data: metadata,
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) throw error;
+
+    // If merchant signup, also create merchant record for existing user
+    // The trigger handles new users, but for existing users adding merchant profile:
+    if (role === "merchant") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: existingMerchant } = await supabase
           .from("merchants")
           .select("id")
-          .eq("user_id", session.user.id)
+          .eq("user_id", user.id)
           .maybeSingle();
-        const { data: customer } = await supabase
-          .from("customers")
-          .select("loyalty_card_number")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        if (merchant && activeTab === "merchant") {
-          navigate("/merchant/dashboard");
-        } else if (customer?.loyalty_card_number) {
-          navigate("/customer/access-card");
+        if (!existingMerchant) {
+          await supabase.from("merchants").insert({
+            user_id: user.id,
+            store_name: storeName.trim(),
+          });
         }
       }
-    };
-    checkSession();
-  }, []);
+    }
 
-  const resetForm = () => {
-    setEmail("");
-    setPassword("");
-    setFullName("");
-    setStoreName("");
+    await supabase.auth.signOut();
+    toast.success("Account created! Please sign in.");
+    setAuthMode("login");
+    resetForm();
   };
 
-  const handleCustomerSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Validate
-    const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) { toast.error(emailResult.error.errors[0].message); return; }
-    const passResult = passwordSchema.safeParse(password);
-    if (!passResult.success) { toast.error(passResult.error.errors[0].message); return; }
-    if (isSignUp) {
-      const nameResult = nameSchema.safeParse(fullName);
-      if (!nameResult.success) { toast.error(nameResult.error.errors[0].message); return; }
-    }
+  const handleLogin = async (validEmail: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email: validEmail, password });
+    if (error) throw error;
 
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        const { data: signUpData, error } = await supabase.auth.signUp({
-          email: emailResult.data,
-          password,
-          options: {
-            data: { full_name: fullName.trim() },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        // Auto-confirmed: sign out and redirect to login
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Login failed");
+
+    if (role === "customer") {
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("loyalty_card_number")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!customer) {
         await supabase.auth.signOut();
-        toast.success("Account created! Please sign in.");
-        setIsSignUp(false);
-        resetForm();
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: emailResult.data, password });
-        if (error) throw error;
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: customer } = await supabase
-            .from("customers")
-            .select("loyalty_card_number")
-            .eq("user_id", user.id)
-            .maybeSingle();
-          if (customer?.loyalty_card_number) {
-            navigate("/customer/access-card");
-          } else {
-            navigate("/customer/confirmation");
-          }
-        }
+        toast.error("No customer account found for this email.");
+        return;
       }
-    } catch (error: any) {
-      toast.error(error.message || "Authentication failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+      navigate(customer.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
+    } else {
+      const { data: merchant } = await supabase
+        .from("merchants")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-  const handleMerchantSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) { toast.error(emailResult.error.errors[0].message); return; }
-    const passResult = passwordSchema.safeParse(password);
-    if (!passResult.success) { toast.error(passResult.error.errors[0].message); return; }
-    if (isSignUp) {
-      const nameResult = nameSchema.safeParse(storeName);
-      if (!nameResult.success) { toast.error("Store name is required"); return; }
-    }
-
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        // Sign up — the handle_new_user trigger creates a customer record automatically.
-        // We also create a merchant record.
-        const { error: authError } = await supabase.auth.signUp({
-          email: emailResult.data,
-          password,
-          options: {
-            data: { full_name: storeName.trim(), role: "merchant" },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (authError) throw authError;
-        // Auto-confirmed: sign out and redirect to login
+      if (!merchant) {
         await supabase.auth.signOut();
-        toast.success("Merchant account created! Please sign in.");
-        setIsSignUp(false);
-        resetForm();
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: emailResult.data, password });
-        if (error) throw error;
-
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: merchant } = await supabase
-            .from("merchants")
-            .select("id")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-          if (!merchant) {
-            toast.error("No merchant account found. Please sign up first.");
-            await supabase.auth.signOut();
-            return;
-          }
-          navigate("/merchant/dashboard");
-        }
+        toast.error("No merchant account found for this email.");
+        return;
       }
-    } catch (error: any) {
-      toast.error(error.message || "Authentication failed");
-    } finally {
-      setLoading(false);
+      navigate("/merchant/dashboard");
     }
   };
 
@@ -190,7 +218,7 @@ const GetStarted = () => {
       <div className="absolute top-20 right-0 w-64 h-64 md:w-96 md:h-96 rounded-full bg-secondary/5 blur-3xl -z-10" />
 
       <div className="w-full max-w-md">
-        {/* Logo & Heading */}
+        {/* Logo */}
         <div className="mb-6 text-center animate-fade-up">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
@@ -201,63 +229,81 @@ const GetStarted = () => {
             </span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {authMode === "signup" ? "Create your account" : "Welcome back"}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            {isSignUp ? "Choose your account type to get started" : "Sign in to your account"}
+            {authMode === "signup" ? "Choose your role to get started" : "Sign in to your account"}
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="animate-fade-up-delay-1">
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => { setActiveTab(v); resetForm(); }}
-            className="w-full"
+        {/* Role Selector */}
+        <div className="flex gap-3 mb-4 animate-fade-up">
+          <button
+            type="button"
+            onClick={() => { setRole("customer"); resetForm(); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+              role === "customer"
+                ? "border-primary bg-primary/5 text-primary shadow-sm"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30"
+            }`}
           >
+            <User size={18} />
+            Customer
+          </button>
+          <button
+            type="button"
+            onClick={() => { setRole("merchant"); resetForm(); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+              role === "merchant"
+                ? "border-primary bg-primary/5 text-primary shadow-sm"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30"
+            }`}
+          >
+            <Store size={18} />
+            Merchant
+          </button>
+        </div>
+
+        {/* Auth Mode Tabs */}
+        <div className="animate-fade-up-delay-1">
+          <Tabs value={authMode} onValueChange={(v) => { setAuthMode(v as "signup" | "login"); resetForm(); }} className="w-full">
             <TabsList className="w-full grid grid-cols-2 mb-4">
-              <TabsTrigger value="customer" className="flex items-center gap-2 text-sm">
-                <User size={16} /> Customer
-              </TabsTrigger>
-              <TabsTrigger value="merchant" className="flex items-center gap-2 text-sm">
-                <Store size={16} /> Merchant
-              </TabsTrigger>
+              <TabsTrigger value="signup" className="text-sm">Sign Up</TabsTrigger>
+              <TabsTrigger value="login" className="text-sm">Login</TabsTrigger>
             </TabsList>
 
-            {/* Customer Form */}
-            <TabsContent value="customer">
-              <form onSubmit={handleCustomerSubmit} className="bg-card rounded-2xl p-6 sm:p-8 shadow-card space-y-4">
-                {isSignUp && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="c-name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                      <Input id="c-name" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-10" required />
+            <TabsContent value="signup">
+              <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-5 sm:p-7 shadow-card space-y-3.5">
+                {/* Role-specific signup fields */}
+                {role === "customer" ? (
+                  <>
+                    <FormField id="s-name" label="Full Name" icon={<User size={16} />} value={fullName} onChange={setFullName} placeholder="John Doe" required />
+                    <FormField id="s-email" label="Email" icon={<Mail size={16} />} value={email} onChange={setEmail} placeholder="you@example.com" type="email" required />
+                    <FormField id="s-pass" label="Password" icon={<Lock size={16} />} value={password} onChange={setPassword} placeholder="••••••••" type="password" required />
+                    <FormField id="s-phone" label="Phone (optional)" icon={<Phone size={16} />} value={phone} onChange={setPhone} placeholder="+1 234 567 8900" />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="s-dob">Date of Birth (optional)</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                        <Input id="s-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="pl-10" />
+                      </div>
                     </div>
-                  </div>
+                  </>
+                ) : (
+                  <>
+                    <FormField id="s-store" label="Store Name" icon={<Store size={16} />} value={storeName} onChange={setStoreName} placeholder="My Coffee Shop" required />
+                    <FormField id="s-email" label="Email" icon={<Mail size={16} />} value={email} onChange={setEmail} placeholder="merchant@example.com" type="email" required />
+                    <FormField id="s-pass" label="Password" icon={<Lock size={16} />} value={password} onChange={setPassword} placeholder="••••••••" type="password" required />
+                    <FormField id="s-address" label="Address (optional)" icon={<MapPin size={16} />} value={address} onChange={setAddress} placeholder="123 Main St" />
+                    <FormField id="s-contact" label="Contact Number (optional)" icon={<Phone size={16} />} value={contactNumber} onChange={setContactNumber} placeholder="+1 234 567 8900" />
+                    <FormField id="s-industry" label="Industry Type (optional)" icon={<Briefcase size={16} />} value={industryType} onChange={setIndustryType} placeholder="Café, Retail, Restaurant..." />
+                  </>
                 )}
-                <div className="space-y-1.5">
-                  <Label htmlFor="c-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                    <Input id="c-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" required />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="c-pass">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                    <Input id="c-pass" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required minLength={6} />
-                  </div>
-                </div>
+
                 <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
-                  {loading ? "Please wait..." : isSignUp ? "Create Customer Account" : "Sign In as Customer"}
+                  {loading ? "Please wait..." : role === "customer" ? "Create Customer Account" : "Register Store"}
                 </Button>
-                <div className="text-center">
-                  <button type="button" onClick={() => { setIsSignUp(!isSignUp); resetForm(); }} className="text-sm text-secondary hover:underline">
-                    {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-                  </button>
-                </div>
+
                 <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline">
                   Forgot password?
                 </button>
@@ -267,40 +313,15 @@ const GetStarted = () => {
               </form>
             </TabsContent>
 
-            {/* Merchant Form */}
-            <TabsContent value="merchant">
-              <form onSubmit={handleMerchantSubmit} className="bg-card rounded-2xl p-6 sm:p-8 shadow-card space-y-4">
-                {isSignUp && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="m-name">Store Name</Label>
-                    <div className="relative">
-                      <Store className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                      <Input id="m-name" placeholder="My Coffee Shop" value={storeName} onChange={(e) => setStoreName(e.target.value)} className="pl-10" required />
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-1.5">
-                  <Label htmlFor="m-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                    <Input id="m-email" type="email" placeholder="merchant@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" required />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="m-pass">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                    <Input id="m-pass" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required minLength={6} />
-                  </div>
-                </div>
+            <TabsContent value="login">
+              <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-5 sm:p-7 shadow-card space-y-3.5">
+                <FormField id="l-email" label="Email" icon={<Mail size={16} />} value={email} onChange={setEmail} placeholder="you@example.com" type="email" required />
+                <FormField id="l-pass" label="Password" icon={<Lock size={16} />} value={password} onChange={setPassword} placeholder="••••••••" type="password" required />
+
                 <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
-                  {loading ? "Please wait..." : isSignUp ? "Register Store" : "Sign In as Merchant"}
+                  {loading ? "Please wait..." : role === "customer" ? "Sign In as Customer" : "Sign In as Merchant"}
                 </Button>
-                <div className="text-center">
-                  <button type="button" onClick={() => { setIsSignUp(!isSignUp); resetForm(); }} className="text-sm text-secondary hover:underline">
-                    {isSignUp ? "Already registered? Sign in" : "New merchant? Register your store"}
-                  </button>
-                </div>
+
                 <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline">
                   Forgot password?
                 </button>
@@ -324,5 +345,30 @@ const GetStarted = () => {
     </div>
   );
 };
+
+/* Reusable form field component */
+const FormField = ({
+  id, label, icon, value, onChange, placeholder, type = "text", required = false,
+}: {
+  id: string; label: string; icon: React.ReactNode; value: string;
+  onChange: (v: string) => void; placeholder: string; type?: string; required?: boolean;
+}) => (
+  <div className="space-y-1.5">
+    <Label htmlFor={id}>{label}</Label>
+    <div className="relative">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
+      <Input
+        id={id}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="pl-10"
+        required={required}
+        minLength={type === "password" ? 6 : undefined}
+      />
+    </div>
+  </div>
+);
 
 export default GetStarted;
