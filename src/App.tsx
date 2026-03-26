@@ -5,10 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import GetStarted from "./pages/GetStarted.tsx";
-import CustomerAuth from "./pages/CustomerAuth.tsx";
 import CustomerConfirmation from "./pages/CustomerConfirmation.tsx";
 import AccessCard from "./pages/AccessCard.tsx";
-import MerchantAuth from "./pages/MerchantAuth.tsx";
+
 import MerchantDashboard from "./pages/MerchantDashboard.tsx";
 import MerchantTransactions from "./pages/MerchantTransactions.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -24,10 +23,12 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/get-started" element={<GetStarted />} />
-          <Route path="/customer/auth" element={<CustomerAuth />} />
+          <Route path="/customer/auth" element={<GetStarted />} />
           <Route path="/customer/confirmation" element={<CustomerConfirmation />} />
           <Route path="/customer/access-card" element={<AccessCard />} />
-          <Route path="/merchant/auth" element={<MerchantAuth />} />
+          <Route path="/merchant/auth" element={<GetStarted />} />
+          <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
+          <Route path="/merchant/transactions" element={<MerchantTransactions />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/merchant/transactions" element={<MerchantTransactions />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

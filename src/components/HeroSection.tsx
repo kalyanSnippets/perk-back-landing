@@ -5,7 +5,7 @@ import loyaltyCardImg from "@/assets/loyalty-card.png";
 
 const HeroSection = () => {
   return (
-    <section id="home" className="relative pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden">
+    <section id="home" className="relative pt-20 pb-12 sm:pt-28 sm:pb-20 md:pt-36 md:pb-28 overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-light-blue via-background to-background -z-10" />
       <div className="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-secondary/5 blur-3xl -z-10" />
@@ -25,9 +25,9 @@ const HeroSection = () => {
               Perk Back helps customers earn points, stamps, and perks across partner stores — and
               helps merchants turn first-time buyers into regulars.
             </p>
-            <div className="flex flex-wrap gap-4 mt-8 animate-fade-up-delay-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 animate-fade-up-delay-2">
               <Button variant="hero" size="xl" asChild>
-                <Link to="/get-started">Explore Now</Link>
+                <Link to="/get-started">Sign Up & Get Your Digital Loyalty Card</Link>
               </Button>
               <Button variant="hero-outline" size="xl" asChild>
                 <a href="#how-it-works">See How It Works</a>

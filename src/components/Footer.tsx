@@ -50,7 +50,7 @@ const Footer = () => {
             © 2026 Perk Back. All rights reserved.
           </p>
           <Link to="/get-started" className="text-sm text-accent font-semibold hover:text-accent/80 transition-colors">
-            Get Started →
+            Sign Up / Sign In →
           </Link>
         </div>
       </div>
