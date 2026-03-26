@@ -23,10 +23,12 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/get-started" element={<GetStarted />} />
-          <Route path="/customer/auth" element={<CustomerAuth />} />
+          <Route path="/customer/auth" element={<GetStarted />} />
           <Route path="/customer/confirmation" element={<CustomerConfirmation />} />
           <Route path="/customer/access-card" element={<AccessCard />} />
-          <Route path="/merchant/auth" element={<MerchantAuth />} />
+          <Route path="/merchant/auth" element={<GetStarted />} />
+          <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
+          <Route path="/merchant/transactions" element={<MerchantTransactions />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/merchant/transactions" element={<MerchantTransactions />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
