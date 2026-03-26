@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  ArrowLeft, LogOut, Search, Receipt, Clock, User, CreditCard
+  ArrowLeft, Search, Receipt, Clock, User, CreditCard
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import Header from "@/components/Header";
 
 interface Transaction {
   id: string;
