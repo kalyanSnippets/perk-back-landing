@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import GetStarted from "./pages/GetStarted.tsx";
-import CustomerAuth from "./pages/CustomerAuth.tsx";
+import GetStarted as CustomerAuthRedirect from "./pages/GetStarted.tsx";
 import CustomerConfirmation from "./pages/CustomerConfirmation.tsx";
 import AccessCard from "./pages/AccessCard.tsx";
 import MerchantAuth from "./pages/MerchantAuth.tsx";
