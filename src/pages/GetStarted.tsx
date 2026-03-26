@@ -89,7 +89,7 @@ const GetStarted = () => {
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email: emailResult.data,
           password,
           options: {
@@ -98,8 +98,11 @@ const GetStarted = () => {
           },
         });
         if (error) throw error;
-        toast.success("Account created! Check your email to confirm.");
-        navigate("/customer/confirmation");
+        // Auto-confirmed: sign out and redirect to login
+        await supabase.auth.signOut();
+        toast.success("Account created! Please sign in.");
+        setIsSignUp(false);
+        resetForm();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: emailResult.data, password });
         if (error) throw error;
@@ -149,7 +152,11 @@ const GetStarted = () => {
           },
         });
         if (authError) throw authError;
-        toast.success("Merchant account created! Check your email to confirm.");
+        // Auto-confirmed: sign out and redirect to login
+        await supabase.auth.signOut();
+        toast.success("Merchant account created! Please sign in.");
+        setIsSignUp(false);
+        resetForm();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: emailResult.data, password });
         if (error) throw error;

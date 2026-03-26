@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
-import loyaltyCardImg from "@/assets/loyalty-card.png";
+import loyaltyCardImg from "@/assets/loyalty-card-v2.png";
 
 const HeroSection = () => {
   return (
