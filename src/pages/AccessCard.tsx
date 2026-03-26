@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  LogOut, Star, Calendar, Hash, User, CreditCard,
+  Star, Calendar, Hash, User, CreditCard,
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2, Wallet
 } from "lucide-react";
@@ -13,8 +13,9 @@ import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 import StarRating from "@/components/StarRating";
 import { MessageSquare } from "lucide-react";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import Header from "@/components/Header";
 
 /* ── Write a Review Section ── */
 const WriteReviewSection = ({ customerName }: { customerName: string }) => {
@@ -117,20 +118,20 @@ const AccessCard = () => {
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, user } = useAuth();
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/get-started"); return; }
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) { navigate("/get-started"); return; }
 
     const { data: customerData, error } = await supabase
       .from("customers")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", authUser.id)
       .maybeSingle();
 
     if (error || !customerData) { navigate("/get-started"); return; }
@@ -147,12 +148,6 @@ const AccessCard = () => {
     setTransactions(txData || []);
     setLoading(false);
     setTimeout(() => setPointsVisible(true), 300);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out successfully");
-    navigate("/get-started");
   };
 
   const handleCopy = (label: string, value: string) => {
@@ -208,24 +203,14 @@ const AccessCard = () => {
 
   return (
     <div className="min-h-screen bg-muted/20">
+      <Header />
       {/* Gradient backdrop */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
         <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
-        <div className="container mx-auto flex items-center justify-between h-14 px-4">
-          <img src={perkbackLogo} alt="Perk Back" className="h-8 w-auto" />
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground hover:text-foreground">
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Logout</span>
-          </Button>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6 max-w-lg space-y-5 pb-20">
+      <div className="container mx-auto px-4 py-6 max-w-lg space-y-5 pb-20 pt-20 sm:pt-24">
 
         {/* ─── Loyalty Card ─── */}
         <ScrollReveal>
@@ -530,18 +515,6 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Logout ─── */}
-        <div className="pt-2 pb-4">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleLogout}
-            className="w-full gap-2 text-muted-foreground border-border/50 hover:bg-muted/50"
-          >
-            <LogOut size={16} />
-            Sign Out
-          </Button>
-        </div>
       </div>
     </div>
   );

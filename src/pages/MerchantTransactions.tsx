@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  ArrowLeft, LogOut, Search, Receipt, Clock, User, CreditCard
+  ArrowLeft, Search, Receipt, Clock, User, CreditCard
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import Header from "@/components/Header";
 
 interface Transaction {
   id: string;
@@ -95,11 +96,7 @@ const MerchantTransactions = () => {
     setLoading(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out");
-    navigate("/merchant/auth");
-  };
+  // Logout handled by Header
 
   if (loading) {
     return (
@@ -114,28 +111,18 @@ const MerchantTransactions = () => {
 
   return (
     <div className="min-h-screen bg-muted/20">
+      <Header />
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
-        <div className="container mx-auto flex items-center justify-between h-14 px-4 lg:px-8">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-              <Link to="/merchant/dashboard">
-                <ArrowLeft size={16} />
-              </Link>
-            </Button>
-            <span className="text-lg font-bold text-foreground">Transactions</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground hover:text-foreground">
-            <LogOut size={16} />
+      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-3xl space-y-4 pb-20 pt-20 sm:pt-24">
+        <div className="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+            <Link to="/merchant/dashboard"><ArrowLeft size={16} /></Link>
           </Button>
+          <span className="text-lg font-bold text-foreground">Transactions</span>
         </div>
-      </header>
-
-      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-3xl space-y-4 pb-20">
         {/* Search */}
         <ScrollReveal>
           <div className="relative">

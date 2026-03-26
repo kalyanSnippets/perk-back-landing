@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import GetStarted from "./pages/GetStarted.tsx";
 import CustomerConfirmation from "./pages/CustomerConfirmation.tsx";
@@ -29,27 +31,61 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/get-started" element={<GetStarted />} />
-          <Route path="/customer/auth" element={<GetStarted />} />
-          <Route path="/customer/confirmation" element={<CustomerConfirmation />} />
-          <Route path="/customer/access-card" element={<AccessCard />} />
-          <Route path="/merchant/auth" element={<GetStarted />} />
-          <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
-          <Route path="/merchant/transactions" element={<MerchantTransactions />} />
-          <Route path="/merchant/settings" element={<MerchantSettings />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/contact" element={<ContactUs />} />
-          <Route path="/testimonials" element={<TestimonialsPage />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogPost />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* Public pages */}
+            <Route path="/" element={<Index />} />
+            <Route path="/get-started" element={<GetStarted />} />
+            <Route path="/customer/auth" element={<GetStarted />} />
+            <Route path="/merchant/auth" element={<GetStarted />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/testimonials" element={<TestimonialsPage />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+
+            {/* Protected: Customer */}
+            <Route path="/customer/confirmation" element={
+              <ProtectedRoute requiredRole="customer">
+                <CustomerConfirmation />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/access-card" element={
+              <ProtectedRoute requiredRole="customer">
+                <AccessCard />
+              </ProtectedRoute>
+            } />
+
+            {/* Protected: Merchant */}
+            <Route path="/merchant/dashboard" element={
+              <ProtectedRoute requiredRole="merchant">
+                <MerchantDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/merchant/transactions" element={
+              <ProtectedRoute requiredRole="merchant">
+                <MerchantTransactions />
+              </ProtectedRoute>
+            } />
+            <Route path="/merchant/settings" element={
+              <ProtectedRoute requiredRole="merchant">
+                <MerchantSettings />
+              </ProtectedRoute>
+            } />
+
+            {/* Protected: Admin */}
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminPanel />
+              </ProtectedRoute>
+            } />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

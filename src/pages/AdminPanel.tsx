@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,7 +63,7 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").repla
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const { isAdmin, loading: roleLoading } = useIsAdmin();
+  const { isAdmin, loading: roleLoading } = useAuth();
 
   /* ── Blog state ── */
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -103,7 +103,7 @@ const AdminPanel = () => {
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) { navigate("/"); return; }
-    if (isAdmin) { fetchBlogs(); fetchTestimonials(); fetchContacts(); }
+    if (!roleLoading && isAdmin) { fetchBlogs(); fetchTestimonials(); fetchContacts(); }
   }, [isAdmin, roleLoading, navigate, fetchBlogs, fetchTestimonials, fetchContacts]);
 
   /* ── Blog CRUD ── */
