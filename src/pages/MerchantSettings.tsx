@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
 import ScrollReveal from "@/components/ScrollReveal";
+import Header from "@/components/Header";
 
 interface MerchantData {
   id: string;
