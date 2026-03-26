@@ -420,6 +420,11 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
+        {/* ─── Write a Review ─── */}
+        <ScrollReveal delay={275}>
+          <WriteReviewSection customerName={customer?.full_name || ""} />
+        </ScrollReveal>
+
         {/* ─── Ways to Claim Points ─── */}
         <ScrollReveal delay={300}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
