@@ -8,7 +8,7 @@ export const useIsAdmin = () => {
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      if (!user) { setIsAdmin(false); setLoading(false); return; }
 
       const { data } = await supabase
         .from("user_roles")
@@ -20,7 +20,14 @@ export const useIsAdmin = () => {
       setIsAdmin(!!data);
       setLoading(false);
     };
+
     check();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      check();
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return { isAdmin, loading };
