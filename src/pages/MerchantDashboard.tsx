@@ -11,6 +11,7 @@ import {
   CheckCircle, X
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import perkbackLogo from "@/assets/perkback-logo.png";
 
 interface MerchantData {
   id: string;
@@ -146,7 +147,7 @@ const MerchantDashboard = () => {
     { label: "Add Points", icon: Plus, onClick: () => setShowAddPoints(true), primary: true },
     { label: "Transactions", icon: List, onClick: () => navigate("/merchant/transactions"), primary: false },
     { label: "Reports", icon: BarChart3, onClick: () => toast.info("Reports coming soon"), primary: false },
-    { label: "Settings", icon: Settings, onClick: () => toast.info("Settings coming soon"), primary: false },
+    { label: "Settings", icon: Settings, onClick: () => navigate("/merchant/settings"), primary: false },
   ];
 
   return (
@@ -158,14 +159,7 @@ const MerchantDashboard = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
         <div className="container mx-auto flex items-center justify-between h-14 px-4 lg:px-8">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">P</span>
-            </div>
-            <span className="text-lg font-bold text-foreground">
-              Perk <span className="text-secondary">Back</span>
-            </span>
-          </div>
+          <img src={perkbackLogo} alt="Perk Back" className="h-8 w-auto" />
           <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground hover:text-foreground">
             <LogOut size={16} />
             <span className="hidden sm:inline">Logout</span>

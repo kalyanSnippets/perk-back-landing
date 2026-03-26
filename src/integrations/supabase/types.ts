@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      blogs: {
+        Row: {
+          author_name: string | null
+          content: string
+          created_at: string
+          excerpt: string | null
+          featured_image_url: string | null
+          id: string
+          is_published: boolean
+          published_at: string | null
+          slug: string
+          title: string
+        }
+        Insert: {
+          author_name?: string | null
+          content: string
+          created_at?: string
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          slug: string
+          title: string
+        }
+        Update: {
+          author_name?: string | null
+          content?: string
+          created_at?: string
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          slug?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           card_issued_at: string | null
@@ -63,6 +129,7 @@ export type Database = {
           created_at: string
           id: string
           industry_type: string | null
+          profile_image_url: string | null
           store_name: string
           updated_at: string
           user_id: string
@@ -73,6 +140,7 @@ export type Database = {
           created_at?: string
           id?: string
           industry_type?: string | null
+          profile_image_url?: string | null
           store_name: string
           updated_at?: string
           user_id: string
@@ -83,9 +151,46 @@ export type Database = {
           created_at?: string
           id?: string
           industry_type?: string | null
+          profile_image_url?: string | null
           store_name?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      testimonials: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          id: string
+          is_published: boolean
+          message: string
+          name: string
+          profile_image_url: string | null
+          rating: number | null
+          role: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          message: string
+          name: string
+          profile_image_url?: string | null
+          rating?: number | null
+          role?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          message?: string
+          name?: string
+          profile_image_url?: string | null
+          rating?: number | null
+          role?: string | null
         }
         Relationships: []
       }

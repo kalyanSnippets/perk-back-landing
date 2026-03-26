@@ -12,6 +12,12 @@ import AboutUs from "./pages/AboutUs.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import MerchantDashboard from "./pages/MerchantDashboard.tsx";
 import MerchantTransactions from "./pages/MerchantTransactions.tsx";
+import MerchantSettings from "./pages/MerchantSettings.tsx";
+import ContactUs from "./pages/ContactUs.tsx";
+import TestimonialsPage from "./pages/TestimonialsPage.tsx";
+import Pricing from "./pages/Pricing.tsx";
+import Blog from "./pages/Blog.tsx";
+import BlogPost from "./pages/BlogPost.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -31,9 +37,15 @@ const App = () => (
           <Route path="/merchant/auth" element={<GetStarted />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/merchant/transactions" element={<MerchantTransactions />} />
+          <Route path="/merchant/settings" element={<MerchantSettings />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/testimonials" element={<TestimonialsPage />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

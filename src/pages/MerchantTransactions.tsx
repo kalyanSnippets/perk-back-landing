@@ -42,7 +42,8 @@ const MerchantTransactions = () => {
       transactions.filter(
         (tx) =>
           (tx.customer_name || "").toLowerCase().includes(q) ||
-          (tx.loyalty_card_number || "").includes(q)
+          (tx.loyalty_card_number || "").includes(q) ||
+          tx.id.toLowerCase().includes(q)
       )
     );
   }, [search, transactions]);
