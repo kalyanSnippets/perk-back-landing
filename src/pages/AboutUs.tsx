@@ -18,9 +18,7 @@ const AboutUs = () => {
           <ScrollReveal>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground leading-tight">
               About{" "}
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Perk Back
-              </span>
+              <img src={perkbackLogo} alt="Perk Back" className="h-8 sm:h-10 w-auto inline align-middle" />
             </h1>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
               Perk Back is a modern loyalty platform that connects customers and local businesses.

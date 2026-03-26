@@ -255,13 +255,8 @@ const GetStarted = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-6 text-center animate-fade-up">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">P</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground">
-              Perk <span className="text-secondary">Back</span>
-            </span>
+          <Link to="/" className="inline-block mb-4">
+            <img src={perkbackLogo} alt="Perk Back" className="h-10 sm:h-12 w-auto mx-auto" />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             {authMode === "signup" ? "Create your account" : "Welcome back"}
