@@ -510,6 +510,26 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
+        {/* ─── Admin Panel ─── */}
+        {isAdmin && (
+          <ScrollReveal>
+            <Link to="/admin" className="block">
+              <div className="bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl p-5 sm:p-6 border border-accent/20 flex items-center justify-between hover:border-accent/40 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+                    <Shield size={20} className="text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Admin Panel</p>
+                    <p className="text-xs text-muted-foreground">Manage blogs, testimonials & messages</p>
+                  </div>
+                </div>
+                <ArrowRight size={18} className="text-accent" />
+              </div>
+            </Link>
+          </ScrollReveal>
+        )}
+
         {/* ─── Logout ─── */}
         <div className="pt-2 pb-4">
           <Button
