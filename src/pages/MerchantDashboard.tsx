@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
-  LogOut, Users, Receipt, Star, DollarSign,
+  Users, Receipt, Star, DollarSign,
   Plus, List, BarChart3, Settings, CreditCard,
   CheckCircle, X
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import perkbackLogo from "@/assets/perkback-logo.png";
+import Header from "@/components/Header";
 
 interface MerchantData {
   id: string;
