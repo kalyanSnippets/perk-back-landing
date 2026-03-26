@@ -118,7 +118,7 @@ const AccessCard = () => {
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, user } = useAuth();
 
   useEffect(() => {
     fetchData();
