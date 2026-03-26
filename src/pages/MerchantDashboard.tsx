@@ -118,11 +118,7 @@ const MerchantDashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out");
-    navigate("/merchant/auth");
-  };
+  // Logout handled by Header
 
   if (loading) {
     return (
