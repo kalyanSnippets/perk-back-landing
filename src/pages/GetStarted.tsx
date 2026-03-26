@@ -23,6 +23,23 @@ const GetStarted = () => {
   const [fullName, setFullName] = useState("");
   const [storeName, setStoreName] = useState("");
 
+  const handleForgotPassword = async () => {
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailResult.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your email.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send reset link");
+    }
+  };
+
   // Check if user is already logged in
   useEffect(() => {
     const checkSession = async () => {
