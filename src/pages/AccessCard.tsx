@@ -125,13 +125,13 @@ const AccessCard = () => {
   }, []);
 
   const fetchData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/get-started"); return; }
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) { navigate("/get-started"); return; }
 
     const { data: customerData, error } = await supabase
       .from("customers")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", authUser.id)
       .maybeSingle();
 
     if (error || !customerData) { navigate("/get-started"); return; }
@@ -148,12 +148,6 @@ const AccessCard = () => {
     setTransactions(txData || []);
     setLoading(false);
     setTimeout(() => setPointsVisible(true), 300);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out successfully");
-    navigate("/get-started");
   };
 
   const handleCopy = (label: string, value: string) => {
