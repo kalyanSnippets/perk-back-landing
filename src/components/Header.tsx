@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
 
+
 const navLinks = [
   { label: "Home", href: "#home" },
   { label: "How It Works", href: "#how-it-works" },
