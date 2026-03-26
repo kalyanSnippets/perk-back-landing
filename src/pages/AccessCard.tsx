@@ -13,6 +13,8 @@ import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 import StarRating from "@/components/StarRating";
 import { MessageSquare } from "lucide-react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { Link } from "react-router-dom";
 
 /* ── Write a Review Section ── */
 const WriteReviewSection = ({ customerName }: { customerName: string }) => {
