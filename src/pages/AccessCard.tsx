@@ -8,6 +8,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2, Wallet
 } from "lucide-react";
+import perkbackLogo from "@/assets/perkback-logo.png";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 
