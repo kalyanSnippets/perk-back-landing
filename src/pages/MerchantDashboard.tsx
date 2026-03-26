@@ -11,6 +11,7 @@ import {
   CheckCircle, X
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import perkbackLogo from "@/assets/perkback-logo.png";
 
 interface MerchantData {
   id: string;
