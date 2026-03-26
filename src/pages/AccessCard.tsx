@@ -304,7 +304,8 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Coffee Stamps ─── */}
+        {/* ─── Coffee Stamps (hidden temporarily) ─── */}
+        {false && (
         <ScrollReveal delay={150}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
             <div className="flex items-center justify-between mb-4">
@@ -346,6 +347,7 @@ const AccessCard = () => {
             </p>
           </div>
         </ScrollReveal>
+        )}
 
         {/* ─── Points Earned (Transactions) ─── */}
         <ScrollReveal delay={200}>
