@@ -8,6 +8,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2, Wallet
 } from "lucide-react";
+import perkbackLogo from "@/assets/perkback-logo.png";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 
@@ -186,7 +187,7 @@ const AccessCard = () => {
               <div className="flex items-start justify-between mb-4 sm:mb-5">
                 <div>
                   <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.2em] mb-0.5">Digital Loyalty Card</p>
-                  <h2 className="text-lg sm:text-xl font-bold text-primary-foreground">Perk Back</h2>
+                  <img src={perkbackLogo} alt="Perk Back" className="h-6 sm:h-7 w-auto brightness-0 invert" />
                 </div>
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/90 flex items-center justify-center shadow-lg">
                   <Star className="text-accent-foreground" size={16} />

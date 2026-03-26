@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Sparkles, CreditCard } from "lucide-react";
+import perkbackLogo from "@/assets/perkback-logo.png";
 
 const CustomerConfirmation = () => {
   const navigate = useNavigate();
@@ -105,7 +106,7 @@ const CustomerConfirmation = () => {
           <Sparkles className="text-accent-foreground" size={40} />
         </div>
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 animate-fade-up-delay-1">
-          Welcome to <span className="text-secondary">Perk Back!</span>
+          Welcome to <img src={perkbackLogo} alt="Perk Back" className="h-8 sm:h-9 w-auto inline" />!
         </h1>
         <p className="text-lg text-muted-foreground mb-10 animate-fade-up-delay-2">
           Your loyalty journey starts now. Generate your digital loyalty card to start earning
