@@ -103,7 +103,7 @@ const AdminPanel = () => {
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) { navigate("/"); return; }
-    if (isAdmin) { fetchBlogs(); fetchTestimonials(); fetchContacts(); }
+    if (!roleLoading && isAdmin) { fetchBlogs(); fetchTestimonials(); fetchContacts(); }
   }, [isAdmin, roleLoading, navigate, fetchBlogs, fetchTestimonials, fetchContacts]);
 
   /* ── Blog CRUD ── */
