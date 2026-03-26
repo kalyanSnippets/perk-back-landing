@@ -20,15 +20,16 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-primary-foreground/50">Product</h4>
             <ul className="space-y-2.5 text-sm text-primary-foreground/70">
-              <li><a href="#how-it-works" className="hover:text-primary-foreground transition-colors">How It Works</a></li>
-              <li><a href="#rewards" className="hover:text-primary-foreground transition-colors">Rewards</a></li>
-              <li><a href="#benefits" className="hover:text-primary-foreground transition-colors">For Merchants</a></li>
+              <li><Link to="/pricing" className="hover:text-primary-foreground transition-colors">Pricing</Link></li>
+              <li><Link to="/blog" className="hover:text-primary-foreground transition-colors">Blog</Link></li>
+              <li><Link to="/testimonials" className="hover:text-primary-foreground transition-colors">Testimonials</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-primary-foreground/50">Company</h4>
             <ul className="space-y-2.5 text-sm text-primary-foreground/70">
-              <li><Link to="/about" className="hover:text-primary-foreground transition-colors">About</Link></li>
+              <li><Link to="/about" className="hover:text-primary-foreground transition-colors">About Us</Link></li>
+              <li><Link to="/contact" className="hover:text-primary-foreground transition-colors">Contact Us</Link></li>
               <li><Link to="/privacy" className="hover:text-primary-foreground transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>

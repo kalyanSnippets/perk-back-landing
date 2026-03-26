@@ -146,7 +146,7 @@ const MerchantDashboard = () => {
     { label: "Add Points", icon: Plus, onClick: () => setShowAddPoints(true), primary: true },
     { label: "Transactions", icon: List, onClick: () => navigate("/merchant/transactions"), primary: false },
     { label: "Reports", icon: BarChart3, onClick: () => toast.info("Reports coming soon"), primary: false },
-    { label: "Settings", icon: Settings, onClick: () => toast.info("Settings coming soon"), primary: false },
+    { label: "Settings", icon: Settings, onClick: () => navigate("/merchant/settings"), primary: false },
   ];
 
   return (

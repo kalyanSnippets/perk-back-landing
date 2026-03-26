@@ -6,11 +6,12 @@ import perkbackLogo from "@/assets/perkback-logo.png";
 
 
 const navLinks = [
-  { label: "Home", href: "#home" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Rewards", href: "#rewards" },
-  { label: "About", href: "/about", isRoute: true },
-  { label: "Contact", href: "#contact" },
+  { label: "Home", href: "/", isRoute: true },
+  { label: "About Us", href: "/about", isRoute: true },
+  { label: "Pricing", href: "/pricing", isRoute: true },
+  { label: "Testimonials", href: "/testimonials", isRoute: true },
+  { label: "Blog", href: "/blog", isRoute: true },
+  { label: "Contact Us", href: "/contact", isRoute: true },
 ];
 
 const Header = () => {
