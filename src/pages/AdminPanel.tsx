@@ -63,7 +63,7 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").repla
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const { isAdmin, loading: roleLoading } = useIsAdmin();
+  const { isAdmin, loading: roleLoading } = useAuth();
 
   /* ── Blog state ── */
   const [blogs, setBlogs] = useState<Blog[]>([]);
