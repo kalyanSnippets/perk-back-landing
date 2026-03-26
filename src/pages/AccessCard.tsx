@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  LogOut, Star, Calendar, Hash, User, CreditCard,
+  Star, Calendar, Hash, User, CreditCard,
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2, Wallet
 } from "lucide-react";
@@ -13,8 +13,9 @@ import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 import StarRating from "@/components/StarRating";
 import { MessageSquare } from "lucide-react";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import Header from "@/components/Header";
 
 /* ── Write a Review Section ── */
 const WriteReviewSection = ({ customerName }: { customerName: string }) => {
