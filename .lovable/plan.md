@@ -1,37 +1,26 @@
 
 
-## Problem
+## Replace Perk Back Logo
 
-The signup flow calls `supabase.auth.signUp()` for merchant registration, but the email already exists as a customer account. Supabase returns `422: User already registered`. The code doesn't handle this gracefully.
+Replace the current text+icon logo with the uploaded logo image across all components.
 
-## Solution
+### Steps
 
-Modify the signup handler in `GetStarted.tsx` to handle the "user already exists" scenario:
+1. **Copy the uploaded logo** to `src/assets/perkback-logo.png`
 
-### Changes to `src/pages/GetStarted.tsx`
+2. **Update `src/components/Header.tsx`** (lines 23-28)
+   - Remove the gradient square div and "Perk Back" text
+   - Replace with `<img>` using the imported logo, sized ~h-8 to h-10
 
-1. **In `handleSignUp`**: Catch the "User already registered" error (status 422 / error code `user_already_exists`)
-2. **When caught**: Automatically attempt to sign the user in with their password, then create the missing profile (merchant or customer) for them
-3. **Show a helpful message**: e.g. "Account exists — we've added your merchant profile. Redirecting..."
+3. **Update `src/components/Footer.tsx`** (lines 10-14)
+   - Remove the accent square div and "Perk Back" text
+   - Replace with `<img>` using the logo, with a brightness/invert filter for dark background visibility
 
-### Detailed logic change in `handleSignUp`:
+4. **Keep text references** like "Perk Back" in body copy (hero description, testimonials, copyright) — those are content, not branding elements
 
-```
-try signUp(email, password, metadata)
-if error.message includes "User already registered":
-  → sign in with email + password
-  → check if the role-specific profile exists
-  → if not, create it (e.g. insert into merchants table)
-  → redirect to appropriate dashboard
-  → toast: "Merchant profile added to your existing account!"
-else if other error:
-  → throw as before
-```
-
-### Migration: None needed
-
-The `merchants` table already has an INSERT RLS policy (`auth.uid() = user_id`), and the user will be authenticated at the point of insert, so no DB changes are required.
-
-### Files modified
-- `src/pages/GetStarted.tsx` — update `handleSignUp` to handle existing user case
+### Technical Details
+- Import as ES6 module: `import perkbackLogo from "@/assets/perkback-logo.png"`
+- Logo has transparent background, works well on light backgrounds
+- For the dark footer, apply a CSS filter or use a white-background wrapper
+- Logo aspect ratio is roughly 3:1, so constrain by height (~32-40px in header)
 
