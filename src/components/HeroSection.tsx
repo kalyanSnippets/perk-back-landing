@@ -27,7 +27,7 @@ const HeroSection = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 animate-fade-up-delay-2">
               <Button variant="hero" size="xl" asChild>
-                <Link to="/get-started">Sign Up & Get Your Digital Loyalty Card</Link>
+                <Link to="/get-started">Explore Now</Link>
               </Button>
               <Button variant="hero-outline" size="xl" asChild>
                 <a href="#how-it-works">See How It Works</a>

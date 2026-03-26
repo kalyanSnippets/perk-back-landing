@@ -23,6 +23,23 @@ const GetStarted = () => {
   const [fullName, setFullName] = useState("");
   const [storeName, setStoreName] = useState("");
 
+  const handleForgotPassword = async () => {
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailResult.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your email.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send reset link");
+    }
+  };
+
   // Check if user is already logged in
   useEffect(() => {
     const checkSession = async () => {
@@ -123,7 +140,7 @@ const GetStarted = () => {
       if (isSignUp) {
         // Sign up — the handle_new_user trigger creates a customer record automatically.
         // We also create a merchant record.
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { error: authError } = await supabase.auth.signUp({
           email: emailResult.data,
           password,
           options: {
@@ -132,13 +149,6 @@ const GetStarted = () => {
           },
         });
         if (authError) throw authError;
-
-        if (authData.user) {
-          const { error: merchantError } = await supabase
-            .from("merchants")
-            .insert({ user_id: authData.user.id, store_name: storeName.trim() });
-          if (merchantError) throw merchantError;
-        }
         toast.success("Merchant account created! Check your email to confirm.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: emailResult.data, password });
@@ -241,6 +251,9 @@ const GetStarted = () => {
                     {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
                   </button>
                 </div>
+                <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline">
+                  Forgot password?
+                </button>
                 <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                   <ShieldCheck size={12} /> Your data is securely encrypted
                 </p>
@@ -281,6 +294,9 @@ const GetStarted = () => {
                     {isSignUp ? "Already registered? Sign in" : "New merchant? Register your store"}
                   </button>
                 </div>
+                <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline">
+                  Forgot password?
+                </button>
                 <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                   <ShieldCheck size={12} /> Your data is securely encrypted
                 </p>
