@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import perkbackLogo from "@/assets/perkback-logo.png";
 
 const Footer = () => {
   return (
