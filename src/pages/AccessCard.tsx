@@ -11,6 +11,63 @@ import {
 import perkbackLogo from "@/assets/perkback-logo.png";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
+import StarRating from "@/components/StarRating";
+import { MessageSquare } from "lucide-react";
+
+/* ── Write a Review Section ── */
+const WriteReviewSection = ({ customerName }: { customerName: string }) => {
+  const [message, setMessage] = useState("");
+  const [rating, setRating] = useState(5);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!message.trim()) { toast.error("Please write a review"); return; }
+    setSubmitting(true);
+    const { error } = await supabase.from("testimonials").insert({
+      name: customerName || "Anonymous",
+      message: message.trim(),
+      rating,
+      is_published: false,
+    });
+    setSubmitting(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Thank you! Your testimonial will be reviewed.");
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
+        <MessageSquare size={24} className="mx-auto text-accent mb-2" />
+        <p className="text-sm font-semibold text-foreground">Review Submitted!</p>
+        <p className="text-xs text-muted-foreground mt-1">It will appear on the site once approved.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+      <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+        <MessageSquare size={16} className="text-secondary" />
+        Write a Review
+      </h3>
+      <div className="space-y-3">
+        <StarRating rating={rating} onChange={setRating} />
+        <textarea
+          placeholder="Tell us about your experience..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="w-full rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[80px] resize-none"
+          maxLength={500}
+        />
+        <Button onClick={handleSubmit} disabled={submitting} size="sm" className="gap-2">
+          {submitting ? "Submitting..." : "Submit Review"}
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 interface CustomerData {
   id: string;

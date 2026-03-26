@@ -96,6 +96,11 @@ const Header = () => {
                 </a>
               )
             )}
+            {isAdmin && (
+              <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-base font-medium text-accent hover:text-accent-foreground transition-colors py-1">
+                Admin Panel
+              </Link>
+            )}
             <Button variant="hero" size="lg" className="mt-2" asChild>
               <Link to="/get-started" onClick={() => setMobileOpen(false)}>Sign Up / Sign In</Link>
             </Button>

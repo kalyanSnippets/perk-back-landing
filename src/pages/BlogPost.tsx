@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import DOMPurify from "dompurify";
 
 interface BlogData {
   id: string;
