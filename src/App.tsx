@@ -18,6 +18,7 @@ import TestimonialsPage from "./pages/TestimonialsPage.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import Blog from "./pages/Blog.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
+import AdminPanel from "./pages/AdminPanel.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
