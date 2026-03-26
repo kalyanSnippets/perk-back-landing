@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Lock, ArrowLeft } from "lucide-react";
+import perkbackLogo from "@/assets/perkback-logo.png";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
