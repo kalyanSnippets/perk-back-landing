@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import perkbackLogo from "@/assets/perkback-logo.png";
 
 const navLinks = [
   { label: "Home", href: "#home" },
@@ -18,13 +19,8 @@ const Header = () => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
       <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 px-4 lg:px-8">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">P</span>
-          </div>
-          <span className="text-lg sm:text-xl font-bold text-foreground">
-            Perk <span className="text-secondary">Back</span>
-          </span>
+        <Link to="/" className="shrink-0">
+          <img src={perkbackLogo} alt="Perk Back" className="h-9 sm:h-10 w-auto" />
         </Link>
 
         {/* Desktop Nav */}

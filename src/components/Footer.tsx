@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import perkbackLogo from "@/assets/perkback-logo.png";
 
 const Footer = () => {
   return (
@@ -7,11 +8,8 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                <span className="text-accent-foreground font-bold text-sm">P</span>
-              </div>
-              <span className="text-xl font-bold">Perk Back</span>
+            <div className="mb-4">
+              <img src={perkbackLogo} alt="Perk Back" className="h-9 w-auto brightness-0 invert" />
             </div>
             <p className="text-sm text-primary-foreground/70 leading-relaxed">
               Earn rewards everywhere. One card. One wallet.
