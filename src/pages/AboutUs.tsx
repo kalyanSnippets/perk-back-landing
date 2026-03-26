@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, Users, Store, Shield, Heart, Zap } from "lucide-react";
+import perkbackLogo from "@/assets/perkback-logo.png";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
