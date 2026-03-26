@@ -515,18 +515,6 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Logout ─── */}
-        <div className="pt-2 pb-4">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleLogout}
-            className="w-full gap-2 text-muted-foreground border-border/50 hover:bg-muted/50"
-          >
-            <LogOut size={16} />
-            Sign Out
-          </Button>
-        </div>
       </div>
     </div>
   );

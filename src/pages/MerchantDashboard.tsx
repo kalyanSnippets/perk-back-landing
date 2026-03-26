@@ -149,22 +149,12 @@ const MerchantDashboard = () => {
 
   return (
     <div className="min-h-screen bg-muted/20">
+      <Header />
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
-        <div className="container mx-auto flex items-center justify-between h-14 px-4 lg:px-8">
-          <img src={perkbackLogo} alt="Perk Back" className="h-8 w-auto" />
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground hover:text-foreground">
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Logout</span>
-          </Button>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-3xl space-y-6 pb-20">
+      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-3xl space-y-6 pb-20 pt-20 sm:pt-24">
         {/* Store Title */}
         <ScrollReveal>
           <div>
