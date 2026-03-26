@@ -152,7 +152,11 @@ const GetStarted = () => {
           },
         });
         if (authError) throw authError;
-        toast.success("Merchant account created! Check your email to confirm.");
+        // Auto-confirmed: sign out and redirect to login
+        await supabase.auth.signOut();
+        toast.success("Merchant account created! Please sign in.");
+        setIsSignUp(false);
+        resetForm();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: emailResult.data, password });
         if (error) throw error;

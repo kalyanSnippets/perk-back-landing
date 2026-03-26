@@ -93,7 +93,7 @@ const Header = () => {
               )
             )}
             <Button variant="hero" size="lg" className="mt-2" asChild>
-              <Link to="/get-started" onClick={() => setMobileOpen(false)}>Explore Now</Link>
+              <Link to="/get-started" onClick={() => setMobileOpen(false)}>Sign Up / Sign In</Link>
             </Button>
           </nav>
         </div>
