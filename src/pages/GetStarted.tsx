@@ -123,7 +123,7 @@ const GetStarted = () => {
       if (isSignUp) {
         // Sign up — the handle_new_user trigger creates a customer record automatically.
         // We also create a merchant record.
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { error: authError } = await supabase.auth.signUp({
           email: emailResult.data,
           password,
           options: {
@@ -132,13 +132,6 @@ const GetStarted = () => {
           },
         });
         if (authError) throw authError;
-
-        if (authData.user) {
-          const { error: merchantError } = await supabase
-            .from("merchants")
-            .insert({ user_id: authData.user.id, store_name: storeName.trim() });
-          if (merchantError) throw merchantError;
-        }
         toast.success("Merchant account created! Check your email to confirm.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: emailResult.data, password });
