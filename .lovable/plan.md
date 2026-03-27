@@ -1,50 +1,54 @@
 
 
-## Fix Admin Panel Access — Two Bugs
+## Unified Login + Role-Based Signup + Role Chooser + Account Switcher
 
-### Bug 1: RLS chicken-and-egg on `user_roles`
+### Overview
 
-The only SELECT policy on `user_roles` is "Admins can view user_roles" which uses `has_role(auth.uid(), 'admin')`. But `has_role` is a `SECURITY DEFINER` function that queries `user_roles` directly — it bypasses RLS. So `has_role` works fine.
+Restructure the GetStarted page so there's **one unified login form** (email + password only, no role selection) and **two separate signup forms** (Customer / Merchant with role-specific fields). After login, auto-detect roles and redirect accordingly. If user has both roles, show a role chooser page. Nav shows both role links for dual-account users.
 
-However, `useIsAdmin` does a **direct client query** via `supabase.from("user_roles").select(...)`, which goes through RLS. Since the only SELECT policy requires `has_role(auth.uid(), 'admin')`, and that function works via security definer, this should actually work — BUT only for users who ARE admin. Let me re-examine...
+---
 
-Actually, `has_role` is `SECURITY DEFINER` so it bypasses RLS. The RLS policy `USING (has_role(auth.uid(), 'admin'))` calls this function which succeeds for admin users. So the direct query from `useIsAdmin` should return the row for Kalyan.
+### Changes
 
-The real issue may be simpler: the hook only runs once on mount, before auth is ready.
+#### 1. Restructure `src/pages/GetStarted.tsx`
 
-### Bug 2: Hook doesn't react to auth changes (confirmed root cause)
+**Login tab:**
+- Remove the Customer/Merchant role selector when in login mode
+- Show only email + password + forgot password
+- After successful login, auto-detect role:
+  - Check both `merchants` and `customers` tables
+  - If **both** exist → navigate to `/choose-role`
+  - If only merchant → `/merchant/dashboard`
+  - If only customer with loyalty card → `/customer/access-card`
+  - If only customer without card → `/customer/confirmation`
+  - If neither → sign out + error
 
-`useIsAdmin` uses `useEffect([], [])` — runs once on mount. If Header mounts before the Supabase session is restored from localStorage, `getUser()` returns null, `isAdmin` stays false, and it never re-checks.
+**Signup tab:**
+- Keep the Customer/Merchant role selector (only visible during signup)
+- Customer signup: full name, email, password, phone, DOB
+- Merchant signup: store name, email, password, address, contact, industry
 
-### Fix
+#### 2. Create `src/pages/ChooseRole.tsx`
 
-**Migration** — Add a self-lookup SELECT policy as defense-in-depth:
-```sql
-CREATE POLICY "Users can view own roles"
-ON public.user_roles FOR SELECT
-TO authenticated
-USING (auth.uid() = user_id);
-```
+- Simple page with two cards: "Continue as Customer" and "Continue as Merchant"
+- Customer card → `/customer/access-card`
+- Merchant card → `/merchant/dashboard`
+- Uses shared Header, consistent styling with rest of site
+- Only accessible when logged in
 
-**Update `src/hooks/useIsAdmin.ts`** — Add `onAuthStateChange` listener:
-```typescript
-useEffect(() => {
-  const check = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setIsAdmin(false); setLoading(false); return; }
-    const { data } = await supabase
-      .from("user_roles").select("role")
-      .eq("user_id", user.id).eq("role", "admin").maybeSingle();
-    setIsAdmin(!!data);
-    setLoading(false);
-  };
-  check();
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(() => { check(); });
-  return () => subscription.unsubscribe();
-}, []);
-```
+#### 3. Update `src/components/Header.tsx`
 
-### Files modified
-- `src/hooks/useIsAdmin.ts` — add auth state listener + cleanup
-- Migration — add "Users can view own roles" SELECT policy
+- Show **both** "My Card" and "Dashboard" links when user has both `isCustomer` and `isMerchant` (remove the `!isMerchant` condition on line 69 and 128)
+
+#### 4. Update `src/App.tsx`
+
+- Add `/choose-role` route (protected, any authenticated user)
+
+---
+
+### Files
+- **Modified:** `src/pages/GetStarted.tsx` — restructure login/signup tabs
+- **Created:** `src/pages/ChooseRole.tsx` — role chooser for dual-account users
+- **Modified:** `src/components/Header.tsx` — show both role links for dual users
+- **Modified:** `src/App.tsx` — add choose-role route
 
