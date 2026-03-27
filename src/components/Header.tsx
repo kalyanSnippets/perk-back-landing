@@ -66,7 +66,7 @@ const Header = () => {
                   </Link>
                 </Button>
               )}
-              {isCustomer && !isMerchant && (
+              {isCustomer && (
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/customer/access-card" className="gap-1.5">
                     <CreditCard size={14} />
@@ -125,7 +125,7 @@ const Header = () => {
                     Merchant Dashboard
                   </Link>
                 )}
-                {isCustomer && !isMerchant && (
+                {isCustomer && (
                   <Link to="/customer/access-card" onClick={() => setMobileOpen(false)} className="text-base font-medium text-foreground hover:text-foreground transition-colors py-1 flex items-center gap-2">
                     <CreditCard size={16} />
                     Access My Card
