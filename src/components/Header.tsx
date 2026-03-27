@@ -66,7 +66,7 @@ const Header = () => {
                   </Link>
                 </Button>
               )}
-              {isCustomer && !isMerchant && (
+              {isCustomer && (
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/customer/access-card" className="gap-1.5">
                     <CreditCard size={14} />
