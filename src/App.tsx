@@ -48,6 +48,13 @@ const App = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
 
+            {/* Role Chooser */}
+            <Route path="/choose-role" element={
+              <ProtectedRoute>
+                <ChooseRole />
+              </ProtectedRoute>
+            } />
+
             {/* Protected: Customer */}
             <Route path="/customer/confirmation" element={
               <ProtectedRoute requiredRole="customer">

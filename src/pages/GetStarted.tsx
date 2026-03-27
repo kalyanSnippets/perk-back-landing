@@ -13,7 +13,6 @@ import { z } from "zod";
 const emailSchema = z.string().trim().email("Invalid email address").max(255);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(128);
 const nameSchema = z.string().trim().min(1, "Name is required").max(100);
-const phoneSchema = z.string().trim().max(20).optional();
 
 type Role = "customer" | "merchant";
 
@@ -42,28 +41,26 @@ const GetStarted = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const { data: merchant } = await supabase
-          .from("merchants")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        const { data: customer } = await supabase
-          .from("customers")
-          .select("loyalty_card_number")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        if (role === "merchant" && merchant) {
-          navigate("/merchant/dashboard");
-        } else if (role === "customer" && customer?.loyalty_card_number) {
-          navigate("/customer/access-card");
-        } else if (role === "customer" && customer) {
-          navigate("/customer/confirmation");
-        }
+        await redirectByRole(session.user.id);
       }
     };
     checkSession();
   }, []);
+
+  const redirectByRole = async (userId: string) => {
+    const [{ data: merchant }, { data: customer }] = await Promise.all([
+      supabase.from("merchants").select("id").eq("user_id", userId).maybeSingle(),
+      supabase.from("customers").select("loyalty_card_number").eq("user_id", userId).maybeSingle(),
+    ]);
+
+    if (merchant && customer) {
+      navigate("/choose-role");
+    } else if (merchant) {
+      navigate("/merchant/dashboard");
+    } else if (customer) {
+      navigate(customer.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
+    }
+  };
 
   const resetForm = () => {
     setEmail("");
@@ -181,7 +178,6 @@ const GetStarted = () => {
           if (insertErr) throw insertErr;
         }
         toast.success("Merchant profile added to your existing account!");
-        navigate("/merchant/dashboard");
       } else {
         const { data: existing } = await supabase
           .from("customers")
@@ -198,8 +194,8 @@ const GetStarted = () => {
           if (insertErr) throw insertErr;
         }
         toast.success("Customer profile added to your existing account!");
-        navigate(existing?.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
       }
+      await redirectByRole(user.id);
       return;
     }
 
@@ -218,32 +214,23 @@ const GetStarted = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Login failed");
 
-    if (role === "customer") {
-      const { data: customer } = await supabase
-        .from("customers")
-        .select("loyalty_card_number")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    const [{ data: merchant }, { data: customer }] = await Promise.all([
+      supabase.from("merchants").select("id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("customers").select("loyalty_card_number").eq("user_id", user.id).maybeSingle(),
+    ]);
 
-      if (!customer) {
-        await supabase.auth.signOut();
-        toast.error("No customer account found for this email.");
-        return;
-      }
-      navigate(customer.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
-    } else {
-      const { data: merchant } = await supabase
-        .from("merchants")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    if (!merchant && !customer) {
+      await supabase.auth.signOut();
+      toast.error("No account found for this email. Please sign up first.");
+      return;
+    }
 
-      if (!merchant) {
-        await supabase.auth.signOut();
-        toast.error("No merchant account found for this email.");
-        return;
-      }
+    if (merchant && customer) {
+      navigate("/choose-role");
+    } else if (merchant) {
       navigate("/merchant/dashboard");
+    } else if (customer) {
+      navigate(customer.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
     }
   };
 
@@ -266,34 +253,6 @@ const GetStarted = () => {
           </p>
         </div>
 
-        {/* Role Selector */}
-        <div className="flex gap-3 mb-4 animate-fade-up">
-          <button
-            type="button"
-            onClick={() => { setRole("customer"); resetForm(); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
-              role === "customer"
-                ? "border-primary bg-primary/5 text-primary shadow-sm"
-                : "border-border bg-card text-muted-foreground hover:border-primary/30"
-            }`}
-          >
-            <User size={18} />
-            Customer
-          </button>
-          <button
-            type="button"
-            onClick={() => { setRole("merchant"); resetForm(); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
-              role === "merchant"
-                ? "border-primary bg-primary/5 text-primary shadow-sm"
-                : "border-border bg-card text-muted-foreground hover:border-primary/30"
-            }`}
-          >
-            <Store size={18} />
-            Merchant
-          </button>
-        </div>
-
         {/* Auth Mode Tabs */}
         <div className="animate-fade-up-delay-1">
           <Tabs value={authMode} onValueChange={(v) => { setAuthMode(v as "signup" | "login"); resetForm(); }} className="w-full">
@@ -303,8 +262,35 @@ const GetStarted = () => {
             </TabsList>
 
             <TabsContent value="signup">
+              {/* Role Selector — only for signup */}
+              <div className="flex gap-3 mb-4">
+                <button
+                  type="button"
+                  onClick={() => { setRole("customer"); resetForm(); }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+                    role === "customer"
+                      ? "border-primary bg-primary/5 text-primary shadow-sm"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                  }`}
+                >
+                  <User size={18} />
+                  Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRole("merchant"); resetForm(); }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+                    role === "merchant"
+                      ? "border-primary bg-primary/5 text-primary shadow-sm"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                  }`}
+                >
+                  <Store size={18} />
+                  Merchant
+                </button>
+              </div>
+
               <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-5 sm:p-7 shadow-card space-y-3.5">
-                {/* Role-specific signup fields */}
                 {role === "customer" ? (
                   <>
                     <FormField id="s-name" label="Full Name" icon={<User size={16} />} value={fullName} onChange={setFullName} placeholder="John Doe" required />
@@ -334,9 +320,6 @@ const GetStarted = () => {
                   {loading ? "Please wait..." : role === "customer" ? "Create Customer Account" : "Register Store"}
                 </Button>
 
-                <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline">
-                  Forgot password?
-                </button>
                 <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                   <ShieldCheck size={12} /> Your data is securely encrypted
                 </p>
@@ -349,10 +332,10 @@ const GetStarted = () => {
                 <FormField id="l-pass" label="Password" icon={<Lock size={16} />} value={password} onChange={setPassword} placeholder="••••••••" type="password" required />
 
                 <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
-                  {loading ? "Please wait..." : role === "customer" ? "Sign In as Customer" : "Sign In as Merchant"}
+                  {loading ? "Please wait..." : "Sign In"}
                 </Button>
 
-                <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline">
+                <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline w-full text-center">
                   Forgot password?
                 </button>
                 <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
