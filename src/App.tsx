@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ScrollToTop from "@/components/ScrollToTop";
+import BackToTopButton from "@/components/BackToTopButton";
 import Index from "./pages/Index.tsx";
 import GetStarted from "./pages/GetStarted.tsx";
 import CustomerConfirmation from "./pages/CustomerConfirmation.tsx";
