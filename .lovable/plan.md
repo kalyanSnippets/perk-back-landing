@@ -1,54 +1,23 @@
 
 
-## Unified Login + Role-Based Signup + Role Chooser + Account Switcher
-
-### Overview
-
-Restructure the GetStarted page so there's **one unified login form** (email + password only, no role selection) and **two separate signup forms** (Customer / Merchant with role-specific fields). After login, auto-detect roles and redirect accordingly. If user has both roles, show a role chooser page. Nav shows both role links for dual-account users.
-
----
+## Hero Section: Video Lightbox + Sparkle Background
 
 ### Changes
 
-#### 1. Restructure `src/pages/GetStarted.tsx`
+#### 1. Copy video to project
+Copy `user-uploads://PerkBack_The_Future_of_SME_Loyalty_720p_caption.mp4` to `public/videos/perkback-intro.mp4` (public folder since it's a large media file, not suitable for bundling via src/assets).
 
-**Login tab:**
-- Remove the Customer/Merchant role selector when in login mode
-- Show only email + password + forgot password
-- After successful login, auto-detect role:
-  - Check both `merchants` and `customers` tables
-  - If **both** exist → navigate to `/choose-role`
-  - If only merchant → `/merchant/dashboard`
-  - If only customer with loyalty card → `/customer/access-card`
-  - If only customer without card → `/customer/confirmation`
-  - If neither → sign out + error
+#### 2. Update `src/components/HeroSection.tsx`
+- **Video lightbox**: Replace the static placeholder with a click-to-play modal. Clicking the thumbnail opens a full-screen overlay with the video playing. Close on backdrop click or X button.
+- **Sparkle/particle background**: Add animated floating dots/sparkles behind the hero using CSS-only approach (pseudo-elements with subtle radial gradients and float animations at staggered delays). No heavy JS particle library needed.
+- Use React `useState` to toggle the modal open/closed.
 
-**Signup tab:**
-- Keep the Customer/Merchant role selector (only visible during signup)
-- Customer signup: full name, email, password, phone, DOB
-- Merchant signup: store name, email, password, address, contact, industry
-
-#### 2. Create `src/pages/ChooseRole.tsx`
-
-- Simple page with two cards: "Continue as Customer" and "Continue as Merchant"
-- Customer card → `/customer/access-card`
-- Merchant card → `/merchant/dashboard`
-- Uses shared Header, consistent styling with rest of site
-- Only accessible when logged in
-
-#### 3. Update `src/components/Header.tsx`
-
-- Show **both** "My Card" and "Dashboard" links when user has both `isCustomer` and `isMerchant` (remove the `!isMerchant` condition on line 69 and 128)
-
-#### 4. Update `src/App.tsx`
-
-- Add `/choose-role` route (protected, any authenticated user)
-
----
+#### 3. Update `src/index.css`
+- Add `@keyframes sparkle` animation for the floating particles (random opacity pulse + gentle drift).
+- Add a `.hero-particles` utility class with multiple pseudo-element sparkles at different positions and delays.
 
 ### Files
-- **Modified:** `src/pages/GetStarted.tsx` — restructure login/signup tabs
-- **Created:** `src/pages/ChooseRole.tsx` — role chooser for dual-account users
-- **Modified:** `src/components/Header.tsx` — show both role links for dual users
-- **Modified:** `src/App.tsx` — add choose-role route
+- **Copy**: video to `public/videos/perkback-intro.mp4`
+- **Modified**: `src/components/HeroSection.tsx` — modal + particles
+- **Modified**: `src/index.css` — sparkle keyframes
 
