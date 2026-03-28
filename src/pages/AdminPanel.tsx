@@ -305,6 +305,11 @@ const AdminPanel = () => {
                 </div>
               )}
             </TabsContent>
+
+            {/* ═══ USERS TAB ═══ */}
+            <TabsContent value="users">
+              <UsersTab />
+            </TabsContent>
           </Tabs>
         </div>
       </main>
