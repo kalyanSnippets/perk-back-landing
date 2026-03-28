@@ -1,54 +1,30 @@
 
 
-## Hero Section Redesign: Video Thumbnail + Attractive Layout
+## Fix: Scroll-to-Top on Route Change + Back-to-Top Button
 
-### Layout Redesign
-
-Change the hero from a 2-column (text left, card right) layout to a **stacked center-aligned layout** that feels more modern and impactful:
-
-```text
-┌─────────────────────────────────────────────┐
-│           HEADLINE (centered)               │
-│           Subtext (centered)                │
-│        [Explore Now] [How It Works]         │
-│                                             │
-│  ┌──────────────────┐  ┌────────────────┐   │
-│  │  VIDEO THUMBNAIL │  │ LOYALTY CARD   │   │
-│  │  (with real      │  │ (floating      │   │
-│  │   frame from     │  │  badges)       │   │
-│  │   video + play)  │  │                │   │
-│  └──────────────────┘  └────────────────┘   │
-└─────────────────────────────────────────────┘
-```
+### Problem
+1. Navigating via footer links lands users at the bottom of the new page (no scroll reset on route change)
+2. No way to quickly return to the top after scrolling down
 
 ### Changes
 
-#### 1. Generate video thumbnail
-Use the first frame of the uploaded video as a real thumbnail image. Save to `public/images/video-thumbnail.jpg`. This replaces the plain gradient placeholder with a relatable preview frame from the actual video.
+#### 1. Create `src/components/ScrollToTop.tsx`
+- Uses `useLocation().pathname` to detect route changes
+- Calls `window.scrollTo({ top: 0, behavior: 'instant' })` on every path change
 
-**Alternative approach**: Use a hidden `<video>` element with a `poster`-like technique — load the video, seek to ~2 seconds, grab a frame via canvas, and use it as the thumbnail. Simpler: just use the `<video>` tag itself with `preload="metadata"` and show a frame at a specific time as the thumbnail background without autoplay.
+#### 2. Create `src/components/BackToTopButton.tsx`
+- A floating button (bottom-right corner) that appears after scrolling ~300px down
+- Clicking it smooth-scrolls back to the top
+- Uses a chevron-up icon from lucide-react
+- Styled with the project's accent/primary colors, rounded, with a subtle shadow
+- Fades in/out based on scroll position
 
-#### 2. Update `src/components/HeroSection.tsx`
-
-**Layout changes:**
-- Center-align the headline, subtext, and CTA buttons (text-center on mobile and desktop)
-- Below the CTAs, show a **two-column row** with the video thumbnail on the left and the loyalty card on the right
-- On mobile, stack them vertically (video first, then card)
-
-**Video thumbnail:**
-- Replace the gradient placeholder with the actual video element showing a preview frame (using `preload="metadata"` and seeking to ~2s)
-- Keep the play button overlay and "Watch how Perk Back works" label
-- Give it a slightly larger, more prominent size
-
-**Visual polish:**
-- Add a subtle glassmorphism card wrapper around the video thumbnail
-- Keep floating badges on the loyalty card
-- Keep sparkle particles background
-
-#### 3. Minor CSS additions in `src/index.css`
-- Add a glass-card utility if needed for the thumbnail wrapper
+#### 3. Update `src/App.tsx`
+- Import and render `<ScrollToTop />` inside `<BrowserRouter>` before `<AuthProvider>`
+- Import and render `<BackToTopButton />` alongside routes (visible on all pages)
 
 ### Files
-- **Modified**: `src/components/HeroSection.tsx` — new centered layout + video thumbnail with real frame
-- **Modified**: `src/index.css` — minor utility additions if needed
+- **Created:** `src/components/ScrollToTop.tsx`
+- **Created:** `src/components/BackToTopButton.tsx`
+- **Modified:** `src/App.tsx`
 
