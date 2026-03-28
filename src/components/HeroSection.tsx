@@ -19,48 +19,52 @@ const HeroSection = () => {
         <div className="hero-particles" />
 
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Left content */}
-            <div className="max-w-xl">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground animate-fade-up">
-                Earn rewards everywhere.{" "}
-                <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  One card. One wallet.
-                </span>
-              </h1>
-              <p className="mt-6 text-lg text-muted-foreground leading-relaxed animate-fade-up-delay-1">
-                Perk Back helps customers earn points, stamps, and perks across partner stores — and
-                helps merchants turn first-time buyers into regulars.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 animate-fade-up-delay-2">
-                <Button variant="hero" size="xl" asChild>
-                  <Link to="/get-started">Explore Now</Link>
-                </Button>
-                <Button variant="hero-outline" size="xl" asChild>
-                  <a href="#how-it-works">See How It Works</a>
-                </Button>
-              </div>
+          {/* Centered text content */}
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground animate-fade-up">
+              Earn rewards everywhere.{" "}
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                One card. One wallet.
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-muted-foreground leading-relaxed animate-fade-up-delay-1 max-w-2xl mx-auto">
+              Perk Back helps customers earn points, stamps, and perks across partner stores — and
+              helps merchants turn first-time buyers into regulars.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 justify-center animate-fade-up-delay-2">
+              <Button variant="hero" size="xl" asChild>
+                <Link to="/get-started">Explore Now</Link>
+              </Button>
+              <Button variant="hero-outline" size="xl" asChild>
+                <a href="#how-it-works">See How It Works</a>
+              </Button>
+            </div>
+          </div>
 
-              {/* Video thumbnail — click to open lightbox */}
-              <div className="mt-10 animate-fade-up-delay-3">
-                <div
-                  onClick={() => setVideoOpen(true)}
-                  className="relative rounded-2xl overflow-hidden bg-primary/5 border border-border aspect-video max-w-md group cursor-pointer hover:shadow-card-hover transition-shadow duration-300"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center shadow-button group-hover:scale-110 transition-transform duration-300">
-                      <Play className="text-primary-foreground ml-1" size={28} />
-                    </div>
-                  </div>
-                  <p className="absolute bottom-4 left-4 text-sm font-medium text-muted-foreground">
-                    Watch how Perk Back works
-                  </p>
+          {/* Two-column showcase: Video + Loyalty Card */}
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-10 mt-12 lg:mt-16 items-center animate-fade-up-delay-3">
+            {/* Video thumbnail with glassmorphism */}
+            <div
+              onClick={() => setVideoOpen(true)}
+              className="relative rounded-2xl overflow-hidden glass-card aspect-video group cursor-pointer hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
+            >
+              <img
+                src="/images/video-thumbnail.jpg"
+                alt="PerkBack introduction video preview"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent flex items-center justify-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary/90 flex items-center justify-center shadow-button group-hover:scale-110 transition-transform duration-300">
+                  <Play className="text-primary-foreground ml-1" size={32} />
                 </div>
               </div>
+              <p className="absolute bottom-4 left-4 text-sm font-medium text-white/90">
+                Watch how Perk Back works
+              </p>
             </div>
 
-            {/* Right - Loyalty card mockup */}
-            <div className="flex justify-center lg:justify-end animate-fade-up-delay-2">
+            {/* Loyalty card mockup */}
+            <div className="flex justify-center">
               <div className="relative">
                 <img
                   src={loyaltyCardImg}

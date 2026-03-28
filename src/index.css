@@ -210,3 +210,10 @@
   animation: progressFill 1.2s ease-out 0.3s forwards;
   width: 0%;
 }
+
+.glass-card {
+  background: hsl(var(--card) / 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.5);
+  box-shadow: var(--shadow-card);
+}
