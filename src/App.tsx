@@ -34,6 +34,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
+        <BackToTopButton />
         <AuthProvider>
           <Routes>
             {/* Public pages */}
