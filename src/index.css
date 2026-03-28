@@ -152,6 +152,51 @@
   }
 }
 
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-30px) scale(1);
+  }
+}
+
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.hero-particles::before,
+.hero-particles::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.25) 0%, transparent 70%);
+  animation: sparkle 4s ease-in-out infinite;
+}
+
+.hero-particles::before {
+  width: 6px;
+  height: 6px;
+  top: 18%;
+  left: 12%;
+  animation-delay: 0s;
+}
+
+.hero-particles::after {
+  width: 8px;
+  height: 8px;
+  top: 55%;
+  right: 20%;
+  animation-delay: 1.5s;
+  background: radial-gradient(circle, hsl(var(--accent) / 0.3) 0%, transparent 70%);
+}
+
 @keyframes progressFill {
   from {
     width: 0%;
