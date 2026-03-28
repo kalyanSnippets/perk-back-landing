@@ -276,6 +276,23 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_set_user_role: {
+        Args: {
+          _action: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
+      get_all_users_for_admin: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          roles: string[]
+          user_id: string
+        }[]
+      }
       get_customers_by_ids: {
         Args: { _ids: string[] }
         Returns: {
