@@ -14,9 +14,10 @@ import { toast } from "sonner";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+import UsersTab from "@/components/admin/UsersTab";
 import {
   Pencil, Trash2, Plus, Save, X, Eye, EyeOff,
-  FileText, MessageSquare, Mail, Bold, Italic,
+  FileText, MessageSquare, Mail, Users, Bold, Italic,
   List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote
 } from "lucide-react";
 
