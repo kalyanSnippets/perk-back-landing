@@ -58,13 +58,9 @@ const PosTab = ({ merchantId }: PosTabProps) => {
   const handleConnect = () => {
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
     const redirectUri = `https://${projectId}.supabase.co/functions/v1/square-oauth-callback`;
-    // For production, use the actual Square app ID from the edge function env
-    // The merchant will be redirected to Square OAuth
-    const squareOAuthUrl = `https://connect.squareup.com/oauth2/authorize?client_id=SQUARE_APP_ID_PLACEHOLDER&scope=PAYMENTS_READ+CUSTOMERS_READ+MERCHANT_PROFILE_READ&session=false&state=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-    toast.info("To complete Square setup, you need to configure your Square Application ID. Contact support or check settings.");
-    // In production with secrets configured, this would redirect:
-    // window.location.href = squareOAuthUrl;
+    // Redirect to an edge function that constructs the proper Square OAuth URL using server-side secrets
+    const initiateUrl = `https://${projectId}.supabase.co/functions/v1/square-oauth-callback?initiate=true&merchant_id=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = initiateUrl;
   };
 
   const handleDisconnect = async () => {
