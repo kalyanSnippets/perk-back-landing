@@ -14,6 +14,8 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const siteUrl = Deno.env.get("SITE_URL") || "https://perk-back-landing.lovable.app";
+    const squareEnv = Deno.env.get("SQUARE_ENVIRONMENT") || "production";
+    const squareBaseUrl = squareEnv === "sandbox" ? "https://connect.squareupsandbox.com" : "https://connect.squareup.com";
 
     // Handle initiation: redirect merchant to Square OAuth
     if (url.searchParams.get("initiate") === "true") {
