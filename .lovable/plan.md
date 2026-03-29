@@ -1,30 +1,86 @@
 
 
-## Fix: Scroll-to-Top on Route Change + Back-to-Top Button
+## Square POS Integration — Full Implementation Plan
 
-### Problem
-1. Navigating via footer links lands users at the bottom of the new page (no scroll reset on route change)
-2. No way to quickly return to the top after scrolling down
+### Overview
+Enable merchants to connect their Square POS so customer purchases automatically award loyalty points in PerkBack. This covers database setup, OAuth flow, webhook processing, and a merchant-facing UI.
 
-### Changes
+### Phase 1: Database — `pos_connections` table
 
-#### 1. Create `src/components/ScrollToTop.tsx`
-- Uses `useLocation().pathname` to detect route changes
-- Calls `window.scrollTo({ top: 0, behavior: 'instant' })` on every path change
+Create a new table to store merchant POS credentials:
 
-#### 2. Create `src/components/BackToTopButton.tsx`
-- A floating button (bottom-right corner) that appears after scrolling ~300px down
-- Clicking it smooth-scrolls back to the top
-- Uses a chevron-up icon from lucide-react
-- Styled with the project's accent/primary colors, rounded, with a subtle shadow
-- Fades in/out based on scroll position
+```text
+pos_connections
+├── id (uuid, PK)
+├── merchant_id (uuid, references merchants.id)
+├── provider (text: 'square')
+├── access_token (text, encrypted at rest)
+├── refresh_token (text)
+├── location_id (text)
+├── webhook_signature_key (text)
+├── is_active (boolean, default false)
+├── connected_at (timestamptz)
+├── created_at / updated_at
+```
 
-#### 3. Update `src/App.tsx`
-- Import and render `<ScrollToTop />` inside `<BrowserRouter>` before `<AuthProvider>`
-- Import and render `<BackToTopButton />` alongside routes (visible on all pages)
+RLS: merchants can only SELECT/UPDATE/DELETE their own connections. INSERT restricted to authenticated users who own the merchant record.
 
-### Files
-- **Created:** `src/components/ScrollToTop.tsx`
-- **Created:** `src/components/BackToTopButton.tsx`
-- **Modified:** `src/App.tsx`
+### Phase 2: Square OAuth Edge Function
+
+**`supabase/functions/square-oauth-callback/index.ts`**
+- Receives the OAuth redirect from Square with an authorization code
+- Exchanges the code for access + refresh tokens using Square's OAuth API
+- Stores tokens in `pos_connections`
+- Redirects merchant back to `/merchant/settings` with a success message
+
+**Secrets required** (will prompt user):
+- `SQUARE_APPLICATION_ID`
+- `SQUARE_APPLICATION_SECRET`
+
+### Phase 3: POS Webhook Edge Function
+
+**`supabase/functions/pos-webhook/index.ts`**
+- Receives `payment.completed` events from Square
+- Validates the webhook signature using the stored key
+- Extracts customer identifier (phone or email) and purchase amount
+- Looks up the PerkBack customer by phone/email
+- Calls `add_points_to_customer` logic to award points and record transaction with `source = 'square'`
+- Returns 200 OK to Square
+
+### Phase 4: Merchant Settings UI — POS Tab
+
+**`src/pages/MerchantSettings.tsx`** — Add a 4th tab: "POS"
+- Shows connection status (connected/disconnected)
+- "Connect Square" button → redirects to Square OAuth authorization URL
+- Once connected: shows Square location info, last sync time, disconnect button
+- Disconnect removes the `pos_connections` record
+
+### Phase 5: Transaction Source Tracking
+
+Add `source` column to transactions table already exists (`'dashboard'` default). Square transactions will use `source = 'square'`. This lets merchants see which transactions came from POS vs manual entry.
+
+---
+
+### Technical Details
+
+**Square OAuth flow:**
+1. Merchant clicks "Connect Square" → browser redirects to `https://connect.squareup.com/oauth2/authorize?client_id=...&scope=PAYMENTS_READ+CUSTOMERS_READ+MERCHANT_PROFILE_READ&redirect_uri=...`
+2. Square redirects back to the `square-oauth-callback` edge function with `?code=...`
+3. Edge function exchanges code → tokens, stores in DB, redirects to settings page
+
+**Webhook customer matching priority:**
+1. Phone number match against `customers.phone`
+2. Email match against `auth.users.email` → `customers.user_id`
+3. If no match found, log the transaction for manual review
+
+**Files changed/created:**
+- **Migration:** new `pos_connections` table + RLS policies
+- **Created:** `supabase/functions/square-oauth-callback/index.ts`
+- **Created:** `supabase/functions/pos-webhook/index.ts`
+- **Modified:** `src/pages/MerchantSettings.tsx` — add POS tab with connect/disconnect UI
+- **Modified:** `supabase/config.toml` — add function config entries
+
+**Secrets to request from user:**
+- `SQUARE_APPLICATION_ID`
+- `SQUARE_APPLICATION_SECRET`
 
