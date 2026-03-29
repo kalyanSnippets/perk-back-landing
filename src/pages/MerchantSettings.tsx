@@ -142,6 +142,7 @@ const MerchantSettings = () => {
   const tabs = [
     { id: "business" as const, label: "Business", icon: Building2 },
     { id: "profile" as const, label: "Profile", icon: User },
+    { id: "pos" as const, label: "POS", icon: Wifi },
     { id: "password" as const, label: "Password", icon: Lock },
   ];
 
