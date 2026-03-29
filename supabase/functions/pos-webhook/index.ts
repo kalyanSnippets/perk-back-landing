@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       if (pc?.access_token) {
         try {
           const custResponse = await fetch(
-            `https://connect.squareup.com/v2/customers/${squareCustomerId}`,
+            `${squareBaseUrl}/v2/customers/${squareCustomerId}`,
             {
               headers: {
                 Authorization: `Bearer ${pc.access_token}`,

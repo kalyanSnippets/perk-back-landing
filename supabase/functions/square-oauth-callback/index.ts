@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     let locationId: string | null = null;
     try {
       const locResponse = await fetch(
-        "https://connect.squareup.com/v2/locations",
+        `${squareBaseUrl}/v2/locations`,
         {
           headers: {
             Authorization: `Bearer ${tokenData.access_token}`,
