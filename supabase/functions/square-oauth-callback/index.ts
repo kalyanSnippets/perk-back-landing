@@ -13,11 +13,26 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const siteUrl = Deno.env.get("SITE_URL") || "https://perk-back-landing.lovable.app";
+
+    // Handle initiation: redirect merchant to Square OAuth
+    if (url.searchParams.get("initiate") === "true") {
+      const merchantId = url.searchParams.get("merchant_id");
+      const squareAppId = Deno.env.get("SQUARE_APPLICATION_ID");
+      if (!squareAppId || !merchantId) {
+        return Response.redirect(
+          `${siteUrl}/merchant/settings?pos_error=server_config`,
+          302
+        );
+      }
+      const redirectUri = url.searchParams.get("redirect_uri") || `${url.origin}/functions/v1/square-oauth-callback`;
+      const squareUrl = `https://connect.squareup.com/oauth2/authorize?client_id=${squareAppId}&scope=PAYMENTS_READ+CUSTOMERS_READ+MERCHANT_PROFILE_READ&session=false&state=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      return Response.redirect(squareUrl, 302);
+    }
+
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state"); // merchant_id
     const error = url.searchParams.get("error");
-
-    const siteUrl = Deno.env.get("SITE_URL") || "https://perk-back-landing.lovable.app";
 
     if (error) {
       return Response.redirect(
