@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         );
       }
       const redirectUri = url.searchParams.get("redirect_uri") || `${url.origin}/functions/v1/square-oauth-callback`;
-      const squareUrl = `https://connect.squareup.com/oauth2/authorize?client_id=${squareAppId}&scope=PAYMENTS_READ+CUSTOMERS_READ+MERCHANT_PROFILE_READ&session=false&state=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      const squareUrl = `${squareBaseUrl}/oauth2/authorize?client_id=${squareAppId}&scope=PAYMENTS_READ+CUSTOMERS_READ+MERCHANT_PROFILE_READ&session=false&state=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
       return Response.redirect(squareUrl, 302);
     }
 
