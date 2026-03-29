@@ -27,7 +27,7 @@ const MerchantSettings = () => {
   const navigate = useNavigate();
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"password" | "business" | "profile">("business");
+  const [activeTab, setActiveTab] = useState<"password" | "business" | "profile" | "pos">("business");
 
   // Password state
   const [newPassword, setNewPassword] = useState("");
