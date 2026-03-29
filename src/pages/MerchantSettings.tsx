@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   ArrowLeft, Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Briefcase, Upload
+  Phone, MapPin, Briefcase, Upload, Wifi
 } from "lucide-react";
+import PosTab from "@/components/merchant/PosTab";
 import perkbackLogo from "@/assets/perkback-logo.png";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
@@ -26,7 +27,7 @@ const MerchantSettings = () => {
   const navigate = useNavigate();
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"password" | "business" | "profile">("business");
+  const [activeTab, setActiveTab] = useState<"password" | "business" | "profile" | "pos">("business");
 
   // Password state
   const [newPassword, setNewPassword] = useState("");
@@ -141,6 +142,7 @@ const MerchantSettings = () => {
   const tabs = [
     { id: "business" as const, label: "Business", icon: Building2 },
     { id: "profile" as const, label: "Profile", icon: User },
+    { id: "pos" as const, label: "POS", icon: Wifi },
     { id: "password" as const, label: "Password", icon: Lock },
   ];
 
@@ -239,6 +241,13 @@ const MerchantSettings = () => {
                 <p className="text-xs text-muted-foreground">{merchant.industry_type || "Business"}</p>
               </div>
             </div>
+          </ScrollReveal>
+        )}
+
+        {/* POS Tab */}
+        {activeTab === "pos" && (
+          <ScrollReveal>
+            <PosTab merchantId={merchant.id} />
           </ScrollReveal>
         )}
 

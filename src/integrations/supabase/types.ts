@@ -245,6 +245,56 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_connections: {
+        Row: {
+          access_token: string | null
+          connected_at: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string | null
+          merchant_id: string
+          provider: string
+          refresh_token: string | null
+          updated_at: string
+          webhook_signature_key: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          merchant_id: string
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string
+          webhook_signature_key?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          merchant_id?: string
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string
+          webhook_signature_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_connections_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
