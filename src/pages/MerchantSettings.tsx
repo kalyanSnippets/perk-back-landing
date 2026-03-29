@@ -244,6 +244,13 @@ const MerchantSettings = () => {
           </ScrollReveal>
         )}
 
+        {/* POS Tab */}
+        {activeTab === "pos" && (
+          <ScrollReveal>
+            <PosTab merchantId={merchant.id} />
+          </ScrollReveal>
+        )}
+
         {/* Password Tab */}
         {activeTab === "password" && (
           <ScrollReveal>
