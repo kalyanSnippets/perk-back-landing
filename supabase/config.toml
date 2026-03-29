@@ -5,3 +5,7 @@ project_id = "bhczknuriaxvgmvbtzzo"
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
+  [functions.square-oauth-callback]
+    verify_jwt = false
+  [functions.pos-webhook]
+    verify_jwt = false
