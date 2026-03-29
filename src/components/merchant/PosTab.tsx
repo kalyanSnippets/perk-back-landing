@@ -60,7 +60,7 @@ const PosTab = ({ merchantId }: PosTabProps) => {
     const redirectUri = `https://${projectId}.supabase.co/functions/v1/square-oauth-callback`;
     // Redirect to an edge function that constructs the proper Square OAuth URL using server-side secrets
     const initiateUrl = `https://${projectId}.supabase.co/functions/v1/square-oauth-callback?initiate=true&merchant_id=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-    window.location.href = initiateUrl;
+    window.open(initiateUrl, "_blank");
   };
 
   const handleDisconnect = async () => {
