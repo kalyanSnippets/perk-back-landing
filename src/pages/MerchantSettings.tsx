@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   ArrowLeft, Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Briefcase, Upload
+  Phone, MapPin, Briefcase, Upload, Wifi
 } from "lucide-react";
+import PosTab from "@/components/merchant/PosTab";
 import perkbackLogo from "@/assets/perkback-logo.png";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
