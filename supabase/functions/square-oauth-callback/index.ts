@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     // Exchange authorization code for tokens
     const tokenResponse = await fetch(
-      "https://connect.squareup.com/oauth2/token",
+      `${squareBaseUrl}/oauth2/token`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
