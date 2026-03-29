@@ -14,6 +14,8 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const siteUrl = Deno.env.get("SITE_URL") || "https://perk-back-landing.lovable.app";
+    const squareEnv = Deno.env.get("SQUARE_ENVIRONMENT") || "production";
+    const squareBaseUrl = squareEnv === "sandbox" ? "https://connect.squareupsandbox.com" : "https://connect.squareup.com";
 
     // Handle initiation: redirect merchant to Square OAuth
     if (url.searchParams.get("initiate") === "true") {
@@ -26,7 +28,7 @@ Deno.serve(async (req) => {
         );
       }
       const redirectUri = url.searchParams.get("redirect_uri") || `${url.origin}/functions/v1/square-oauth-callback`;
-      const squareUrl = `https://connect.squareup.com/oauth2/authorize?client_id=${squareAppId}&scope=PAYMENTS_READ+CUSTOMERS_READ+MERCHANT_PROFILE_READ&session=false&state=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      const squareUrl = `${squareBaseUrl}/oauth2/authorize?client_id=${squareAppId}&scope=PAYMENTS_READ+CUSTOMERS_READ+MERCHANT_PROFILE_READ&session=false&state=${merchantId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
       return Response.redirect(squareUrl, 302);
     }
 
@@ -64,7 +66,7 @@ Deno.serve(async (req) => {
 
     // Exchange authorization code for tokens
     const tokenResponse = await fetch(
-      "https://connect.squareup.com/oauth2/token",
+      `${squareBaseUrl}/oauth2/token`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,7 +93,7 @@ Deno.serve(async (req) => {
     let locationId: string | null = null;
     try {
       const locResponse = await fetch(
-        "https://connect.squareup.com/v2/locations",
+        `${squareBaseUrl}/v2/locations`,
         {
           headers: {
             Authorization: `Bearer ${tokenData.access_token}`,
