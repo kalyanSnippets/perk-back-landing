@@ -78,11 +78,31 @@ const MerchantDashboard = () => {
   }, []);
 
   useEffect(() => {
+    let merchantRef: MerchantData | null = null;
     (async () => {
       const m = await fetchMerchant();
+      merchantRef = m;
       if (m) await fetchKPIs(m.id);
       setLoading(false);
     })();
+
+    // Subscribe to realtime transaction inserts for this merchant
+    const channel = supabase
+      .channel('merchant-transactions')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'transactions' },
+        (payload) => {
+          if (merchantRef && payload.new.merchant_id === merchantRef.id) {
+            fetchKPIs(merchantRef.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchMerchant, fetchKPIs]);
 
   const handleAddPoints = async (e: React.FormEvent) => {
