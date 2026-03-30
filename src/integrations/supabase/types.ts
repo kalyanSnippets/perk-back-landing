@@ -255,6 +255,7 @@ export type Database = {
           location_id: string | null
           merchant_id: string
           provider: string
+          provider_account_id: string | null
           refresh_token: string | null
           updated_at: string
           webhook_signature_key: string | null
@@ -268,6 +269,7 @@ export type Database = {
           location_id?: string | null
           merchant_id: string
           provider?: string
+          provider_account_id?: string | null
           refresh_token?: string | null
           updated_at?: string
           webhook_signature_key?: string | null
@@ -281,6 +283,7 @@ export type Database = {
           location_id?: string | null
           merchant_id?: string
           provider?: string
+          provider_account_id?: string | null
           refresh_token?: string | null
           updated_at?: string
           webhook_signature_key?: string | null
@@ -359,6 +362,7 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          external_payment_id: string | null
           id: string
           merchant_id: string | null
           merchant_name: string
@@ -370,6 +374,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id: string
+          external_payment_id?: string | null
           id?: string
           merchant_id?: string | null
           merchant_name: string
@@ -381,6 +386,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string
+          external_payment_id?: string | null
           id?: string
           merchant_id?: string | null
           merchant_name?: string

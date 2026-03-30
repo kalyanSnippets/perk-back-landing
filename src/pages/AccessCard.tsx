@@ -124,6 +124,38 @@ const AccessCard = () => {
     fetchData();
   }, []);
 
+  // Realtime subscription for transactions and points updates
+  useEffect(() => {
+    if (!customer) return;
+
+    const channel = supabase
+      .channel('customer-updates')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'transactions' },
+        (payload) => {
+          if (payload.new.customer_id === customer.id) {
+            // Refresh transactions and points
+            fetchData();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'customers' },
+        (payload) => {
+          if (payload.new.id === customer.id) {
+            setCustomer((prev) => prev ? { ...prev, points_balance: (payload.new as any).points_balance } : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [customer?.id]);
+
   const fetchData = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) { navigate("/get-started"); return; }

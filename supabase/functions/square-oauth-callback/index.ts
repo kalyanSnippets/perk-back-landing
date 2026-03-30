@@ -89,8 +89,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch merchant location from Square
+    // Fetch merchant location and merchant ID from Square
     let locationId: string | null = null;
+    let providerAccountId: string | null = tokenData.merchant_id || null;
+
     try {
       const locResponse = await fetch(
         `${squareBaseUrl}/v2/locations`,
@@ -109,6 +111,25 @@ Deno.serve(async (req) => {
       console.warn("Could not fetch Square locations:", e);
     }
 
+    // If we didn't get merchant_id from token response, try merchant profile
+    if (!providerAccountId) {
+      try {
+        const merchantResponse = await fetch(
+          `${squareBaseUrl}/v2/merchants/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${tokenData.access_token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        const merchantData = await merchantResponse.json();
+        providerAccountId = merchantData?.merchant?.[0]?.id || merchantData?.merchant?.id || null;
+      } catch (e) {
+        console.warn("Could not fetch Square merchant info:", e);
+      }
+    }
+
     // Store tokens in pos_connections using service role
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
@@ -121,6 +142,7 @@ Deno.serve(async (req) => {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token || null,
           location_id: locationId,
+          provider_account_id: providerAccountId,
           is_active: true,
           connected_at: new Date().toISOString(),
         },
