@@ -244,19 +244,7 @@ Deno.serve(async (req) => {
       return ok({ ok: false, reason: "transaction_insert_failed" });
     }
 
-    // Update customer points balance (direct read-then-update)
-    const { data: currentCustomer } = await supabase
-      .from("customers")
-      .select("points_balance")
-      .eq("id", customerId)
-      .single();
-
-    if (currentCustomer) {
-      await supabase
-        .from("customers")
-        .update({ points_balance: currentCustomer.points_balance + pointsAwarded })
-        .eq("id", customerId);
-    }
+    // Points balance is updated automatically by the trg_sync_points_on_transaction trigger
 
     return ok({
       ok: true,

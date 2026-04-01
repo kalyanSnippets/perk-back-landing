@@ -79,7 +79,14 @@ const CustomerConfirmation = () => {
         })
         .eq("user_id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        // Unique constraint violation — card already generated (race condition)
+        if (error.code === "23505") {
+          navigate("/customer/access-card");
+          return;
+        }
+        throw error;
+      }
 
       toast.success("Your loyalty card has been generated!");
       navigate("/customer/access-card");
