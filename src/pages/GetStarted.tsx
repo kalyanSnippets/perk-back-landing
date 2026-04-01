@@ -38,30 +38,20 @@ const GetStarted = () => {
   const [contactNumber, setContactNumber] = useState("");
   const [industryType, setIndustryType] = useState("");
 
+  const { user, loading: authLoading, isMerchant, isCustomer } = useAuth();
+
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await redirectByRole(session.user.id);
-      }
-    };
-    checkSession();
-  }, []);
+    if (authLoading) return;
+    if (!user) return;
 
-  const redirectByRole = async (userId: string) => {
-    const [{ data: merchant }, { data: customer }] = await Promise.all([
-      supabase.from("merchants").select("id").eq("user_id", userId).maybeSingle(),
-      supabase.from("customers").select("loyalty_card_number").eq("user_id", userId).maybeSingle(),
-    ]);
-
-    if (merchant && customer) {
+    if (isMerchant && isCustomer) {
       navigate("/choose-role");
-    } else if (merchant) {
+    } else if (isMerchant) {
       navigate("/merchant/dashboard");
-    } else if (customer) {
-      navigate(customer.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
+    } else if (isCustomer) {
+      navigate("/customer/access-card");
     }
-  };
+  }, [user, authLoading, isMerchant, isCustomer, navigate]);
 
   const resetForm = () => {
     setEmail("");
