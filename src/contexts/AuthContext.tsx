@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isMerchant, setIsMerchant] = useState(false);
   const [isCustomer, setIsCustomer] = useState(false);
 
-  const detectRole = async (currentUser: User | null) => {
+  const detectRole = useCallback(async (currentUser: User | null) => {
     if (!currentUser) {
       setUserRole(null);
       setIsAdmin(false);
@@ -46,75 +46,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Check admin role
-    const { data: adminRole } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", currentUser.id)
-      .eq("role", "admin")
-      .maybeSingle();
+    try {
+      const [adminResult, merchantResult, customerResult] = await Promise.all([
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", currentUser.id)
+          .eq("role", "admin")
+          .maybeSingle(),
+        supabase
+          .from("merchants")
+          .select("id")
+          .eq("user_id", currentUser.id)
+          .maybeSingle(),
+        supabase
+          .from("customers")
+          .select("id")
+          .eq("user_id", currentUser.id)
+          .maybeSingle(),
+      ]);
 
-    setIsAdmin(!!adminRole);
+      setIsAdmin(!!adminResult.data);
+      setIsMerchant(!!merchantResult.data);
+      setIsCustomer(!!customerResult.data);
 
-    // Check merchant
-    const { data: merchant } = await supabase
-      .from("merchants")
-      .select("id")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
-
-    setIsMerchant(!!merchant);
-
-    // Check customer
-    const { data: customer } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
-
-    setIsCustomer(!!customer);
-
-    // Determine primary role
-    if (merchant) {
-      setUserRole("merchant");
-    } else if (customer) {
-      setUserRole("customer");
-    } else {
+      if (merchantResult.data) {
+        setUserRole("merchant");
+      } else if (customerResult.data) {
+        setUserRole("customer");
+      } else {
+        setUserRole(null);
+      }
+    } catch (err) {
+      console.error("Role detection failed:", err);
       setUserRole(null);
+      setIsAdmin(false);
+      setIsMerchant(false);
+      setIsCustomer(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
+        if (!mounted) return;
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        // Use setTimeout to avoid potential deadlocks with Supabase client
         if (newSession?.user) {
-          setTimeout(() => detectRole(newSession.user), 0);
+          await detectRole(newSession.user);
         } else {
           setUserRole(null);
           setIsAdmin(false);
           setIsMerchant(false);
           setIsCustomer(false);
         }
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     );
 
-    // THEN check existing session
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
+      if (!mounted) return;
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
-        detectRole(existingSession.user);
+        await detectRole(existingSession.user);
       }
-      setLoading(false);
+      if (mounted) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [detectRole]);
 
   const logout = async () => {
     await supabase.auth.signOut();
