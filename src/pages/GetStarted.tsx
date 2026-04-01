@@ -186,7 +186,8 @@ const GetStarted = () => {
         }
         toast.success("Customer profile added to your existing account!");
       }
-      await redirectByRole(user.id);
+      // Auth state change will trigger redirect via useAuth + useEffect
+      window.location.reload();
       return;
     }
 
