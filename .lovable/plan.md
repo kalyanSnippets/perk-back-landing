@@ -1,46 +1,119 @@
 
 
-## Fix: Slow Page Loading and Routing
+## Prepare PerkBack for Square POS Integration
 
-### Root Cause
+### Summary
+Add the missing database tables, token lifecycle management, persistent customer mapping, webhook event logging, and unmatched transaction handling — without changing existing UI or breaking current flows.
 
-Every page load is blocked by the `AuthContext` `loading` state, which stays `true` until **3 parallel database queries** complete (checking `user_roles`, `merchants`, `customers` tables). On top of that:
+### What Already Works (No Changes)
+- OAuth connect/disconnect flow (`square-oauth-callback`, `PosTab`)
+- Webhook processing (`pos-webhook`) with customer matching and dedup
+- Points trigger (`trg_sync_points_on_transaction`)
+- Manual "Add Points" RPC
+- All auth, routing, dashboards
 
-1. **Double execution** — Both `onAuthStateChange` AND `getSession` fire on mount, each calling `detectRole` with 3 DB queries = 6 queries total on every page load
-2. **GetStarted page adds more** — It runs its own `checkSession` + `redirectByRole` (2 more DB queries) independently
-3. **All pages blocked** — Even public pages (Home, About, Pricing) render inside `AuthProvider`, so they wait for auth + role detection to finish before rendering
+---
 
-### Fix
+### Migration: New Tables + Schema Updates
 
-#### 1. Prevent double role detection in AuthContext
-**File:** `src/contexts/AuthContext.tsx`
-- Use a `ref` to track if `getSession` has already resolved. When `onAuthStateChange` fires for the initial session (which is the same session), skip the duplicate `detectRole` call.
-- Pattern: `getSession` is the primary bootstrap path. `onAuthStateChange` only calls `detectRole` for subsequent auth changes (login, logout, token refresh).
+**1. Add token lifecycle columns to `pos_connections`**
+```sql
+ALTER TABLE pos_connections
+  ADD COLUMN IF NOT EXISTS token_expires_at timestamptz,
+  ADD COLUMN IF NOT EXISTS token_refreshed_at timestamptz,
+  ADD COLUMN IF NOT EXISTS connection_status text NOT NULL DEFAULT 'active'
+    CHECK (connection_status IN ('active','token_expired','error','disconnected'));
+```
 
-#### 2. Don't block public page rendering on auth
-**File:** `src/App.tsx`
-- Move `AuthProvider` to wrap only the `Routes` (already done), but the real fix is in AuthContext: render `children` immediately and let `loading` only gate `ProtectedRoute`, not all page content.
-- Public pages already don't use `ProtectedRoute`, but the `Header` component calls `useAuth()` which triggers a re-render when loading changes. This is fine — `Header` should just show the non-logged-in state while loading.
+**2. Create `external_customer_mappings` table**
+Persists the customer identity resolution so the webhook doesn't re-resolve every time.
+```sql
+CREATE TABLE public.external_customer_mappings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL REFERENCES public.customers(id),
+  provider text NOT NULL DEFAULT 'square',
+  external_customer_id text NOT NULL,
+  merchant_id uuid NOT NULL,
+  match_method text, -- 'card','phone','email','manual'
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (provider, external_customer_id, merchant_id)
+);
+```
+RLS: merchants can view/manage their own mappings; service role has full access.
 
-#### 3. Cache role in sessionStorage for instant restore
-**File:** `src/contexts/AuthContext.tsx`
-- On successful role detection, cache the result in `sessionStorage` (e.g., `perkback_role`)
-- On mount, read the cached role immediately to set initial state — this makes protected pages render instantly on refresh
-- Still run `detectRole` in background to verify/update the cache
+**3. Create `integration_events` table**
+Logs every webhook event for debugging and reconciliation.
+```sql
+CREATE TABLE public.integration_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider text NOT NULL DEFAULT 'square',
+  event_type text NOT NULL,
+  external_event_id text,
+  merchant_id uuid,
+  status text NOT NULL DEFAULT 'received'
+    CHECK (status IN ('received','processed','skipped','failed')),
+  payload jsonb,
+  error_message text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  processed_at timestamptz
+);
+```
+RLS: service role only (webhook runs as service role).
 
-#### 4. Remove duplicate session check from GetStarted
-**File:** `src/pages/GetStarted.tsx`
-- Replace the `checkSession` + `redirectByRole` useEffect with `useAuth()` — redirect based on `isCustomer`/`isMerchant` from context instead of making separate DB queries
+**4. Create `unmatched_transactions` table**
+Stores webhook payments where no customer could be matched, for later manual linking or retry.
+```sql
+CREATE TABLE public.unmatched_transactions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  merchant_id uuid NOT NULL,
+  provider text NOT NULL DEFAULT 'square',
+  external_payment_id text,
+  purchase_amount numeric NOT NULL,
+  external_customer_id text,
+  match_attempted jsonb, -- { card: null, phone: '+61...', email: null }
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','linked','expired')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz
+);
+```
+RLS: merchants can view their own unmatched transactions; service role has full access.
+
+---
+
+### Edge Function Changes
+
+**`pos-webhook/index.ts`** — three additions, no removals:
+
+1. **Log every event** — Insert into `integration_events` at the start of processing (status `received`), update to `processed`/`skipped`/`failed` at the end.
+
+2. **Use persistent customer mappings** — Before the current card→phone→email matching chain, check `external_customer_mappings` for a cached match by `(provider, external_customer_id, merchant_id)`. If found, skip the rest. If the chain finds a match, insert into `external_customer_mappings` for next time.
+
+3. **Store unmatched transactions** — When no customer is found, instead of just returning `customer_not_found`, also insert into `unmatched_transactions` with the attempted match data. This preserves the payment for later manual linking.
+
+**`square-oauth-callback/index.ts`** — one addition:
+
+- After token exchange, compute `token_expires_at` from `tokenData.expires_at` (Square returns an ISO timestamp) and store it alongside the access token in the upsert. Set `connection_status = 'active'`.
+
+---
 
 ### Files Changed
+
 | File | Change |
 |------|--------|
-| `src/contexts/AuthContext.tsx` | Prevent double detectRole, add sessionStorage cache for roles |
-| `src/pages/GetStarted.tsx` | Use `useAuth()` instead of separate DB queries for redirect |
+| New migration | 4 schema changes above |
+| `supabase/functions/pos-webhook/index.ts` | Add event logging, cached mapping lookup/insert, unmatched tx storage |
+| `supabase/functions/square-oauth-callback/index.ts` | Store `token_expires_at`, set `connection_status` |
 
 ### What Stays Unchanged
-- All routes, pages, UI, and design
-- ProtectedRoute logic
-- Auth flow (login/signup/reset)
-- All dashboard functionality
+- All UI components including `PosTab`
+- Manual "Add Points" flow
+- Auth context, routing, session persistence
+- Customer/merchant dashboards
+- Points trigger and loyalty card generation
+
+### Technical Notes
+- `external_customer_mappings` uses a composite unique index so the same external customer can map to different PerkBack customers across different merchants (e.g., a Square customer who shops at two PerkBack merchants)
+- `integration_events` is write-heavy; no indexes beyond PK initially — add if query patterns emerge
+- `unmatched_transactions` enables a future UI where merchants can manually link unclaimed payments to customers
 
