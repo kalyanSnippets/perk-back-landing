@@ -133,6 +133,9 @@ Deno.serve(async (req) => {
     // Store tokens in pos_connections using service role
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // Compute token expiry from Square response
+    const tokenExpiresAt = tokenData.expires_at || null;
+
     const { error: upsertError } = await supabase
       .from("pos_connections")
       .upsert(
@@ -145,6 +148,9 @@ Deno.serve(async (req) => {
           provider_account_id: providerAccountId,
           is_active: true,
           connected_at: new Date().toISOString(),
+          token_expires_at: tokenExpiresAt,
+          token_refreshed_at: new Date().toISOString(),
+          connection_status: "active",
         },
         { onConflict: "merchant_id,provider" }
       );

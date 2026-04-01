@@ -247,6 +247,90 @@ export type Database = {
         }
         Relationships: []
       }
+      external_customer_mappings: {
+        Row: {
+          created_at: string
+          customer_id: string
+          external_customer_id: string
+          id: string
+          match_method: string | null
+          merchant_id: string
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          external_customer_id: string
+          id?: string
+          match_method?: string | null
+          merchant_id: string
+          provider?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          external_customer_id?: string
+          id?: string
+          match_method?: string | null
+          merchant_id?: string
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_customer_mappings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_customer_mappings_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          external_event_id: string | null
+          id: string
+          merchant_id: string | null
+          payload: Json | null
+          processed_at: string | null
+          provider: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          external_event_id?: string | null
+          id?: string
+          merchant_id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          provider?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          external_event_id?: string | null
+          id?: string
+          merchant_id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          provider?: string
+          status?: string
+        }
+        Relationships: []
+      }
       merchants: {
         Row: {
           address: string | null
@@ -331,6 +415,7 @@ export type Database = {
         Row: {
           access_token: string | null
           connected_at: string | null
+          connection_status: string
           created_at: string
           id: string
           is_active: boolean
@@ -339,12 +424,15 @@ export type Database = {
           provider: string
           provider_account_id: string | null
           refresh_token: string | null
+          token_expires_at: string | null
+          token_refreshed_at: string | null
           updated_at: string
           webhook_signature_key: string | null
         }
         Insert: {
           access_token?: string | null
           connected_at?: string | null
+          connection_status?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -353,12 +441,15 @@ export type Database = {
           provider?: string
           provider_account_id?: string | null
           refresh_token?: string | null
+          token_expires_at?: string | null
+          token_refreshed_at?: string | null
           updated_at?: string
           webhook_signature_key?: string | null
         }
         Update: {
           access_token?: string | null
           connected_at?: string | null
+          connection_status?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -367,6 +458,8 @@ export type Database = {
           provider?: string
           provider_account_id?: string | null
           refresh_token?: string | null
+          token_expires_at?: string | null
+          token_refreshed_at?: string | null
           updated_at?: string
           webhook_signature_key?: string | null
         }
@@ -487,6 +580,53 @@ export type Database = {
           },
           {
             foreignKeyName: "transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unmatched_transactions: {
+        Row: {
+          created_at: string
+          external_customer_id: string | null
+          external_payment_id: string | null
+          id: string
+          match_attempted: Json | null
+          merchant_id: string
+          provider: string
+          purchase_amount: number
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          external_customer_id?: string | null
+          external_payment_id?: string | null
+          id?: string
+          match_attempted?: Json | null
+          merchant_id: string
+          provider?: string
+          purchase_amount: number
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          external_customer_id?: string | null
+          external_payment_id?: string | null
+          id?: string
+          match_attempted?: Json | null
+          merchant_id?: string
+          provider?: string
+          purchase_amount?: number
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unmatched_transactions_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
