@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   ArrowLeft, Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Briefcase, Upload, Wifi, CreditCard, Check, X as XIcon
+  Phone, MapPin, Briefcase, Upload, Wifi, CreditCard, Check
 } from "lucide-react";
 import PosTab from "@/components/merchant/PosTab";
 import ScrollReveal from "@/components/ScrollReveal";
