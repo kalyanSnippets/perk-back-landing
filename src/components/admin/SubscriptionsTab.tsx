@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Search, ChevronDown, ToggleLeft, ToggleRight, Settings2 } from "lucide-react";
+import { Search, ToggleLeft, ToggleRight, Settings2 } from "lucide-react";
 import {
   Select,
   SelectContent,

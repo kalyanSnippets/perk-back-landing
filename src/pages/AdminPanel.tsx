@@ -312,6 +312,11 @@ const AdminPanel = () => {
             <TabsContent value="users">
               <UsersTab />
             </TabsContent>
+
+            {/* ═══ SUBSCRIPTIONS TAB ═══ */}
+            <TabsContent value="subscriptions">
+              <SubscriptionsTab />
+            </TabsContent>
           </Tabs>
         </div>
       </main>

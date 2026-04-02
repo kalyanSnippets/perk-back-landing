@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Users, Receipt, Star, DollarSign,
   Plus, List, BarChart3, Settings, CreditCard,
-  CheckCircle, X, TrendingUp, Megaphone, Brain, Gamepad2, Gift, Wifi
+  CheckCircle, X, TrendingUp, Megaphone, Gamepad2, Wifi
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";

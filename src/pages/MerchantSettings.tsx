@@ -15,7 +15,7 @@ import Header from "@/components/Header";
 import PlanBadge from "@/components/merchant/PlanBadge";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
-import { FEATURE_CATALOG, planLabel, type PlanTier } from "@/lib/features";
+import { FEATURE_CATALOG, planLabel } from "@/lib/features";
 
 interface MerchantData {
   id: string;
