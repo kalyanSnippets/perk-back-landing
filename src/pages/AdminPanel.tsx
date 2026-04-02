@@ -15,10 +15,11 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import UsersTab from "@/components/admin/UsersTab";
+import SubscriptionsTab from "@/components/admin/SubscriptionsTab";
 import {
   Pencil, Trash2, Plus, Save, X, Eye, EyeOff,
   FileText, MessageSquare, Mail, Users, Bold, Italic,
-  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote
+  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard
 } from "lucide-react";
 
 /* ── Types ── */
