@@ -8,11 +8,15 @@ import { toast } from "sonner";
 import {
   Users, Receipt, Star, DollarSign,
   Plus, List, BarChart3, Settings, CreditCard,
-  CheckCircle, X
+  CheckCircle, X, TrendingUp, Megaphone, Brain, Gamepad2, Gift, Wifi
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
-import perkbackLogo from "@/assets/perkback-logo.png";
 import Header from "@/components/Header";
+import PlanBadge from "@/components/merchant/PlanBadge";
+import UpgradeBanner from "@/components/merchant/UpgradeBanner";
+import CustomerLimitBanner from "@/components/merchant/CustomerLimitBanner";
+import LockedWidget from "@/components/merchant/LockedWidget";
+import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
 interface MerchantData {
   id: string;
@@ -36,6 +40,8 @@ const MerchantDashboard = () => {
   const [purchaseAmount, setPurchaseAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const { plan, status, canAccess, customerLimit, loading: subLoading } = useMerchantSubscription(merchant?.id);
+
   const fetchMerchant = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/merchant/auth"); return null; }
@@ -56,7 +62,6 @@ const MerchantDashboard = () => {
     todayStart.setHours(0, 0, 0, 0);
     const todayISO = todayStart.toISOString();
 
-    // All transactions for this merchant
     const { data: allTx } = await supabase
       .from("transactions")
       .select("customer_id, points_awarded, purchase_amount, transaction_date")
@@ -86,7 +91,6 @@ const MerchantDashboard = () => {
       setLoading(false);
     })();
 
-    // Subscribe to realtime transaction inserts for this merchant
     const channel = supabase
       .channel('merchant-transactions')
       .on(
@@ -138,8 +142,6 @@ const MerchantDashboard = () => {
     }
   };
 
-  // Logout handled by Header
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
@@ -163,7 +165,7 @@ const MerchantDashboard = () => {
   const quickActions = [
     { label: "Add Points", icon: Plus, onClick: () => setShowAddPoints(true), primary: true },
     { label: "Transactions", icon: List, onClick: () => navigate("/merchant/transactions"), primary: false },
-    { label: "Reports", icon: BarChart3, onClick: () => toast.info("Reports coming soon"), primary: false },
+    { label: "Reports", icon: BarChart3, onClick: () => canAccess("advanced_reports") ? toast.info("Reports coming soon") : toast.info("Upgrade to Pro for Advanced Reports"), primary: false },
     { label: "Settings", icon: Settings, onClick: () => navigate("/merchant/settings"), primary: false },
   ];
 
@@ -175,13 +177,28 @@ const MerchantDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 py-6 max-w-3xl space-y-6 pb-20 pt-20 sm:pt-24">
-        {/* Store Title */}
+        {/* Store Title + Plan Badge */}
         <ScrollReveal>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-[0.15em]">Merchant Dashboard</p>
-            <h1 className="text-2xl font-bold text-foreground mt-1">{merchant.store_name}</h1>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.15em]">Merchant Dashboard</p>
+              <h1 className="text-2xl font-bold text-foreground mt-1">{merchant.store_name}</h1>
+            </div>
+            {!subLoading && <PlanBadge plan={plan} status={status} />}
           </div>
         </ScrollReveal>
+
+        {/* Upgrade Banner */}
+        {!subLoading && (plan === "free" || plan === "growth") && (
+          <ScrollReveal delay={50}>
+            <UpgradeBanner currentPlan={plan} />
+          </ScrollReveal>
+        )}
+
+        {/* Customer Limit Banner */}
+        {!subLoading && plan === "free" && (
+          <CustomerLimitBanner currentCount={kpis.totalCustomers} limit={customerLimit} />
+        )}
 
         {/* KPI Cards */}
         <ScrollReveal delay={100}>
@@ -202,6 +219,26 @@ const MerchantDashboard = () => {
             ))}
           </div>
         </ScrollReveal>
+
+        {/* Growth-tier Locked Widgets (for Free users) */}
+        {!subLoading && !canAccess("campaigns") && (
+          <ScrollReveal delay={120}>
+            <div className="grid grid-cols-2 gap-3">
+              <LockedWidget featureKey="campaigns" label="Campaign Performance" icon={Megaphone} />
+              <LockedWidget featureKey="analytics" label="Customer Analytics" icon={TrendingUp} />
+            </div>
+          </ScrollReveal>
+        )}
+
+        {/* Pro-tier Locked Widgets (for Free/Growth users) */}
+        {!subLoading && !canAccess("gamification") && (
+          <ScrollReveal delay={140}>
+            <div className="grid grid-cols-2 gap-3">
+              <LockedWidget featureKey="gamification" label="Gamification" icon={Gamepad2} />
+              <LockedWidget featureKey="pos_integration" label="POS Integration" icon={Wifi} />
+            </div>
+          </ScrollReveal>
+        )}
 
         {/* Quick Actions */}
         <ScrollReveal delay={150}>
