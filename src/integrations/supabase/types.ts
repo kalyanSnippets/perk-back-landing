@@ -331,6 +331,115 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_feature_overrides: {
+        Row: {
+          allow_advanced_reports: boolean
+          allow_ai_suggestions: boolean
+          allow_analytics: boolean
+          allow_birthday_offers: boolean
+          allow_campaigns: boolean
+          allow_gamification: boolean
+          allow_monthly_offers: boolean
+          allow_pos_integration: boolean
+          allow_priority_support: boolean
+          allow_rewards: boolean
+          created_at: string
+          id: string
+          merchant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_advanced_reports?: boolean
+          allow_ai_suggestions?: boolean
+          allow_analytics?: boolean
+          allow_birthday_offers?: boolean
+          allow_campaigns?: boolean
+          allow_gamification?: boolean
+          allow_monthly_offers?: boolean
+          allow_pos_integration?: boolean
+          allow_priority_support?: boolean
+          allow_rewards?: boolean
+          created_at?: string
+          id?: string
+          merchant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allow_advanced_reports?: boolean
+          allow_ai_suggestions?: boolean
+          allow_analytics?: boolean
+          allow_birthday_offers?: boolean
+          allow_campaigns?: boolean
+          allow_gamification?: boolean
+          allow_monthly_offers?: boolean
+          allow_pos_integration?: boolean
+          allow_priority_support?: boolean
+          allow_rewards?: boolean
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_feature_overrides_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string
+          current_plan: string
+          end_date: string | null
+          id: string
+          merchant_id: string
+          start_date: string
+          status: string
+          trial_end_date: string | null
+          trial_start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string
+          current_plan?: string
+          end_date?: string | null
+          id?: string
+          merchant_id: string
+          start_date?: string
+          status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string
+          current_plan?: string
+          end_date?: string | null
+          id?: string
+          merchant_id?: string
+          start_date?: string
+          status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_subscriptions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchants: {
         Row: {
           address: string | null
@@ -664,6 +773,20 @@ export type Database = {
           _purchase_amount: number
         }
         Returns: Json
+      }
+      admin_get_all_merchants_with_plans: {
+        Args: never
+        Returns: {
+          created_at: string
+          current_plan: string
+          customer_count: number
+          email: string
+          merchant_id: string
+          plan_status: string
+          store_name: string
+          trial_end_date: string
+          updated_at: string
+        }[]
       }
       admin_set_user_role: {
         Args: {
