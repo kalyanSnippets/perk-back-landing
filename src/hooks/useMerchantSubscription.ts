@@ -61,7 +61,7 @@ export function useMerchantSubscription(merchantId: string | undefined) {
   const loading = subLoading || overLoading;
 
   const canAccess = (featureKey: string): boolean => {
-    return hasFeatureAccess(plan, featureKey, overrides as Record<string, boolean> | null);
+    return hasFeatureAccess(plan, featureKey, overrides as unknown as Record<string, boolean> | null);
   };
 
   const customerLimit = CUSTOMER_LIMIT[plan];
