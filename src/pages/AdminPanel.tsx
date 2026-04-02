@@ -15,10 +15,11 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import UsersTab from "@/components/admin/UsersTab";
+import SubscriptionsTab from "@/components/admin/SubscriptionsTab";
 import {
   Pencil, Trash2, Plus, Save, X, Eye, EyeOff,
   FileText, MessageSquare, Mail, Users, Bold, Italic,
-  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote
+  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard
 } from "lucide-react";
 
 /* ── Types ── */
@@ -180,11 +181,12 @@ const AdminPanel = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">Admin Panel</h1>
 
           <Tabs defaultValue="blogs" className="w-full">
-            <TabsList className="w-full grid grid-cols-4 mb-6">
+            <TabsList className="w-full grid grid-cols-5 mb-6">
               <TabsTrigger value="blogs" className="gap-1.5"><FileText size={14} /> Blogs</TabsTrigger>
               <TabsTrigger value="testimonials" className="gap-1.5"><MessageSquare size={14} /> Testimonials</TabsTrigger>
               <TabsTrigger value="contacts" className="gap-1.5"><Mail size={14} /> Messages</TabsTrigger>
               <TabsTrigger value="users" className="gap-1.5"><Users size={14} /> Users</TabsTrigger>
+              <TabsTrigger value="subscriptions" className="gap-1.5"><CreditCard size={14} /> Plans</TabsTrigger>
             </TabsList>
 
             {/* ═══ BLOGS TAB ═══ */}
@@ -309,6 +311,11 @@ const AdminPanel = () => {
             {/* ═══ USERS TAB ═══ */}
             <TabsContent value="users">
               <UsersTab />
+            </TabsContent>
+
+            {/* ═══ SUBSCRIPTIONS TAB ═══ */}
+            <TabsContent value="subscriptions">
+              <SubscriptionsTab />
             </TabsContent>
           </Tabs>
         </div>

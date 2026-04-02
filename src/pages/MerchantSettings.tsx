@@ -7,12 +7,15 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   ArrowLeft, Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Briefcase, Upload, Wifi
+  Phone, MapPin, Briefcase, Upload, Wifi, CreditCard, Check
 } from "lucide-react";
 import PosTab from "@/components/merchant/PosTab";
-import perkbackLogo from "@/assets/perkback-logo.png";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
+import PlanBadge from "@/components/merchant/PlanBadge";
+import LockedFeature from "@/components/merchant/LockedFeature";
+import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
+import { FEATURE_CATALOG, planLabel } from "@/lib/features";
 
 interface MerchantData {
   id: string;
@@ -27,7 +30,7 @@ const MerchantSettings = () => {
   const navigate = useNavigate();
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"password" | "business" | "profile" | "pos">("business");
+  const [activeTab, setActiveTab] = useState<"password" | "business" | "profile" | "pos" | "subscription">("business");
 
   // Password state
   const [newPassword, setNewPassword] = useState("");
@@ -41,6 +44,8 @@ const MerchantSettings = () => {
 
   // Profile state
   const [uploading, setUploading] = useState(false);
+
+  const { plan, status, canAccess, loading: subLoading } = useMerchantSubscription(merchant?.id);
 
   const fetchMerchant = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -143,8 +148,12 @@ const MerchantSettings = () => {
     { id: "business" as const, label: "Business", icon: Building2 },
     { id: "profile" as const, label: "Profile", icon: User },
     { id: "pos" as const, label: "POS", icon: Wifi },
+    { id: "subscription" as const, label: "Plan", icon: CreditCard },
     { id: "password" as const, label: "Password", icon: Lock },
   ];
+
+  const includedFeatures = FEATURE_CATALOG.filter((f) => canAccess(f.key));
+  const lockedFeatures = FEATURE_CATALOG.filter((f) => !canAccess(f.key) && f.minimumPlan !== "free");
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -162,18 +171,18 @@ const MerchantSettings = () => {
         </div>
         {/* Tab Selector */}
         <ScrollReveal>
-          <div className="flex gap-2 bg-card rounded-xl p-1.5 border border-border/50 shadow-card">
+          <div className="flex gap-1 bg-card rounded-xl p-1.5 border border-border/50 shadow-card overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1 py-2.5 rounded-lg text-[11px] font-semibold transition-all duration-200 whitespace-nowrap min-w-0 ${
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <tab.icon size={14} />
+                <tab.icon size={13} />
                 {tab.label}
               </button>
             ))}
@@ -247,7 +256,66 @@ const MerchantSettings = () => {
         {/* POS Tab */}
         {activeTab === "pos" && (
           <ScrollReveal>
-            <PosTab merchantId={merchant.id} />
+            {canAccess("pos_integration") ? (
+              <PosTab merchantId={merchant.id} />
+            ) : (
+              <LockedFeature featureKey="pos_integration" />
+            )}
+          </ScrollReveal>
+        )}
+
+        {/* Subscription Tab */}
+        {activeTab === "subscription" && !subLoading && (
+          <ScrollReveal>
+            <div className="space-y-4">
+              <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <CreditCard size={18} className="text-secondary" /> Your Plan
+                  </h2>
+                  <PlanBadge plan={plan} status={status} />
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Included Features</h3>
+                  <div className="space-y-1.5">
+                    {includedFeatures.map((f) => (
+                      <div key={f.key} className="flex items-center gap-2 text-sm text-foreground">
+                        <Check size={14} className="text-green-500" />
+                        {f.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {lockedFeatures.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Locked Features</h3>
+                    <div className="space-y-1.5">
+                      {lockedFeatures.map((f) => (
+                        <div key={f.key} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Lock size={14} />
+                          <span>{f.name}</span>
+                          <span className="ml-auto text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {planLabel(f.minimumPlan)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {plan !== "pro" && (
+                <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/5 rounded-2xl p-5 border border-primary/20 text-center space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Want to unlock more features?</p>
+                  <p className="text-xs text-muted-foreground">Contact your admin to upgrade your plan.</p>
+                  <Button variant="hero" size="sm" className="gap-1.5">
+                    Request Upgrade
+                  </Button>
+                </div>
+              )}
+            </div>
           </ScrollReveal>
         )}
 
