@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Lock, Building2, User, Save, Eye, EyeOff,
+  Lock, Building2, User, Save, Eye, EyeOff,
   Phone, MapPin, Briefcase, Upload, Wifi, CreditCard, Check
 } from "lucide-react";
 import PosTab from "@/components/merchant/PosTab";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
+import MerchantNav from "@/components/merchant/MerchantNav";
 import PlanBadge from "@/components/merchant/PlanBadge";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
@@ -162,13 +163,13 @@ const MerchantSettings = () => {
         <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
       </div>
 
-      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-2xl space-y-5 pb-20 pt-20 sm:pt-24">
-        <div className="flex items-center gap-3 mb-2">
-          <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-            <Link to="/merchant/dashboard"><ArrowLeft size={16} /></Link>
-          </Button>
-          <span className="text-sm font-semibold text-foreground">Settings</span>
-        </div>
+      <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
+        <div className="flex gap-6">
+          <MerchantNav merchantId={merchant.id} />
+          <div className="flex-1 max-w-2xl space-y-5">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-sm font-semibold text-foreground">Settings</span>
+            </div>
         {/* Tab Selector */}
         <ScrollReveal>
           <div className="flex gap-1 bg-card rounded-xl p-1.5 border border-border/50 shadow-card overflow-x-auto">
@@ -362,6 +363,8 @@ const MerchantSettings = () => {
             </form>
           </ScrollReveal>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

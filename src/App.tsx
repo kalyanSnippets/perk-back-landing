@@ -16,6 +16,16 @@ import AboutUs from "./pages/AboutUs.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import MerchantDashboard from "./pages/MerchantDashboard.tsx";
 import MerchantTransactions from "./pages/MerchantTransactions.tsx";
+import MerchantCustomers from "./pages/MerchantCustomers.tsx";
+import MerchantCampaigns from "./pages/MerchantCampaigns.tsx";
+import MerchantRewards from "./pages/MerchantRewards.tsx";
+import MerchantAnalytics from "./pages/MerchantAnalytics.tsx";
+import MerchantAISuggestions from "./pages/MerchantAISuggestions.tsx";
+import MerchantGamification from "./pages/MerchantGamification.tsx";
+import MerchantBirthdayOffers from "./pages/MerchantBirthdayOffers.tsx";
+import MerchantMonthlyOffers from "./pages/MerchantMonthlyOffers.tsx";
+import MerchantPOS from "./pages/MerchantPOS.tsx";
+import MerchantReports from "./pages/MerchantReports.tsx";
 import MerchantSettings from "./pages/MerchantSettings.tsx";
 import ContactUs from "./pages/ContactUs.tsx";
 import TestimonialsPage from "./pages/TestimonialsPage.tsx";
@@ -86,6 +96,36 @@ const App = () => (
               <ProtectedRoute requiredRole="merchant">
                 <MerchantSettings />
               </ProtectedRoute>
+            } />
+            <Route path="/merchant/customers" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantCustomers /></ProtectedRoute>
+            } />
+            <Route path="/merchant/campaigns" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantCampaigns /></ProtectedRoute>
+            } />
+            <Route path="/merchant/rewards" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantRewards /></ProtectedRoute>
+            } />
+            <Route path="/merchant/analytics" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantAnalytics /></ProtectedRoute>
+            } />
+            <Route path="/merchant/ai-suggestions" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantAISuggestions /></ProtectedRoute>
+            } />
+            <Route path="/merchant/gamification" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantGamification /></ProtectedRoute>
+            } />
+            <Route path="/merchant/birthday-offers" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantBirthdayOffers /></ProtectedRoute>
+            } />
+            <Route path="/merchant/monthly-offers" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantMonthlyOffers /></ProtectedRoute>
+            } />
+            <Route path="/merchant/pos" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantPOS /></ProtectedRoute>
+            } />
+            <Route path="/merchant/reports" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantReports /></ProtectedRoute>
             } />
 
             {/* Protected: Admin */}

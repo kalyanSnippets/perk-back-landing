@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import {
-  ArrowLeft, Search, Receipt, Clock, User, CreditCard
+  Search, Receipt, Clock, User, CreditCard
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
+import MerchantNav from "@/components/merchant/MerchantNav";
 
 interface Transaction {
   id: string;
@@ -28,6 +27,7 @@ const MerchantTransactions = () => {
   const [filteredTx, setFilteredTx] = useState<Transaction[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [merchant, setMerchant] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
     fetchTransactions();
@@ -53,18 +53,19 @@ const MerchantTransactions = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/merchant/auth"); return; }
 
-    const { data: merchant } = await supabase
+    const { data: m } = await supabase
       .from("merchants")
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!merchant) { navigate("/merchant/auth"); return; }
+    if (!m) { navigate("/merchant/auth"); return; }
+    setMerchant(m);
 
     const { data: txData } = await supabase
       .from("transactions")
       .select("*")
-      .eq("merchant_id", merchant.id)
+      .eq("merchant_id", m.id)
       .order("transaction_date", { ascending: false });
 
     if (!txData || txData.length === 0) {
@@ -116,13 +117,13 @@ const MerchantTransactions = () => {
         <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
       </div>
 
-      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-3xl space-y-4 pb-20 pt-20 sm:pt-24">
-        <div className="flex items-center gap-3 mb-2">
-          <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-            <Link to="/merchant/dashboard"><ArrowLeft size={16} /></Link>
-          </Button>
-          <span className="text-lg font-bold text-foreground">Transactions</span>
-        </div>
+      <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
+        <div className="flex gap-6">
+          <MerchantNav merchantId={merchant?.id} />
+          <div className="flex-1 max-w-3xl space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-lg font-bold text-foreground">Transactions</span>
+            </div>
         {/* Search */}
         <ScrollReveal>
           <div className="relative">
@@ -189,6 +190,8 @@ const MerchantTransactions = () => {
             )}
           </div>
         </ScrollReveal>
+          </div>
+        </div>
       </div>
     </div>
   );
