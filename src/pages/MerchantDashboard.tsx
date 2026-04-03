@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
+import MerchantNav from "@/components/merchant/MerchantNav";
 import PlanBadge from "@/components/merchant/PlanBadge";
 import UpgradeBanner from "@/components/merchant/UpgradeBanner";
 import CustomerLimitBanner from "@/components/merchant/CustomerLimitBanner";
