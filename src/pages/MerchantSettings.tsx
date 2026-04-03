@@ -363,6 +363,8 @@ const MerchantSettings = () => {
             </form>
           </ScrollReveal>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );
