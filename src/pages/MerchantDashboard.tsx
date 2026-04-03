@@ -338,8 +338,9 @@ const MerchantDashboard = () => {
           </div>
         )}
       </div>
+      </div>
     </div>
-  );
+    </div>
 };
 
 export default MerchantDashboard;
