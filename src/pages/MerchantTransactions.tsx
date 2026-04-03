@@ -67,7 +67,7 @@ const MerchantTransactions = () => {
     const { data: txData } = await supabase
       .from("transactions")
       .select("*")
-      .eq("merchant_id", merchant.id)
+      .eq("merchant_id", m.id)
       .order("transaction_date", { ascending: false });
 
     if (!txData || txData.length === 0) {
