@@ -97,6 +97,36 @@ const App = () => (
                 <MerchantSettings />
               </ProtectedRoute>
             } />
+            <Route path="/merchant/customers" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantCustomers /></ProtectedRoute>
+            } />
+            <Route path="/merchant/campaigns" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantCampaigns /></ProtectedRoute>
+            } />
+            <Route path="/merchant/rewards" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantRewards /></ProtectedRoute>
+            } />
+            <Route path="/merchant/analytics" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantAnalytics /></ProtectedRoute>
+            } />
+            <Route path="/merchant/ai-suggestions" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantAISuggestions /></ProtectedRoute>
+            } />
+            <Route path="/merchant/gamification" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantGamification /></ProtectedRoute>
+            } />
+            <Route path="/merchant/birthday-offers" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantBirthdayOffers /></ProtectedRoute>
+            } />
+            <Route path="/merchant/monthly-offers" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantMonthlyOffers /></ProtectedRoute>
+            } />
+            <Route path="/merchant/pos" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantPOS /></ProtectedRoute>
+            } />
+            <Route path="/merchant/reports" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantReports /></ProtectedRoute>
+            } />
 
             {/* Protected: Admin */}
             <Route path="/admin" element={
