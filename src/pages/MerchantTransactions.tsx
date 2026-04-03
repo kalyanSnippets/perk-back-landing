@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
+import MerchantNav from "@/components/merchant/MerchantNav";
 
 interface Transaction {
   id: string;
