@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CreditCard, Star, Search } from "lucide-react";
+import { Users, CreditCard, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";

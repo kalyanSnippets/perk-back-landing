@@ -5,7 +5,7 @@ import {
   Sparkles, Gamepad2, Cake, CalendarHeart, Wifi, FileBarChart, Settings, Lock
 } from "lucide-react";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
-import { getRequiredPlan, planLabel, type PlanTier } from "@/lib/features";
+import { getRequiredPlan, planLabel } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
 interface NavItem {

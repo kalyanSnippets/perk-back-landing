@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Wifi } from "lucide-react";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
 import LockedFeature from "@/components/merchant/LockedFeature";

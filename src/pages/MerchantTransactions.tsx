@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Search, Receipt, Clock, User, CreditCard
+  Search, Receipt, Clock, User, CreditCard
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
