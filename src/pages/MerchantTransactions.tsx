@@ -191,6 +191,8 @@ const MerchantTransactions = () => {
             )}
           </div>
         </ScrollReveal>
+          </div>
+        </div>
       </div>
     </div>
   );
