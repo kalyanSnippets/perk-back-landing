@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-import MerchantNav from "@/components/merchant/MerchantNav";
+import BackToDashboard from "@/components/merchant/BackToDashboard";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
@@ -29,7 +29,6 @@ const MerchantCampaigns = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
-
   const { canAccess, loading: subLoading } = useMerchantSubscription(merchantId);
 
   useEffect(() => {
@@ -76,67 +75,63 @@ const MerchantCampaigns = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
   }
 
-  const hasAccess = canAccess("campaigns");
-
   return (
     <div className="min-h-screen bg-muted/20">
       <Header />
       <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
-        <div className="flex gap-6">
-          <MerchantNav merchantId={merchantId} />
-          <div className="flex-1 max-w-3xl space-y-4">
-            {!hasAccess ? (
-              <LockedFeature featureKey="campaigns" />
-            ) : (
-              <>
-                <ScrollReveal>
-                  <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-bold text-foreground">Campaigns</h1>
-                    <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowForm(!showForm)}>
-                      <Plus size={14} /> New
-                    </Button>
-                  </div>
-                </ScrollReveal>
-
-                {showForm && (
-                  <form onSubmit={handleCreate} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
-                    <Input placeholder="Campaign title" value={title} onChange={e => setTitle(e.target.value)} required />
-                    <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={3} />
-                    <div className="flex gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
-                      <Button type="submit" variant="hero" size="sm" disabled={saving}>{saving ? "Creating..." : "Create"}</Button>
-                    </div>
-                  </form>
-                )}
-
-                <div className="bg-card rounded-2xl border border-border/50 shadow-card overflow-hidden divide-y divide-border/40">
-                  {campaigns.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Megaphone size={32} className="mx-auto mb-3 text-muted-foreground/40" />
-                      <p className="text-sm text-muted-foreground">No campaigns yet</p>
-                    </div>
-                  ) : (
-                    campaigns.map(c => (
-                      <div key={c.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-sm text-foreground">{c.title}</p>
-                          {c.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{c.description}</p>}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 pl-3">
-                          <button onClick={() => toggleActive(c.id, c.active)} className="text-muted-foreground hover:text-foreground">
-                            {c.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
-                          </button>
-                          <button onClick={() => deleteCampaign(c.id)} className="text-muted-foreground hover:text-destructive">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
+        <div className="max-w-4xl mx-auto space-y-4">
+          <BackToDashboard />
+          {!canAccess("campaigns") ? (
+            <LockedFeature featureKey="campaigns" />
+          ) : (
+            <>
+              <ScrollReveal>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-bold text-foreground">Campaigns</h1>
+                  <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowForm(!showForm)}>
+                    <Plus size={14} /> New
+                  </Button>
                 </div>
-              </>
-            )}
-          </div>
+              </ScrollReveal>
+
+              {showForm && (
+                <form onSubmit={handleCreate} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
+                  <Input placeholder="Campaign title" value={title} onChange={e => setTitle(e.target.value)} required />
+                  <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+                    <Button type="submit" variant="hero" size="sm" disabled={saving}>{saving ? "Creating..." : "Create"}</Button>
+                  </div>
+                </form>
+              )}
+
+              <div className="bg-card rounded-2xl border border-border/50 shadow-card overflow-hidden divide-y divide-border/40">
+                {campaigns.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Megaphone size={32} className="mx-auto mb-3 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">No campaigns yet</p>
+                  </div>
+                ) : (
+                  campaigns.map(c => (
+                    <div key={c.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm text-foreground">{c.title}</p>
+                        {c.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{c.description}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 pl-3">
+                        <button onClick={() => toggleActive(c.id, c.active)} className="text-muted-foreground hover:text-foreground">
+                          {c.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
+                        </button>
+                        <button onClick={() => deleteCampaign(c.id)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

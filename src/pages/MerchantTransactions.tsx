@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import {
-  Search, Receipt, Clock, User, CreditCard
-} from "lucide-react";
+import { Search, Receipt, Clock, User, CreditCard } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
-import MerchantNav from "@/components/merchant/MerchantNav";
+import BackToDashboard from "@/components/merchant/BackToDashboard";
 
 interface Transaction {
   id: string;
@@ -27,17 +25,13 @@ const MerchantTransactions = () => {
   const [filteredTx, setFilteredTx] = useState<Transaction[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [merchant, setMerchant] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
     fetchTransactions();
   }, []);
 
   useEffect(() => {
-    if (!search.trim()) {
-      setFilteredTx(transactions);
-      return;
-    }
+    if (!search.trim()) { setFilteredTx(transactions); return; }
     const q = search.toLowerCase();
     setFilteredTx(
       transactions.filter(
@@ -53,14 +47,8 @@ const MerchantTransactions = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/merchant/auth"); return; }
 
-    const { data: m } = await supabase
-      .from("merchants")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
+    const { data: m } = await supabase.from("merchants").select("id").eq("user_id", user.id).maybeSingle();
     if (!m) { navigate("/merchant/auth"); return; }
-    setMerchant(m);
 
     const { data: txData } = await supabase
       .from("transactions")
@@ -68,36 +56,20 @@ const MerchantTransactions = () => {
       .eq("merchant_id", m.id)
       .order("transaction_date", { ascending: false });
 
-    if (!txData || txData.length === 0) {
-      setTransactions([]);
-      setLoading(false);
-      return;
-    }
+    if (!txData || txData.length === 0) { setTransactions([]); setLoading(false); return; }
 
-    // Fetch customer details using security definer function
     const customerIds = [...new Set(txData.map((t) => t.customer_id))];
-    const { data: customers } = await supabase.rpc("get_customers_by_ids", {
-      _ids: customerIds,
-    });
-
-    const customerMap = new Map(
-      (customers || []).map((c) => [c.id, c])
-    );
+    const { data: customers } = await supabase.rpc("get_customers_by_ids", { _ids: customerIds });
+    const customerMap = new Map((customers || []).map((c) => [c.id, c]));
 
     const enriched = txData.map((tx) => {
       const cust = customerMap.get(tx.customer_id);
-      return {
-        ...tx,
-        customer_name: cust?.full_name || "Unknown",
-        loyalty_card_number: cust?.loyalty_card_number || "—",
-      };
+      return { ...tx, customer_name: cust?.full_name || "Unknown", loyalty_card_number: cust?.loyalty_card_number || "—" };
     });
 
     setTransactions(enriched);
     setLoading(false);
   };
-
-  // Logout handled by Header
 
   if (loading) {
     return (
@@ -118,79 +90,56 @@ const MerchantTransactions = () => {
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
-        <div className="flex gap-6">
-          <MerchantNav merchantId={merchant?.id} />
-          <div className="flex-1 max-w-3xl space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-lg font-bold text-foreground">Transactions</span>
-            </div>
-        {/* Search */}
-        <ScrollReveal>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <Input
-              placeholder="Search by customer name or card number..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 bg-card border-border/50"
-            />
+        <div className="max-w-4xl mx-auto space-y-4">
+          <BackToDashboard />
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-lg font-bold text-foreground">Transactions</span>
           </div>
-        </ScrollReveal>
 
-        {/* Results count */}
-        <p className="text-xs text-muted-foreground">
-          {filteredTx.length} transaction{filteredTx.length !== 1 ? "s" : ""}
-        </p>
+          <ScrollReveal>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input placeholder="Search by customer name or card number..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-card border-border/50" />
+            </div>
+          </ScrollReveal>
 
-        {/* Transactions list */}
-        <ScrollReveal delay={100}>
-          <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
-            {filteredTx.length === 0 ? (
-              <div className="text-center py-12">
-                <Receipt size={32} className="mx-auto mb-3 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">
-                  {search ? "No matching transactions" : "No transactions yet"}
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/40">
-                {filteredTx.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors duration-200"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-foreground flex items-center gap-1.5 truncate">
-                        <User size={12} className="text-muted-foreground shrink-0" />
-                        {tx.customer_name}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <CreditCard size={10} />
-                          {tx.loyalty_card_number}
-                        </span>
-                        <span className="text-muted-foreground/30">·</span>
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Clock size={10} />
-                          {new Date(tx.transaction_date).toLocaleDateString("en-AU", {
-                            day: "numeric", month: "short", year: "numeric",
-                          })}
-                        </span>
+          <p className="text-xs text-muted-foreground">{filteredTx.length} transaction{filteredTx.length !== 1 ? "s" : ""}</p>
+
+          <ScrollReveal delay={100}>
+            <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
+              {filteredTx.length === 0 ? (
+                <div className="text-center py-12">
+                  <Receipt size={32} className="mx-auto mb-3 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">{search ? "No matching transactions" : "No transactions yet"}</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/40">
+                  {filteredTx.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors duration-200">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm text-foreground flex items-center gap-1.5 truncate">
+                          <User size={12} className="text-muted-foreground shrink-0" />
+                          {tx.customer_name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-[11px] text-muted-foreground flex items-center gap-1"><CreditCard size={10} />{tx.loyalty_card_number}</span>
+                          <span className="text-muted-foreground/30">·</span>
+                          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                            <Clock size={10} />
+                            {new Date(tx.transaction_date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right pl-3 shrink-0">
+                        <p className="text-sm font-bold text-foreground">${Number(tx.purchase_amount).toFixed(2)}</p>
+                        <p className="text-xs font-semibold text-accent-foreground bg-accent/15 px-2 py-0.5 rounded-md mt-0.5 inline-block">+{tx.points_awarded} pts</p>
                       </div>
                     </div>
-                    <div className="text-right pl-3 shrink-0">
-                      <p className="text-sm font-bold text-foreground">${Number(tx.purchase_amount).toFixed(2)}</p>
-                      <p className="text-xs font-semibold text-accent-foreground bg-accent/15 px-2 py-0.5 rounded-md mt-0.5 inline-block">
-                        +{tx.points_awarded} pts
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </ScrollReveal>
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollReveal>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { TrendingUp } from "lucide-react";
 import Header from "@/components/Header";
-import MerchantNav from "@/components/merchant/MerchantNav";
+import BackToDashboard from "@/components/merchant/BackToDashboard";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
@@ -33,22 +33,20 @@ const MerchantAnalytics = () => {
     <div className="min-h-screen bg-muted/20">
       <Header />
       <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
-        <div className="flex gap-6">
-          <MerchantNav merchantId={merchantId} />
-          <div className="flex-1 max-w-3xl">
-            {!canAccess("analytics") ? (
-              <LockedFeature featureKey="analytics" />
-            ) : (
-              <ScrollReveal>
-                <h1 className="text-xl font-bold text-foreground mb-4">Analytics</h1>
-                <div className="bg-card rounded-2xl p-8 border border-border/50 shadow-card text-center">
-                  <TrendingUp size={40} className="mx-auto mb-3 text-secondary/40" />
-                  <p className="text-sm text-muted-foreground">Customer analytics coming soon.</p>
-                  <p className="text-xs text-muted-foreground mt-1">Gain insights into customer behaviour and spending patterns.</p>
-                </div>
-              </ScrollReveal>
-            )}
-          </div>
+        <div className="max-w-4xl mx-auto">
+          <BackToDashboard />
+          {!canAccess("analytics") ? (
+            <LockedFeature featureKey="analytics" />
+          ) : (
+            <ScrollReveal>
+              <h1 className="text-xl font-bold text-foreground mb-4">Analytics</h1>
+              <div className="bg-card rounded-2xl p-8 border border-border/50 shadow-card text-center">
+                <TrendingUp size={40} className="mx-auto mb-3 text-secondary/40" />
+                <p className="text-sm text-muted-foreground">Customer analytics coming soon.</p>
+                <p className="text-xs text-muted-foreground mt-1">Gain insights into customer behaviour and spending patterns.</p>
+              </div>
+            </ScrollReveal>
+          )}
         </div>
       </div>
     </div>
