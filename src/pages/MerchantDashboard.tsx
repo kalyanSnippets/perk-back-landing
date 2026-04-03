@@ -177,7 +177,10 @@ const MerchantDashboard = () => {
         <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
       </div>
 
-      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-3xl space-y-6 pb-20 pt-20 sm:pt-24">
+      <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
+        <div className="flex gap-6">
+          <MerchantNav merchantId={merchant.id} />
+          <div className="flex-1 max-w-3xl space-y-6">
         {/* Store Title + Plan Badge */}
         <ScrollReveal>
           <div className="flex items-start justify-between">
