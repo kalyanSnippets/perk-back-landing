@@ -29,6 +29,7 @@ const MerchantTransactions = () => {
   const [filteredTx, setFilteredTx] = useState<Transaction[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [merchant, setMerchant] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
     fetchTransactions();
