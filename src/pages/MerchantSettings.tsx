@@ -12,6 +12,7 @@ import {
 import PosTab from "@/components/merchant/PosTab";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
+import MerchantNav from "@/components/merchant/MerchantNav";
 import PlanBadge from "@/components/merchant/PlanBadge";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
