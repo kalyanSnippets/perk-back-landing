@@ -55,13 +55,14 @@ const MerchantTransactions = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/merchant/auth"); return; }
 
-    const { data: merchant } = await supabase
+    const { data: m } = await supabase
       .from("merchants")
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!merchant) { navigate("/merchant/auth"); return; }
+    if (!m) { navigate("/merchant/auth"); return; }
+    setMerchant(m);
 
     const { data: txData } = await supabase
       .from("transactions")
