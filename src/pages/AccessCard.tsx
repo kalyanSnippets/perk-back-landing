@@ -208,7 +208,7 @@ const AccessCard = () => {
 
   const fetchOffersData = useCallback(async () => {
     if (!customer) return;
-    const merchantIds = [...new Set(transactions.filter(t => t.merchant_id).map(t => t.merchant_id as string))];
+    const merchantIds = Array.from(new Set(transactions.filter(t => t.merchant_id).map(t => t.merchant_id as string)));
     if (merchantIds.length === 0) return;
 
     // Get merchant names
