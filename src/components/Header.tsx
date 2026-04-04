@@ -43,12 +43,12 @@ const Header = () => {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-4 lg:gap-8">
-          {navLinks.map((link) => (
+        <nav className="hidden lg:flex items-center gap-2 xl:gap-5">
+          {filteredNavLinks.map((link) => (
             <Link
               key={link.label}
               to={link.href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
+              className="text-xs xl:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 whitespace-nowrap flex-shrink-0"
             >
               {link.label}
             </Link>
