@@ -7,9 +7,9 @@ import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
-  Clock, Tag, ArrowRight, Shield, Copy, Share2, Wallet,
-  Megaphone, CalendarDays, Flame, ChevronLeft, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, X
+  Clock, Tag, ArrowRight, Shield, Copy, Share2,
+  Megaphone, CalendarDays, ChevronRight,
+  CheckCircle, XCircle, Ticket, Info
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
 import Barcode from "@/components/Barcode";
