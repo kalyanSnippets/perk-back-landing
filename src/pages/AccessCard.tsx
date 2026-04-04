@@ -8,7 +8,8 @@ import {
   Star, Calendar, Hash, User, CreditCard,
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2, Wallet,
-  Megaphone, CalendarDays, Flame, ChevronLeft, ChevronRight
+  Megaphone, CalendarDays, Flame, ChevronLeft, ChevronRight,
+  CheckCircle, XCircle, Ticket
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
 import Barcode from "@/components/Barcode";
