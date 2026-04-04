@@ -590,6 +590,18 @@ const AccessCard = () => {
                           <Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                         </p>
                       )}
+                      {readyToRedeem && (
+                        <Button
+                          size="sm"
+                          variant="hero"
+                          className="w-full mt-3 text-xs h-8 gap-1"
+                          disabled={redeeming === r.id}
+                          onClick={() => handleRedeem(r.id)}
+                        >
+                          <Ticket size={12} />
+                          {redeeming === r.id ? "Redeeming..." : "Redeem Now"}
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
