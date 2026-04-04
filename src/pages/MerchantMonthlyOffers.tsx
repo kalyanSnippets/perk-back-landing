@@ -29,6 +29,8 @@ const MerchantMonthlyOffers = () => {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [validFrom, setValidFrom] = useState("");
+  const [validTo, setValidTo] = useState("");
   const [saving, setSaving] = useState(false);
   const { canAccess, loading: subLoading } = useMerchantSubscription(merchantId);
 
