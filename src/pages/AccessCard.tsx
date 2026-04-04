@@ -132,6 +132,18 @@ interface MonthlyOfferData {
   store_name?: string;
 }
 
+interface RedemptionData {
+  id: string;
+  reward_title: string;
+  points_spent: number;
+  redemption_code: string;
+  status: string;
+  expires_at: string;
+  created_at: string;
+  merchant_id: string;
+  store_name?: string;
+}
+
 const STAMPS_TOTAL = 10;
 
 const CAROUSEL_GRADIENTS = [
