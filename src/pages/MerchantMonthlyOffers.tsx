@@ -29,6 +29,8 @@ const MerchantMonthlyOffers = () => {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [validFrom, setValidFrom] = useState("");
+  const [validTo, setValidTo] = useState("");
   const [saving, setSaving] = useState(false);
   const { canAccess, loading: subLoading } = useMerchantSubscription(merchantId);
 
@@ -53,11 +55,11 @@ const MerchantMonthlyOffers = () => {
     e.preventDefault();
     if (!merchantId || !title.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("monthly_offers").insert({ merchant_id: merchantId, title: title.trim(), description: description.trim() || null });
+    const { error } = await supabase.from("monthly_offers").insert({ merchant_id: merchantId, title: title.trim(), description: description.trim() || null, valid_from: validFrom || null, valid_to: validTo || null });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Offer created");
-    setTitle(""); setDescription(""); setShowForm(false);
+    setTitle(""); setDescription(""); setValidFrom(""); setValidTo(""); setShowForm(false);
     await fetchOffers(merchantId);
   };
 
@@ -98,7 +100,17 @@ const MerchantMonthlyOffers = () => {
               {showForm && (
                 <form onSubmit={handleCreate} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
                   <Input placeholder="Offer title" value={title} onChange={e => setTitle(e.target.value)} required />
-                  <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+                  <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Valid From</label>
+                      <Input type="date" value={validFrom} onChange={e => setValidFrom(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Valid To</label>
+                      <Input type="date" value={validTo} onChange={e => setValidTo(e.target.value)} />
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
                     <Button type="submit" variant="hero" size="sm" disabled={saving}>{saving ? "Creating..." : "Create"}</Button>
@@ -118,6 +130,13 @@ const MerchantMonthlyOffers = () => {
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-sm text-foreground">{o.title}</p>
                         {o.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{o.description}</p>}
+                        {(o.valid_from || o.valid_to) && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {o.valid_from && `From ${new Date(o.valid_from).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`}
+                            {o.valid_from && o.valid_to && " — "}
+                            {o.valid_to && `Until ${new Date(o.valid_to).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 pl-3">
                         <button onClick={() => toggleActive(o.id, o.active)} className="text-muted-foreground hover:text-foreground">
