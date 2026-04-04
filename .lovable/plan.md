@@ -1,109 +1,141 @@
 
 
-## Plan: Replace Sidebar with Tab/Card Navigation on Dashboard
+## Plan: Implement All Feature Pages — One by One
 
-### Summary
-Remove the `MerchantNav` sidebar component from all merchant pages. Instead, add a tab bar or card grid on the merchant dashboard that serves as the main navigation hub. Each feature is a clickable tab/card that either navigates to its dedicated page or shows its content inline. Plan-based locking stays — locked features show lock icon + upgrade prompt on the card.
+This plan builds real functionality into the 6 empty shell pages, plus enhances 2 existing pages. Each feature is implemented sequentially so you can test before moving to the next.
 
 ---
 
-### Architecture
+### Current Status
 
-```text
-┌─────────────────────────────────────────┐
-│  Header                                 │
-├─────────────────────────────────────────┤
-│  Store Name + PlanBadge                 │
-│  UpgradeBanner (if Free/Growth)         │
-│  CustomerLimitBanner (if Free)          │
-├─────────────────────────────────────────┤
-│  KPI Cards (4)                          │
-├─────────────────────────────────────────┤
-│  Feature Tabs/Cards Grid (scrollable)   │
-│  ┌───────┐ ┌───────┐ ┌───────┐         │
-│  │Customers│ │Transac│ │Campgns│ ...    │
-│  │  (free) │ │(free) │ │🔒grow│         │
-│  └───────┘ └───────┘ └───────┘         │
-├─────────────────────────────────────────┤
-│  Quick Actions (Add Points, Settings)   │
-└─────────────────────────────────────────┘
-```
+| Page | Status | What exists |
+|------|--------|-------------|
+| Campaigns | Working | Full CRUD |
+| Monthly Offers | Working | Full CRUD |
+| Customers | Partial | List only, no points/spend columns |
+| Transactions | Working | Full list with search |
+| POS | Working | Square integration |
+| Settings | Working | Profile, password, subscription tab |
+| **Rewards** | **Shell** | Placeholder text only |
+| **Analytics** | **Shell** | Placeholder text only |
+| **AI Suggestions** | **Shell** | Placeholder text only |
+| **Gamification** | **Shell** | Placeholder text only |
+| **Birthday Offers** | **Shell** | Placeholder text only |
+| **Reports** | **Shell** | Placeholder text only |
 
-### Changes
+---
 
-**1. Remove `MerchantNav` from all pages**
-Remove the sidebar/bottom-nav import and usage from:
-- `MerchantDashboard.tsx`
-- `MerchantTransactions.tsx`
-- `MerchantCustomers.tsx`
-- `MerchantCampaigns.tsx`
-- `MerchantRewards.tsx`
-- `MerchantAnalytics.tsx`
-- `MerchantAISuggestions.tsx`
-- `MerchantGamification.tsx`
-- `MerchantBirthdayOffers.tsx`
-- `MerchantMonthlyOffers.tsx`
-- `MerchantPOS.tsx`
-- `MerchantReports.tsx`
-- `MerchantSettings.tsx`
+### Implementation Order
 
-Each page reverts to a simple full-width layout (no `flex gap-6` wrapper with sidebar).
+#### Feature 1: Rewards (Growth+)
+**What it does:** Merchants create custom rewards that customers can redeem with their points.
 
-**2. Add "Back to Dashboard" on sub-pages**
-Each feature page (Customers, Transactions, Campaigns, etc.) gets a small back-link at the top: `← Dashboard` linking to `/merchant/dashboard`.
+**Database:** New `rewards` table with columns: id, merchant_id, title, description, points_required, reward_type (discount/freebie/voucher/custom), active, is_limited_time, expires_at, created_at, updated_at. RLS: merchants manage own records.
 
-**3. Build feature navigation grid on `MerchantDashboard.tsx`**
-Replace the locked widget teasers and quick actions with a unified feature card grid. Each card:
-- Has an icon, label, and short description
-- Links to the feature's route (e.g., `/merchant/campaigns`)
-- If locked by plan: shows lock icon, required plan badge, muted/disabled styling, and clicking opens the locked feature page (which shows `LockedFeature` component)
+**UI:** Full CRUD — create reward form (title, description, points required, type dropdown), list with toggle active/inactive, delete. Same card-list pattern as Campaigns page.
 
-Feature cards (in order):
-| Card | Route | Min Plan |
-|------|-------|----------|
-| Customers | `/merchant/customers` | free |
-| Transactions | `/merchant/transactions` | free |
-| Add Points | opens modal | free |
-| Campaigns | `/merchant/campaigns` | growth |
-| Rewards | `/merchant/rewards` | growth |
-| Analytics | `/merchant/analytics` | growth |
-| AI Suggestions | `/merchant/ai-suggestions` | growth |
-| Gamification | `/merchant/gamification` | pro |
-| Birthday Offers | `/merchant/birthday-offers` | pro |
-| Monthly Offers | `/merchant/monthly-offers` | pro |
-| POS Integration | `/merchant/pos` | pro |
-| Reports | `/merchant/reports` | pro |
-| Settings | `/merchant/settings` | free |
+---
 
-**4. New component: `DashboardFeatureCard`**
-Reusable card component accepting: `icon`, `label`, `description`, `route`, `featureKey`, `onClick`. Uses `canAccess()` to determine locked state. Locked cards show lock overlay + plan badge.
+#### Feature 2: Birthday Offers (Pro)
+**What it does:** Merchants configure automatic birthday rewards for their customers.
 
-### Files Changed
+**Database:** New `birthday_offer_settings` table: id, merchant_id (unique), enabled, reward_type (points_bonus/discount_percent/free_item/custom), reward_value, message, days_before, days_valid. RLS: merchants manage own.
 
-| File | Change |
+**UI:** Settings form with upsert logic — enable/disable toggle, reward type dropdown, reward value input, custom birthday message, days before birthday to send, validity period. Save button with loading state.
+
+---
+
+#### Feature 3: Gamification (Pro)
+**What it does:** Merchants configure stamp cards and visit streak rules.
+
+**Database:** New `gamification_settings` table: id, merchant_id (unique), stamp_card_enabled, stamps_required, stamp_reward, visit_streak_enabled, streak_threshold, streak_reward, levels_enabled. RLS: merchants manage own.
+
+**UI:** Two setting sections — Stamp Card (enable, stamps required, reward text) and Visit Streaks (enable, threshold, reward text). Each with save/upsert. Preview cards showing how it looks to customers.
+
+---
+
+#### Feature 4: Analytics (Growth+)
+**What it does:** Visual dashboard showing customer insights, spending trends, and segmentation.
+
+**Database:** No new tables — computed from existing `transactions` table.
+
+**UI:**
+- 4 summary cards: total customers, total revenue, avg transaction value, repeat customer rate
+- Line chart: daily transactions over last 30 days (Recharts)
+- Bar chart: points awarded per day over last 30 days
+- Top 5 customers table (by total spend)
+- All data fetched from `transactions` and computed client-side
+
+---
+
+#### Feature 5: Reports (Pro)
+**What it does:** Date-filtered reporting with CSV export.
+
+**Database:** No new tables — reads from `transactions`.
+
+**UI:**
+- Date range picker (from/to inputs)
+- Summary cards: total transactions, total revenue, total points, unique customers in range
+- Transaction list filtered by date
+- "Export CSV" button that generates and downloads a CSV file of the filtered data
+
+---
+
+#### Feature 6: AI Suggestions (Growth+)
+**What it does:** AI-powered campaign and offer suggestions based on merchant's transaction data.
+
+**Backend:** New edge function `ai-merchant-assistant` that:
+- Reads merchant's transaction summary (total customers, avg spend, transaction frequency)
+- Calls Lovable AI (google/gemini-3-flash-preview) with structured output via tool calling
+- Returns 3-5 campaign suggestions with title, description, target audience, expected impact
+
+**UI:**
+- "Generate AI Suggestions" button
+- Loading state while AI processes
+- Results displayed as cards with title, description, target, impact
+- "Create Campaign" button on each card that pre-fills and creates a campaign in the `campaigns` table
+
+---
+
+#### Feature 7: Customers Page Enhancement
+**What it does:** Add points balance and total spend columns to existing customer list.
+
+**Database:** No changes — compute from `transactions` and `customers` tables.
+
+**UI:** Each customer row now shows points balance (from customers table via enriched RPC) and total spend (computed from transactions). Sort options by name, points, or spend.
+
+---
+
+#### Feature 8: Monthly Offers Enhancement
+**What it does:** Add date range fields (valid_from, valid_to) to the create form.
+
+**Database:** No changes — columns already exist on `monthly_offers` table.
+
+**UI:** Add two date inputs to the create form for valid_from and valid_to. Show date range on offer cards.
+
+---
+
+### Files Changed/Created
+
+| File | Action |
 |------|--------|
-| `src/components/merchant/DashboardFeatureCard.tsx` | New — reusable feature card with plan gating |
-| `src/pages/MerchantDashboard.tsx` | Remove MerchantNav, add feature card grid |
-| `src/pages/MerchantTransactions.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantCustomers.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantCampaigns.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantRewards.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantAnalytics.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantAISuggestions.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantGamification.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantBirthdayOffers.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantMonthlyOffers.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantPOS.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantReports.tsx` | Remove MerchantNav, add back-link, full-width layout |
-| `src/pages/MerchantSettings.tsx` | Remove MerchantNav, add back-link, full-width layout |
+| New migration | `rewards`, `birthday_offer_settings`, `gamification_settings` tables + RLS |
+| `src/pages/MerchantRewards.tsx` | Full CRUD for rewards |
+| `src/pages/MerchantBirthdayOffers.tsx` | Settings form with upsert |
+| `src/pages/MerchantGamification.tsx` | Stamp card + streak settings |
+| `src/pages/MerchantAnalytics.tsx` | Charts + summary cards using Recharts |
+| `src/pages/MerchantReports.tsx` | Date filtering + summary + CSV export |
+| `src/pages/MerchantAISuggestions.tsx` | AI-powered suggestions with edge function |
+| `supabase/functions/ai-merchant-assistant/index.ts` | New edge function for AI |
+| `src/pages/MerchantCustomers.tsx` | Add points + spend columns |
+| `src/pages/MerchantMonthlyOffers.tsx` | Add date range to create form |
 
 ### What Stays Unchanged
-- All routes in `App.tsx`
-- `ProtectedRoute` logic
-- `useMerchantSubscription` hook and `features.ts`
-- `LockedFeature` component (still used on feature pages)
-- `PlanBadge`, `UpgradeBanner`, `CustomerLimitBanner`
+- Dashboard layout, KPI cards, feature card grid
+- Campaigns page (already working)
+- Transactions page (already working)
+- POS integration, Settings
+- Auth, routing, subscription gating
 - Admin panel
-- All feature page functionality
-- Pricing page, customer flows, auth
+- Customer-facing flows (AccessCard)
 
