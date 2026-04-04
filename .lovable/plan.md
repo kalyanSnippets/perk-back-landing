@@ -1,103 +1,96 @@
 
 
-## Plan: Complete Redemption System
+## Plan: 6 Feature Requests Implementation
 
-### Summary
-Create a `redemptions` table, add "Redeem" buttons on customer reward cards that deduct points and generate one-time codes, show redemption history on the Access Card, and add a merchant-side verification/lookup flow.
+### Request 1: AI-Powered Reward Creation (Merchant Side)
 
----
+**What changes:**
+- In `src/pages/MerchantRewards.tsx`, add an "AI Suggest" button next to the title/description fields in the reward creation form
+- When clicked, calls the existing `ai-merchant-assistant` edge function with context about the merchant's industry type and existing rewards
+- Returns suggested title, description, and generates an AI image using the Lovable AI image generation model (`google/gemini-2.5-flash-image`)
+- Add an image_url column to the `rewards` table via migration
+- Display generated image preview in the form with option to regenerate
 
-### 1. Database Migration
-
-**New table: `redemptions`**
-```sql
-CREATE TABLE public.redemptions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id uuid NOT NULL,
-  merchant_id uuid NOT NULL,
-  reward_id uuid NOT NULL,
-  reward_title text NOT NULL,
-  points_spent integer NOT NULL,
-  redemption_code text NOT NULL UNIQUE,
-  status text NOT NULL DEFAULT 'pending',
-  redeemed_at timestamp with time zone,
-  verified_at timestamp with time zone,
-  verified_by uuid,
-  expires_at timestamp with time zone NOT NULL,
-  created_at timestamp with time zone NOT NULL DEFAULT now()
-);
-```
-
-**RLS policies:**
-- Customers can SELECT own redemptions (`customer_id` matches via customers table)
-- Customers can INSERT own redemptions (with check on customer_id)
-- Merchants can SELECT redemptions for their merchant_id
-- Merchants can UPDATE redemptions for their merchant_id (to verify/mark used)
-
-**Database function: `redeem_reward`** (security definer)
-- Validates customer has enough points
-- Validates reward is active and exists
-- Deducts points from `customers.points_balance`
-- Generates a unique 8-char alphanumeric redemption code
-- Inserts into `redemptions` with status `pending`, expires_at = now() + 48 hours
-- Returns the redemption code and details
-- Atomic — prevents double-spend via row-level locking
-
-**Database function: `verify_redemption`** (security definer)
-- Takes redemption_code, merchant_id
-- Validates code exists, belongs to this merchant, status is `pending`, not expired
-- Updates status to `verified`, sets verified_at and verified_by
-- Returns customer name, reward title, points spent
+**Files:** `src/pages/MerchantRewards.tsx`, `supabase/functions/ai-merchant-assistant/index.ts` (update to handle reward suggestions), migration for `rewards.image_url`
 
 ---
 
-### 2. Customer Side — Access Card (`src/pages/AccessCard.tsx`)
+### Request 2: Customer Access Card Redesign
 
-**Add "Redeem" button on reward cards:**
-- Only visible when `progress >= 100` (customer has enough points)
-- Button triggers `redeem_reward` RPC call
-- On success: shows a modal/dialog with the redemption code in large text, a QR-style display, and "Show this to the merchant" instruction
-- Points balance updates via existing realtime subscription
+**Layout restructuring in `src/pages/AccessCard.tsx`:**
 
-**Add new state:**
-- `redemptions` array fetched from `redemptions` table
-- `showRedemptionModal` with active redemption code details
+1. **Points balance** — move to the top, right after greeting (before the loyalty card)
+2. **Promo banner carousel** — move up, right after loyalty card
+3. **Digital Wallet buttons** — collapse into a single row of icon buttons adjacent to the card (inside the card actions row: Copy | Share | Apple | Google | Samsung), remove the separate "Add to Digital Wallet" card section
+4. **Rewards section** — keep, but make each reward card clickable. On click, if redeemable show the redemption modal inline; if not yet redeemable show a detail popup with progress
+5. **Remove "Active Campaigns" section** — campaigns already appear in the banner carousel, no need for a separate list
+6. **Monthly Offers** — only render the section if `monthlyOffers.length > 0` (remove the empty state)
+7. **Points Earned** — move to a collapsible sidebar/panel on larger screens, or keep below on mobile
+8. **Ways to Claim Points** — convert to a popup/modal triggered by an info button instead of a full section
 
-**Add Redemption History section** (after Points Earned):
-- Cards showing: reward title, merchant name, redemption code, status badge (pending/verified/expired), date
-- Pending ones show the code prominently with "Show to merchant" prompt
-- Verified ones show a green checkmark
+**Files:** `src/pages/AccessCard.tsx`
 
 ---
 
-### 3. Merchant Side — Verify Redemptions
+### Request 3: Navigation Alignment Fix
 
-**New page: `src/pages/MerchantRedemptions.tsx`**
-- Input field for redemption code (or scan)
-- "Verify" button calls `verify_redemption` RPC
-- Shows result: customer name, reward, points, success/error
-- Below: table of recent redemptions for this merchant (verified + pending)
+**Problem:** Nav links overlap on medium screens between mobile and desktop breakpoints.
 
-**Dashboard integration:**
-- Add a feature card on `MerchantDashboard.tsx` linking to `/merchant/redemptions`
-- Add route in `App.tsx`
+**Fix in `src/components/Header.tsx`:**
+- Change desktop nav from `hidden md:flex` with `gap-4 lg:gap-8` to use `gap-2 lg:gap-6` and add `text-xs lg:text-sm` for responsive font sizing
+- Add `flex-shrink-0` and `whitespace-nowrap` to prevent wrapping
+- Consider bumping the breakpoint to `lg:flex` if items still overflow, or use a horizontal scroll container
+
+**Files:** `src/components/Header.tsx`
 
 ---
 
-### 4. Files Changed
+### Request 4: Get Started Page — Login-First + Password Toggle
 
-| File | Change |
-|------|--------|
-| Migration | Create `redemptions` table, RLS, `redeem_reward` + `verify_redemption` functions |
-| `src/pages/AccessCard.tsx` | Add Redeem button, redemption modal, redemption history section |
-| `src/pages/MerchantRedemptions.tsx` | New page: code verification + redemption list |
-| `src/pages/MerchantDashboard.tsx` | Add Redemptions feature card |
-| `src/App.tsx` | Add `/merchant/redemptions` route |
+**Changes to `src/pages/GetStarted.tsx`:**
+- Default `authMode` to `"login"` instead of `"signup"`
+- Remove the Tabs component; show login form as the primary view
+- Add a small text link at the bottom: "Don't have an account? Sign up as Customer | Sign up as Merchant"
+- Clicking those links switches to signup mode with the appropriate role pre-selected
+- Add an eye icon toggle button (from lucide: `Eye`/`EyeOff`) inside the password `Input` field to show/hide password
 
-### What Stays Unchanged
-- All existing reward/campaign/offer display
-- Points earning flow and transaction history
-- Loyalty card, barcode, wallet actions
-- Merchant subscription gating
-- Auth, routing, admin panel
+**Files:** `src/pages/GetStarted.tsx`
+
+---
+
+### Request 5: Hide Pricing/Testimonials Nav for Customers on Access Card
+
+**Changes to `src/components/Header.tsx`:**
+- When the current route is `/customer/access-card`, filter out "Pricing" and "Testimonials" from the `navLinks` array
+- Use `useLocation()` to detect the current path
+- Customer-facing pages should only show: Home, About Us, Blog, Contact Us
+
+**Files:** `src/components/Header.tsx`
+
+---
+
+### Request 6: Digital Wallet Info + Pricing Payment Integration
+
+**Digital Wallet:** This is informational — I will provide guidance in the plan notes below. Implementation requires Apple Developer account ($99/year) for Apple Wallet passes and Google Pay API for Google Wallet. Both use `.pkpass` (Apple) and JWT-based save links (Google). This is a future integration that needs third-party credentials.
+
+**Pricing Payment Page:** Enable the Stripe integration to create a checkout flow when users click "Start Free Trial" or "Get Started" on the pricing page. The pricing CTAs will redirect to a Stripe Checkout session for Growth ($29/mo) and Pro ($79/mo) plans.
+
+**Files:** `src/pages/Pricing.tsx` (update CTAs), new edge function for Stripe checkout (after Stripe is enabled)
+
+---
+
+### Implementation Order
+1. Request 3 — Nav fix (quick CSS)
+2. Request 4 — Login-first page + eye toggle
+3. Request 5 — Hide Pricing/Testimonials for customers
+4. Request 2 — Access Card redesign (largest change)
+5. Request 1 — AI reward suggestions
+6. Request 6 — Stripe payment (requires enabling Stripe connector first)
+
+### Technical Notes
+
+- **Migration needed:** Add `image_url text` column to `rewards` table for AI-generated reward images
+- **No new tables** required
+- **Stripe:** Will need to enable the Stripe connector before implementing payment flows
+- **Digital Wallet:** Apple Wallet requires an Apple Developer account and signing certificates; Google Wallet requires Google Pay API access. Both are external integrations that need API credentials — I will document the setup steps but cannot fully implement without those credentials.
 
