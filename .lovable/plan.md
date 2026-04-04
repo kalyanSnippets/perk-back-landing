@@ -1,62 +1,41 @@
 
 
-## Plan: Dynamic Customer Dashboard with Promo Banner Carousel
+## Plan: Show All Merchant Offers to All Customers
 
-### What Changes
+### Problem
+Currently, the Access Card page only fetches rewards, campaigns, and monthly offers from merchants the customer has **transacted with**. Customers with no transactions see nothing. The user wants ALL customers to see ALL active offers from ALL merchants.
 
-**Replace hardcoded offers** (lines 94-113) with real data from `rewards`, `campaigns`, and `monthly_offers` tables. Add a **hero promo carousel** at the top for visual impact.
+### RLS Consideration
+- `rewards`, `campaigns`, `monthly_offers` already have RLS policies allowing authenticated users to read active records — no DB changes needed.
+- `merchants` table only allows `auth.uid() = user_id` for SELECT, so customers **cannot** query merchant names. We need a new RLS policy to allow authenticated users to read basic merchant info (id, store_name).
 
-### New Sections in `src/pages/AccessCard.tsx`
+### Changes
 
-**1. Promo Banner Carousel (new, after loyalty card)**
-- Full-width auto-sliding carousel using the existing `Carousel` component (embla)
-- Pulls from active `campaigns` and `monthly_offers` with gradient backgrounds
-- Each slide: large title, description, merchant name, "Ends in X days" badge
-- Auto-play every 4 seconds, dot indicators, swipeable on mobile
-- Gradient color palette cycles through navy/gold/secondary for visual variety
-- Falls back to a single welcome banner if no promos exist
+**1. Database Migration — Add RLS policy on `merchants`**
+```sql
+CREATE POLICY "Authenticated users can view merchant store names"
+ON public.merchants FOR SELECT TO authenticated
+USING (true);
+```
+This allows customers to look up store names. The merchants table doesn't contain sensitive data (no passwords, no API keys).
 
-**2. Available Rewards (replaces hardcoded offers)**
-- Fetched from `rewards` table filtered by merchant IDs the customer has transacted with
-- Each card shows: title, points_required, reward_type icon, merchant store_name
-- Progress bar: `points_balance / points_required` (capped at 100%)
-- "Almost there!" pulse badge when ≥ 80%
-- "Ready to redeem!" glowing badge when ≥ 100%
-- Limited-time rewards show expiry countdown
-- Horizontal scroll on mobile for card-swipe feel
+**2. Update `src/pages/AccessCard.tsx`**
 
-**3. Active Campaigns**
-- Cards with gradient accent strip on left edge
-- Title, description, merchant name
-- AI-generated sparkle badge if `ai_generated = true`
-- Empty state: friendly "No campaigns right now" message
-
-**4. Monthly Offers**
-- Cards with validity date range and "Ends in X days" countdown
-- Title, description, merchant name
-- Empty state if none
-
-### Data Flow
-1. After fetching transactions, extract unique `merchant_id` values
-2. Query `rewards` (active=true), `campaigns` (active=true), `monthly_offers` (active=true) filtered by those merchant IDs
-3. Join `merchants(store_name)` on each query via select syntax
-4. Store in state: `rewards`, `campaigns`, `monthlyOffers`
-5. Extend existing realtime channel to listen for changes on all 3 tables → re-fetch on change
-
-### Carousel Implementation
-- Uses existing `src/components/ui/carousel.tsx` (Embla-based)
-- Auto-play via `useEffect` with `setInterval` calling `api.scrollNext()`
-- Dot indicators showing current slide
-- Each slide is a gradient card with large typography
+In both `fetchData` (lines 245-260) and `fetchOffersData` (lines 209-227):
+- Remove the `merchantIds` filtering — fetch ALL active rewards, campaigns, and monthly offers without `.in("merchant_id", merchantIds)`
+- Fetch ALL merchants to build the name map (no `.in()` filter)
+- Remove the `if (merchantIds.length === 0) return` early exit in `fetchOffersData`
+- Remove dependency on `transactions` in `fetchOffersData` — only depend on `customer`
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/pages/AccessCard.tsx` | Remove hardcoded `activeOffers`, add data fetching for rewards/campaigns/offers, add promo carousel, add 3 dynamic sections with progress bars |
+| Migration | Add SELECT policy on `merchants` for authenticated users |
+| `src/pages/AccessCard.tsx` | Remove merchant ID filtering, fetch all active offers from all merchants |
 
 ### What Stays Unchanged
-- Loyalty card, barcode, card actions, points balance
-- Transaction history, write review, ways to claim
-- Admin panel link
-- All merchant pages, auth, routing
+- Loyalty card, barcode, points balance, transactions list
+- Promo carousel, reward progress bars, campaign/offer card designs
+- All merchant dashboard pages
+- RLS on rewards/campaigns/monthly_offers (already allow reading active records)
 
