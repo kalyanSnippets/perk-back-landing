@@ -98,7 +98,17 @@ const MerchantMonthlyOffers = () => {
               {showForm && (
                 <form onSubmit={handleCreate} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
                   <Input placeholder="Offer title" value={title} onChange={e => setTitle(e.target.value)} required />
-                  <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+                  <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Valid From</label>
+                      <Input type="date" value={validFrom} onChange={e => setValidFrom(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Valid To</label>
+                      <Input type="date" value={validTo} onChange={e => setValidTo(e.target.value)} />
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
                     <Button type="submit" variant="hero" size="sm" disabled={saving}>{saving ? "Creating..." : "Create"}</Button>

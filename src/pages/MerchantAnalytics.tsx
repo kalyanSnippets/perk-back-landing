@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, Users, DollarSign, Repeat, BarChart3 } from "lucide-react";
+import { Users, DollarSign, Repeat, BarChart3 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Header from "@/components/Header";
 import BackToDashboard from "@/components/merchant/BackToDashboard";
