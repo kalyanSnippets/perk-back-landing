@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      birthday_offer_settings: {
+        Row: {
+          created_at: string
+          days_before: number
+          days_valid: number
+          enabled: boolean
+          id: string
+          merchant_id: string
+          message: string | null
+          reward_type: string
+          reward_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_before?: number
+          days_valid?: number
+          enabled?: boolean
+          id?: string
+          merchant_id: string
+          message?: string | null
+          reward_type?: string
+          reward_value?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_before?: number
+          days_valid?: number
+          enabled?: boolean
+          id?: string
+          merchant_id?: string
+          message?: string | null
+          reward_type?: string
+          reward_value?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_offer_settings_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blogs: {
         Row: {
           author_name: string | null
@@ -56,28 +103,43 @@ export type Database = {
       campaigns: {
         Row: {
           active: boolean
+          ai_generated: boolean | null
+          confidence_score: number | null
           created_at: string
           description: string | null
+          expected_impact: string | null
           id: string
+          image_url: string | null
           merchant_id: string
+          target_segment: string | null
           title: string
           updated_at: string
         }
         Insert: {
           active?: boolean
+          ai_generated?: boolean | null
+          confidence_score?: number | null
           created_at?: string
           description?: string | null
+          expected_impact?: string | null
           id?: string
+          image_url?: string | null
           merchant_id: string
+          target_segment?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           active?: boolean
+          ai_generated?: boolean | null
+          confidence_score?: number | null
           created_at?: string
           description?: string | null
+          expected_impact?: string | null
           id?: string
+          image_url?: string | null
           merchant_id?: string
+          target_segment?: string | null
           title?: string
           updated_at?: string
         }
@@ -287,6 +349,56 @@ export type Database = {
             foreignKeyName: "external_customer_mappings_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gamification_settings: {
+        Row: {
+          created_at: string
+          id: string
+          levels_enabled: boolean
+          merchant_id: string
+          stamp_card_enabled: boolean
+          stamp_reward: string | null
+          stamps_required: number
+          streak_reward: string | null
+          streak_threshold: number
+          updated_at: string
+          visit_streak_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          levels_enabled?: boolean
+          merchant_id: string
+          stamp_card_enabled?: boolean
+          stamp_reward?: string | null
+          stamps_required?: number
+          streak_reward?: string | null
+          streak_threshold?: number
+          updated_at?: string
+          visit_streak_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          levels_enabled?: boolean
+          merchant_id?: string
+          stamp_card_enabled?: boolean
+          stamp_reward?: string | null
+          stamps_required?: number
+          streak_reward?: string | null
+          streak_threshold?: number
+          updated_at?: string
+          visit_streak_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_settings_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
@@ -575,6 +687,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pos_connections_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_limited_time: boolean
+          merchant_id: string
+          points_required: number
+          reward_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_limited_time?: boolean
+          merchant_id: string
+          points_required?: number
+          reward_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_limited_time?: boolean
+          merchant_id?: string
+          points_required?: number
+          reward_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
