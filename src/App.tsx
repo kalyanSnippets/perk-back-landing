@@ -128,6 +128,9 @@ const App = () => (
             <Route path="/merchant/reports" element={
               <ProtectedRoute requiredRole="merchant"><MerchantReports /></ProtectedRoute>
             } />
+            <Route path="/merchant/redemptions" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantRedemptions /></ProtectedRoute>
+            } />
 
             {/* Protected: Admin */}
             <Route path="/admin" element={
