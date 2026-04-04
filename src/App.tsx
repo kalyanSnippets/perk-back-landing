@@ -26,6 +26,7 @@ import MerchantBirthdayOffers from "./pages/MerchantBirthdayOffers.tsx";
 import MerchantMonthlyOffers from "./pages/MerchantMonthlyOffers.tsx";
 import MerchantPOS from "./pages/MerchantPOS.tsx";
 import MerchantReports from "./pages/MerchantReports.tsx";
+import MerchantRedemptions from "./pages/MerchantRedemptions.tsx";
 import MerchantSettings from "./pages/MerchantSettings.tsx";
 import ContactUs from "./pages/ContactUs.tsx";
 import TestimonialsPage from "./pages/TestimonialsPage.tsx";

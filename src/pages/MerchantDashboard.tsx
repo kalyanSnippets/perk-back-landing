@@ -176,6 +176,7 @@ const MerchantDashboard = () => {
     { icon: CalendarHeart, label: "Monthly Offers", description: "Recurring monthly promotions.", route: "/merchant/monthly-offers", featureKey: "monthly_offers" },
     { icon: Wifi, label: "POS Integration", description: "Connect Square POS to auto-sync transactions.", route: "/merchant/pos", featureKey: "pos_integration" },
     { icon: FileBarChart, label: "Reports", description: "Export detailed reports and analytics.", route: "/merchant/reports", featureKey: "advanced_reports" },
+    { icon: CheckCircle, label: "Redemptions", description: "Verify customer reward redemption codes.", route: "/merchant/redemptions", featureKey: "rewards" },
     { icon: Settings, label: "Settings", description: "Manage your business profile and account.", route: "/merchant/settings", featureKey: "settings" },
   ];
 
