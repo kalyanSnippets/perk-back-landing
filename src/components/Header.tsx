@@ -19,6 +19,13 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isAdmin, isMerchant, isCustomer, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Hide Pricing & Testimonials for customer-facing pages
+  const isCustomerPage = location.pathname.startsWith("/customer/");
+  const filteredNavLinks = isCustomerPage
+    ? navLinks.filter(l => !["Pricing", "Testimonials"].includes(l.label))
+    : navLinks;
 
   const handleLogout = async () => {
     await logout();
