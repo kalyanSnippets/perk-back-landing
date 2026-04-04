@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Gift, Plus, ToggleLeft, ToggleRight, Trash2, Clock } from "lucide-react";
+import { Gift, Plus, ToggleLeft, ToggleRight, Trash2, Clock, Sparkles, Loader2, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,15 @@ interface Reward {
   active: boolean;
   is_limited_time: boolean;
   expires_at: string | null;
+  image_url: string | null;
+}
+
+interface AiSuggestion {
+  title: string;
+  description: string;
+  reward_type: string;
+  points_required: number;
+  image_prompt: string;
 }
 
 const MerchantRewards = () => {
@@ -38,7 +47,11 @@ const MerchantRewards = () => {
   const [rewardType, setRewardType] = useState("discount");
   const [isLimitedTime, setIsLimitedTime] = useState(false);
   const [expiresAt, setExpiresAt] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const { canAccess, loading: subLoading } = useMerchantSubscription(merchantId);
 
   useEffect(() => {
@@ -55,7 +68,60 @@ const MerchantRewards = () => {
 
   const fetchRewards = async (mId: string) => {
     const { data } = await supabase.from("rewards").select("*").eq("merchant_id", mId).order("created_at", { ascending: false });
-    setRewards(data || []);
+    setRewards((data || []) as Reward[]);
+  };
+
+  const handleAiSuggest = async () => {
+    if (!merchantId) return;
+    setAiLoading(true);
+    setAiSuggestions([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", {
+        body: { merchant_id: merchantId, type: "suggest_reward" },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      setAiSuggestions(data?.suggestions || []);
+      if (!data?.suggestions?.length) toast.info("No suggestions generated. Try again.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to get AI suggestions");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAiSuggestion = (suggestion: AiSuggestion) => {
+    setTitle(suggestion.title);
+    setDescription(suggestion.description);
+    setRewardType(suggestion.reward_type);
+    setPointsRequired(String(suggestion.points_required));
+    setShowForm(true);
+    setAiSuggestions([]);
+    toast.success("Suggestion applied! You can edit before creating.");
+    // Auto-generate image
+    if (suggestion.image_prompt) {
+      generateImage(suggestion.image_prompt);
+    }
+  };
+
+  const generateImage = async (prompt: string) => {
+    if (!merchantId) return;
+    setGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", {
+        body: { merchant_id: merchantId, type: "generate_image", prompt },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      if (data?.image_url) {
+        setImageUrl(data.image_url);
+        toast.success("Image generated!");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Image generation failed");
+    } finally {
+      setGeneratingImage(false);
+    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -70,11 +136,13 @@ const MerchantRewards = () => {
       reward_type: rewardType,
       is_limited_time: isLimitedTime,
       expires_at: isLimitedTime && expiresAt ? new Date(expiresAt).toISOString() : null,
+      image_url: imageUrl || null,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Reward created");
-    setTitle(""); setDescription(""); setPointsRequired("100"); setRewardType("discount"); setIsLimitedTime(false); setExpiresAt("");
+    setTitle(""); setDescription(""); setPointsRequired("100"); setRewardType("discount");
+    setIsLimitedTime(false); setExpiresAt(""); setImageUrl("");
     setShowForm(false);
     await fetchRewards(merchantId);
   };
@@ -105,13 +173,44 @@ const MerchantRewards = () => {
           ) : (
             <>
               <ScrollReveal>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <h1 className="text-xl font-bold text-foreground">Rewards</h1>
-                  <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowForm(!showForm)}>
-                    <Plus size={14} /> New Reward
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={handleAiSuggest} disabled={aiLoading}>
+                      {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      AI Suggest
+                    </Button>
+                    <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowForm(!showForm)}>
+                      <Plus size={14} /> New Reward
+                    </Button>
+                  </div>
                 </div>
               </ScrollReveal>
+
+              {/* AI Suggestions */}
+              {aiSuggestions.length > 0 && (
+                <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-4 border border-primary/20 space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Sparkles size={14} className="text-accent" /> AI Suggestions
+                  </h3>
+                  <div className="grid gap-2">
+                    {aiSuggestions.map((s, i) => (
+                      <button key={i} onClick={() => applyAiSuggestion(s)}
+                        className="text-left bg-card rounded-xl p-3 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-sm text-foreground">{s.title}</p>
+                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{s.points_required} pts</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-1 capitalize">{s.reward_type}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => setAiSuggestions([])} className="text-xs text-muted-foreground hover:text-foreground">
+                    Dismiss suggestions
+                  </button>
+                </div>
+              )}
 
               {showForm && (
                 <form onSubmit={handleCreate} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
@@ -135,6 +234,28 @@ const MerchantRewards = () => {
                       </Select>
                     </div>
                   </div>
+
+                  {/* AI Image */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground block">Reward Image</Label>
+                    {imageUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-border/50">
+                        <img src={imageUrl} alt="Reward" className="w-full h-32 object-cover" />
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          <Button type="button" variant="secondary" size="sm" className="h-7 text-[10px] gap-1" onClick={() => generateImage(title || "loyalty reward")} disabled={generatingImage}>
+                            {generatingImage ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Regenerate
+                          </Button>
+                          <Button type="button" variant="destructive" size="sm" className="h-7 text-[10px]" onClick={() => setImageUrl("")}>Remove</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button type="button" variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => generateImage(title || description || "loyalty reward")} disabled={generatingImage || (!title && !description)}>
+                        {generatingImage ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                        {generatingImage ? "Generating..." : "Generate AI Image"}
+                      </Button>
+                    )}
+                  </div>
+
                   <div className="flex items-center gap-3">
                     <Switch checked={isLimitedTime} onCheckedChange={setIsLimitedTime} />
                     <Label className="text-xs">Limited time offer</Label>
@@ -159,19 +280,24 @@ const MerchantRewards = () => {
                 ) : (
                   rewards.map(r => (
                     <div key={r.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-sm text-foreground">{r.title}</p>
-                          <span className="text-[10px] bg-accent/15 text-accent-foreground px-1.5 py-0.5 rounded capitalize">{r.reward_type}</span>
-                        </div>
-                        {r.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>}
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs font-medium text-primary">{r.points_required} pts</span>
-                          {r.is_limited_time && r.expires_at && (
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <Clock size={9} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                            </span>
-                          )}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {r.image_url && (
+                          <img src={r.image_url} alt={r.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-sm text-foreground">{r.title}</p>
+                            <span className="text-[10px] bg-accent/15 text-accent-foreground px-1.5 py-0.5 rounded capitalize">{r.reward_type}</span>
+                          </div>
+                          {r.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-medium text-primary">{r.points_required} pts</span>
+                            {r.is_limited_time && r.expires_at && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <Clock size={9} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 pl-3">
