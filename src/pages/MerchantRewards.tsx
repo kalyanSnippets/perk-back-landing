@@ -1,17 +1,44 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Gift } from "lucide-react";
+import { Gift, Plus, ToggleLeft, ToggleRight, Trash2, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import Header from "@/components/Header";
 import BackToDashboard from "@/components/merchant/BackToDashboard";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
+interface Reward {
+  id: string;
+  title: string;
+  description: string | null;
+  points_required: number;
+  reward_type: string;
+  active: boolean;
+  is_limited_time: boolean;
+  expires_at: string | null;
+}
+
 const MerchantRewards = () => {
   const navigate = useNavigate();
   const [merchantId, setMerchantId] = useState<string>();
+  const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [pointsRequired, setPointsRequired] = useState("100");
+  const [rewardType, setRewardType] = useState("discount");
+  const [isLimitedTime, setIsLimitedTime] = useState(false);
+  const [expiresAt, setExpiresAt] = useState("");
+  const [saving, setSaving] = useState(false);
   const { canAccess, loading: subLoading } = useMerchantSubscription(merchantId);
 
   useEffect(() => {
@@ -21,9 +48,47 @@ const MerchantRewards = () => {
       const { data: m } = await supabase.from("merchants").select("id").eq("user_id", user.id).maybeSingle();
       if (!m) { navigate("/get-started"); return; }
       setMerchantId(m.id);
+      await fetchRewards(m.id);
       setLoading(false);
     })();
   }, [navigate]);
+
+  const fetchRewards = async (mId: string) => {
+    const { data } = await supabase.from("rewards").select("*").eq("merchant_id", mId).order("created_at", { ascending: false });
+    setRewards(data || []);
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!merchantId || !title.trim()) return;
+    setSaving(true);
+    const { error } = await supabase.from("rewards").insert({
+      merchant_id: merchantId,
+      title: title.trim(),
+      description: description.trim() || null,
+      points_required: parseInt(pointsRequired) || 100,
+      reward_type: rewardType,
+      is_limited_time: isLimitedTime,
+      expires_at: isLimitedTime && expiresAt ? new Date(expiresAt).toISOString() : null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Reward created");
+    setTitle(""); setDescription(""); setPointsRequired("100"); setRewardType("discount"); setIsLimitedTime(false); setExpiresAt("");
+    setShowForm(false);
+    await fetchRewards(merchantId);
+  };
+
+  const toggleActive = async (id: string, current: boolean) => {
+    await supabase.from("rewards").update({ active: !current }).eq("id", id);
+    if (merchantId) await fetchRewards(merchantId);
+  };
+
+  const deleteReward = async (id: string) => {
+    await supabase.from("rewards").delete().eq("id", id);
+    if (merchantId) await fetchRewards(merchantId);
+    toast.success("Reward deleted");
+  };
 
   if (loading || subLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
@@ -33,19 +98,95 @@ const MerchantRewards = () => {
     <div className="min-h-screen bg-muted/20">
       <Header />
       <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-4">
           <BackToDashboard />
           {!canAccess("rewards") ? (
             <LockedFeature featureKey="rewards" />
           ) : (
-            <ScrollReveal>
-              <h1 className="text-xl font-bold text-foreground mb-4">Rewards</h1>
-              <div className="bg-card rounded-2xl p-8 border border-border/50 shadow-card text-center">
-                <Gift size={40} className="mx-auto mb-3 text-secondary/40" />
-                <p className="text-sm text-muted-foreground">Rewards management coming soon.</p>
-                <p className="text-xs text-muted-foreground mt-1">Create custom rewards to keep customers engaged.</p>
+            <>
+              <ScrollReveal>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-bold text-foreground">Rewards</h1>
+                  <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowForm(!showForm)}>
+                    <Plus size={14} /> New Reward
+                  </Button>
+                </div>
+              </ScrollReveal>
+
+              {showForm && (
+                <form onSubmit={handleCreate} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
+                  <Input placeholder="Reward title" value={title} onChange={e => setTitle(e.target.value)} required />
+                  <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Points Required</Label>
+                      <Input type="number" min="1" value={pointsRequired} onChange={e => setPointsRequired(e.target.value)} required />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Reward Type</Label>
+                      <Select value={rewardType} onValueChange={setRewardType}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="discount">Discount</SelectItem>
+                          <SelectItem value="freebie">Freebie</SelectItem>
+                          <SelectItem value="voucher">Voucher</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch checked={isLimitedTime} onCheckedChange={setIsLimitedTime} />
+                    <Label className="text-xs">Limited time offer</Label>
+                  </div>
+                  {isLimitedTime && (
+                    <Input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} />
+                  )}
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+                    <Button type="submit" variant="hero" size="sm" disabled={saving}>{saving ? "Creating..." : "Create"}</Button>
+                  </div>
+                </form>
+              )}
+
+              <div className="bg-card rounded-2xl border border-border/50 shadow-card overflow-hidden divide-y divide-border/40">
+                {rewards.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Gift size={32} className="mx-auto mb-3 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">No rewards yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Create rewards your customers can redeem with points.</p>
+                  </div>
+                ) : (
+                  rewards.map(r => (
+                    <div key={r.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-sm text-foreground">{r.title}</p>
+                          <span className="text-[10px] bg-accent/15 text-accent-foreground px-1.5 py-0.5 rounded capitalize">{r.reward_type}</span>
+                        </div>
+                        {r.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-medium text-primary">{r.points_required} pts</span>
+                          {r.is_limited_time && r.expires_at && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <Clock size={9} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 pl-3">
+                        <button onClick={() => toggleActive(r.id, r.active)} className="text-muted-foreground hover:text-foreground">
+                          {r.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
+                        </button>
+                        <button onClick={() => deleteReward(r.id)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            </ScrollReveal>
+            </>
           )}
         </div>
       </div>
