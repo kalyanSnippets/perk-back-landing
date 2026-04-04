@@ -55,7 +55,7 @@ const MerchantMonthlyOffers = () => {
     e.preventDefault();
     if (!merchantId || !title.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("monthly_offers").insert({ merchant_id: merchantId, title: title.trim(), description: description.trim() || null });
+    const { error } = await supabase.from("monthly_offers").insert({ merchant_id: merchantId, title: title.trim(), description: description.trim() || null, valid_from: validFrom || null, valid_to: validTo || null });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Offer created");
