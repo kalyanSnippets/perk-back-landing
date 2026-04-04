@@ -130,6 +130,13 @@ const MerchantMonthlyOffers = () => {
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-sm text-foreground">{o.title}</p>
                         {o.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{o.description}</p>}
+                        {(o.valid_from || o.valid_to) && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {o.valid_from && `From ${new Date(o.valid_from).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`}
+                            {o.valid_from && o.valid_to && " — "}
+                            {o.valid_to && `Until ${new Date(o.valid_to).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 pl-3">
                         <button onClick={() => toggleActive(o.id, o.active)} className="text-muted-foreground hover:text-foreground">
