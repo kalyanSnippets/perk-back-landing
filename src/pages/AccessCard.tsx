@@ -100,7 +100,7 @@ const AccessCard = () => {
   const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
-  const { isAdmin, user } = useAuth();
+  const { isAdmin } = useAuth();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
