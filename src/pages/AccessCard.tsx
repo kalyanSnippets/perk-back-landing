@@ -260,18 +260,49 @@ const AccessCard = () => {
     const { data: merchantsData } = await supabase.from("merchants").select("id, store_name");
     const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
 
-    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
+    const [rewardsRes, campaignsRes, offersRes, redemptionsRes] = await Promise.all([
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
+      supabase.from("redemptions").select("*").eq("customer_id", customerData.id).order("created_at", { ascending: false }),
     ]);
 
     setRewards((rewardsRes.data || []).map(r => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map(c => ({ ...c, store_name: merchantMap.get(c.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map(o => ({ ...o, store_name: merchantMap.get(o.merchant_id) || "Store" })));
+    setRedemptions((redemptionsRes.data || []).map((r: any) => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
 
     setLoading(false);
     setTimeout(() => setPointsVisible(true), 300);
+  };
+
+  const handleRedeem = async (rewardId: string) => {
+    if (!customer) return;
+    setRedeeming(rewardId);
+    try {
+      const { data, error } = await supabase.rpc("redeem_reward", {
+        _customer_id: customer.id,
+        _reward_id: rewardId,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (!result.success) {
+        toast.error(result.error || "Redemption failed");
+        return;
+      }
+      setShowRedemptionModal({
+        code: result.redemption_code,
+        title: result.reward_title,
+        points: result.points_spent,
+        expires: result.expires_at,
+      });
+      // Refresh data to update points balance
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Redemption failed");
+    } finally {
+      setRedeeming(null);
+    }
   };
 
   const handleCopy = (label: string, value: string) => {
