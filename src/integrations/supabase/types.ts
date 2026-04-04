@@ -771,6 +771,7 @@ export type Database = {
           description: string | null
           expires_at: string | null
           id: string
+          image_url: string | null
           is_limited_time: boolean
           merchant_id: string
           points_required: number
@@ -784,6 +785,7 @@ export type Database = {
           description?: string | null
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           is_limited_time?: boolean
           merchant_id: string
           points_required?: number
@@ -797,6 +799,7 @@ export type Database = {
           description?: string | null
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           is_limited_time?: boolean
           merchant_id?: string
           points_required?: number

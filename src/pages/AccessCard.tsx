@@ -7,9 +7,9 @@ import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
-  Clock, Tag, ArrowRight, Shield, Copy, Share2, Wallet,
-  Megaphone, CalendarDays, Flame, ChevronLeft, ChevronRight,
-  CheckCircle, XCircle, Ticket
+  Clock, Tag, ArrowRight, Shield, Copy, Share2,
+  Megaphone, CalendarDays, ChevronRight,
+  CheckCircle, XCircle, Ticket, Info
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
 import Barcode from "@/components/Barcode";
@@ -20,11 +20,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
+  Carousel, CarouselContent, CarouselItem, type CarouselApi,
 } from "@/components/ui/carousel";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
 /* ── Write a Review Section ── */
 const WriteReviewSection = ({ customerName }: { customerName: string }) => {
@@ -37,10 +37,7 @@ const WriteReviewSection = ({ customerName }: { customerName: string }) => {
     if (!message.trim()) { toast.error("Please write a review"); return; }
     setSubmitting(true);
     const { error } = await supabase.from("testimonials").insert({
-      name: customerName || "Anonymous",
-      message: message.trim(),
-      rating,
-      is_published: false,
+      name: customerName || "Anonymous", message: message.trim(), rating, is_published: false,
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
@@ -61,18 +58,12 @@ const WriteReviewSection = ({ customerName }: { customerName: string }) => {
   return (
     <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
       <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-        <MessageSquare size={16} className="text-secondary" />
-        Write a Review
+        <MessageSquare size={16} className="text-secondary" /> Write a Review
       </h3>
       <div className="space-y-3">
         <StarRating rating={rating} onChange={setRating} />
-        <textarea
-          placeholder="Tell us about your experience..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="w-full rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[80px] resize-none"
-          maxLength={500}
-        />
+        <textarea placeholder="Tell us about your experience..." value={message} onChange={(e) => setMessage(e.target.value)}
+          className="w-full rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[80px] resize-none" maxLength={500} />
         <Button onClick={handleSubmit} disabled={submitting} size="sm" className="gap-2">
           {submitting ? "Submitting..." : "Submit Review"}
         </Button>
@@ -81,97 +72,23 @@ const WriteReviewSection = ({ customerName }: { customerName: string }) => {
   );
 };
 
-interface CustomerData {
-  id: string;
-  full_name: string | null;
-  crn: string | null;
-  loyalty_card_number: string | null;
-  card_issued_at: string | null;
-  points_balance: number;
-}
+interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
+interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
+interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; }
+interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
+interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
+interface RedemptionData { id: string; reward_title: string; points_spent: number; redemption_code: string; status: string; expires_at: string; created_at: string; merchant_id: string; store_name?: string; }
 
-interface TransactionData {
-  id: string;
-  merchant_name: string;
-  merchant_id: string | null;
-  purchase_amount: number;
-  points_awarded: number;
-  transaction_date: string;
-}
-
-interface RewardData {
-  id: string;
-  title: string;
-  description: string | null;
-  points_required: number;
-  reward_type: string;
-  is_limited_time: boolean;
-  expires_at: string | null;
-  merchant_id: string;
-  store_name?: string;
-}
-
-interface CampaignData {
-  id: string;
-  title: string;
-  description: string | null;
-  ai_generated: boolean | null;
-  image_url: string | null;
-  target_segment: string | null;
-  merchant_id: string;
-  store_name?: string;
-}
-
-interface MonthlyOfferData {
-  id: string;
-  title: string;
-  description: string | null;
-  valid_from: string | null;
-  valid_to: string | null;
-  merchant_id: string;
-  store_name?: string;
-}
-
-interface RedemptionData {
-  id: string;
-  reward_title: string;
-  points_spent: number;
-  redemption_code: string;
-  status: string;
-  expires_at: string;
-  created_at: string;
-  merchant_id: string;
-  store_name?: string;
-}
-
-const STAMPS_TOTAL = 10;
-
+const _STAMPS_TOTAL = 10;
 const CAROUSEL_GRADIENTS = [
   "from-primary via-primary/90 to-secondary",
   "from-secondary via-secondary/90 to-primary",
   "from-accent/90 via-accent/80 to-primary/80",
 ];
 
-const getGreeting = () => {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
-};
-
-const daysUntil = (dateStr: string) => {
-  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  return diff > 0 ? diff : 0;
-};
-
-const rewardTypeIcon = (type: string) => {
-  switch (type) {
-    case "freebie": return Coffee;
-    case "voucher": return Tag;
-    case "discount": return Sparkles;
-    default: return Gift;
-  }
-};
+const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
+const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
+const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
 
 const AccessCard = () => {
   const navigate = useNavigate();
@@ -183,12 +100,15 @@ const AccessCard = () => {
   const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
-  const { isAdmin, user } = useAuth();
+  const { isAdmin } = useAuth();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
+  const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
+  const [showClaimInfo, setShowClaimInfo] = useState(false);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   // Auto-play carousel
   useEffect(() => {
@@ -211,9 +131,7 @@ const AccessCard = () => {
         if (payload.new.customer_id === customer.id) fetchData();
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'customers' }, (payload) => {
-        if (payload.new.id === customer.id) {
-          setCustomer((prev) => prev ? { ...prev, points_balance: (payload.new as any).points_balance } : prev);
-        }
+        if (payload.new.id === customer.id) setCustomer((prev) => prev ? { ...prev, points_balance: (payload.new as any).points_balance } : prev);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards' }, () => fetchOffersData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => fetchOffersData())
@@ -224,17 +142,13 @@ const AccessCard = () => {
 
   const fetchOffersData = useCallback(async () => {
     if (!customer) return;
-
-    // Get ALL merchant names
     const { data: merchantsData } = await supabase.from("merchants").select("id, store_name");
     const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
-
     const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
     ]);
-
     setRewards((rewardsRes.data || []).map(r => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map(c => ({ ...c, store_name: merchantMap.get(c.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map(o => ({ ...o, store_name: merchantMap.get(o.merchant_id) || "Store" })));
@@ -243,35 +157,24 @@ const AccessCard = () => {
   const fetchData = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) { navigate("/get-started"); return; }
-
-    const { data: customerData, error } = await supabase
-      .from("customers").select("*").eq("user_id", authUser.id).maybeSingle();
+    const { data: customerData, error } = await supabase.from("customers").select("*").eq("user_id", authUser.id).maybeSingle();
     if (error || !customerData) { navigate("/get-started"); return; }
     if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
     setCustomer(customerData);
-
-    const { data: txData } = await supabase
-      .from("transactions").select("*").eq("customer_id", customerData.id)
-      .order("transaction_date", { ascending: false });
-    const txs = txData || [];
-    setTransactions(txs);
-
-    // Fetch all active offers from all merchants
+    const { data: txData } = await supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false });
+    setTransactions(txData || []);
     const { data: merchantsData } = await supabase.from("merchants").select("id, store_name");
     const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
-
     const [rewardsRes, campaignsRes, offersRes, redemptionsRes] = await Promise.all([
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
       supabase.from("redemptions").select("*").eq("customer_id", customerData.id).order("created_at", { ascending: false }),
     ]);
-
     setRewards((rewardsRes.data || []).map(r => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map(c => ({ ...c, store_name: merchantMap.get(c.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map(o => ({ ...o, store_name: merchantMap.get(o.merchant_id) || "Store" })));
     setRedemptions((redemptionsRes.data || []).map((r: any) => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
-
     setLoading(false);
     setTimeout(() => setPointsVisible(true), 300);
   };
@@ -280,29 +183,15 @@ const AccessCard = () => {
     if (!customer) return;
     setRedeeming(rewardId);
     try {
-      const { data, error } = await supabase.rpc("redeem_reward", {
-        _customer_id: customer.id,
-        _reward_id: rewardId,
-      });
+      const { data, error } = await supabase.rpc("redeem_reward", { _customer_id: customer.id, _reward_id: rewardId });
       if (error) throw error;
       const result = data as any;
-      if (!result.success) {
-        toast.error(result.error || "Redemption failed");
-        return;
-      }
-      setShowRedemptionModal({
-        code: result.redemption_code,
-        title: result.reward_title,
-        points: result.points_spent,
-        expires: result.expires_at,
-      });
-      // Refresh data to update points balance
+      if (!result.success) { toast.error(result.error || "Redemption failed"); return; }
+      setSelectedReward(null);
+      setShowRedemptionModal({ code: result.redemption_code, title: result.reward_title, points: result.points_spent, expires: result.expires_at });
       await fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Redemption failed");
-    } finally {
-      setRedeeming(null);
-    }
+    } catch (err: any) { toast.error(err.message || "Redemption failed"); }
+    finally { setRedeeming(null); }
   };
 
   const handleCopy = (label: string, value: string) => {
@@ -311,21 +200,12 @@ const AccessCard = () => {
 
   const handleShare = async () => {
     if (!customer) return;
-    const shareData = {
-      title: "Perk Back Loyalty Card",
-      text: `My Perk Back loyalty card: ${customer.loyalty_card_number}\nName: ${customer.full_name}\nCRN: ${customer.crn}`,
-    };
-    if (navigator.share) {
-      try { await navigator.share(shareData); } catch {}
-    } else {
-      navigator.clipboard.writeText(shareData.text || "");
-      toast.success("Card details copied to clipboard");
-    }
+    const shareData = { title: "Perk Back Loyalty Card", text: `My Perk Back loyalty card: ${customer.loyalty_card_number}\nName: ${customer.full_name}\nCRN: ${customer.crn}` };
+    if (navigator.share) { try { await navigator.share(shareData); } catch {} }
+    else { navigator.clipboard.writeText(shareData.text || ""); toast.success("Card details copied to clipboard"); }
   };
 
-  const handleAddToWallet = (walletType: string) => {
-    toast.info(`${walletType} integration coming soon! We're working on it.`);
-  };
+  const handleAddToWallet = (walletType: string) => { toast.info(`${walletType} integration coming soon! We're working on it.`); };
 
   if (loading) {
     return (
@@ -340,19 +220,11 @@ const AccessCard = () => {
 
   if (!customer) return null;
 
-  const issuedDate = customer.card_issued_at
-    ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
-    : "—";
-
-  const coffeeStamps = transactions.length % STAMPS_TOTAL;
-
-  // Build carousel slides from campaigns + monthly offers
+  const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
     ...campaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null })),
     ...monthlyOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null })),
   ];
-
-  // Nearest reachable reward
   const nearestReward = rewards.length > 0
     ? rewards.reduce((closest, r) => {
         const diff = r.points_required - customer.points_balance;
@@ -361,13 +233,11 @@ const AccessCard = () => {
         return closest;
       }, rewards[0])
     : null;
-
   const nearestProgress = nearestReward ? Math.min((customer.points_balance / nearestReward.points_required) * 100, 100) : 0;
 
   return (
     <div className="min-h-screen bg-muted/20">
       <Header />
-      {/* Gradient backdrop */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
         <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
@@ -387,81 +257,8 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Loyalty Card ─── */}
-        <ScrollReveal>
-          <div className="relative rounded-3xl overflow-hidden shadow-card-hover">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
-            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-primary-foreground/10" />
-            <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full border border-primary-foreground/8" />
-
-            <div className="relative z-10 p-5 sm:p-6 pb-4 sm:pb-5">
-              <div className="flex items-start justify-between mb-4 sm:mb-5">
-                <div>
-                  <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.2em] mb-0.5">Digital Loyalty Card</p>
-                  <img src={perkbackLogo} alt="Perk Back" className="h-6 sm:h-7 w-auto brightness-0 invert" />
-                </div>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/90 flex items-center justify-center shadow-lg">
-                  <Star className="text-accent-foreground" size={16} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-3 mb-4 sm:mb-5">
-                <div>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><User size={10} /> Name</p>
-                  <p className="text-primary-foreground font-semibold text-xs sm:text-sm truncate">{customer.full_name || "—"}</p>
-                </div>
-                <div className="group cursor-pointer" onClick={() => handleCopy("CRN", customer.crn || "")}>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Hash size={10} /> CRN <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
-                  <p className="text-primary-foreground font-semibold font-mono text-xs sm:text-sm">{customer.crn}</p>
-                </div>
-                <div className="group cursor-pointer" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><CreditCard size={10} /> Card No. <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
-                  <p className="text-primary-foreground font-semibold font-mono text-[11px] sm:text-xs tracking-wide">{customer.loyalty_card_number}</p>
-                </div>
-                <div>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Calendar size={10} /> Issued</p>
-                  <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
-                </div>
-              </div>
-
-              <div className="bg-primary-foreground rounded-2xl p-3 flex justify-center overflow-hidden">
-                <Barcode value={customer.loyalty_card_number || ""} height={55} />
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Card Actions ─── */}
-        <ScrollReveal delay={50}>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-10 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
-              <Copy size={14} /><span className="hidden xs:inline">Copy</span>
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-10 border-border/50" onClick={handleShare}>
-              <Share2 size={14} /><span className="hidden xs:inline">Share</span>
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-10 border-border/50" onClick={() => handleAddToWallet("Wallet")}>
-              <Wallet size={14} /><span className="hidden xs:inline">Wallet</span>
-            </Button>
-          </div>
-
-          <div className="mt-3 bg-card rounded-2xl p-4 shadow-card border border-border/50">
-            <h3 className="text-xs font-bold text-foreground mb-3 flex items-center gap-2"><Wallet size={14} className="text-secondary" />Add to Digital Wallet</h3>
-            <div className="grid grid-cols-1 gap-2">
-              {[{ name: "Apple Wallet", emoji: "🍎" }, { name: "Google Wallet", emoji: "📱" }, { name: "Samsung Pay", emoji: "💳" }].map((wallet) => (
-                <button key={wallet.name} onClick={() => handleAddToWallet(wallet.name)} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 text-left">
-                  <span className="text-lg">{wallet.emoji}</span>
-                  <span className="text-sm font-medium text-foreground">{wallet.name}</span>
-                  <ArrowRight size={14} className="text-muted-foreground ml-auto" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Points Balance with Next Reward Progress ─── */}
-        <ScrollReveal delay={100}>
+        {/* ─── Points Balance (moved to top) ─── */}
+        <ScrollReveal delay={25}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
             <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3">Points Balance</p>
             <div className={`flex items-center justify-center gap-3 transition-all duration-700 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
@@ -481,12 +278,79 @@ const AccessCard = () => {
             ) : (
               <p className="text-muted-foreground text-xs mt-3">Keep earning to unlock exclusive rewards!</p>
             )}
+            {/* Inline claim info button */}
+            <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors">
+              <Info size={10} /> How to earn points
+            </button>
+          </div>
+        </ScrollReveal>
+
+        {/* ─── Loyalty Card ─── */}
+        <ScrollReveal delay={50}>
+          <div className="relative rounded-3xl overflow-hidden shadow-card-hover">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
+            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-primary-foreground/10" />
+            <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full border border-primary-foreground/8" />
+            <div className="relative z-10 p-5 sm:p-6 pb-4 sm:pb-5">
+              <div className="flex items-start justify-between mb-4 sm:mb-5">
+                <div>
+                  <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.2em] mb-0.5">Digital Loyalty Card</p>
+                  <img src={perkbackLogo} alt="Perk Back" className="h-6 sm:h-7 w-auto brightness-0 invert" />
+                </div>
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/90 flex items-center justify-center shadow-lg">
+                  <Star className="text-accent-foreground" size={16} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-3 mb-4 sm:mb-5">
+                <div>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><User size={10} /> Name</p>
+                  <p className="text-primary-foreground font-semibold text-xs sm:text-sm truncate">{customer.full_name || "—"}</p>
+                </div>
+                <div className="group cursor-pointer" onClick={() => handleCopy("CRN", customer.crn || "")}>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Hash size={10} /> CRN <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
+                  <p className="text-primary-foreground font-semibold font-mono text-xs sm:text-sm">{customer.crn}</p>
+                </div>
+                <div className="group cursor-pointer" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><CreditCard size={10} /> Card No. <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
+                  <p className="text-primary-foreground font-semibold font-mono text-[11px] sm:text-xs tracking-wide">{customer.loyalty_card_number}</p>
+                </div>
+                <div>
+                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Calendar size={10} /> Issued</p>
+                  <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
+                </div>
+              </div>
+              <div className="bg-primary-foreground rounded-2xl p-3 flex justify-center overflow-hidden">
+                <Barcode value={customer.loyalty_card_number || ""} height={55} />
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* ─── Card Actions (compact row with wallet icons) ─── */}
+        <ScrollReveal delay={75}>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
+              <Copy size={13} /> Copy
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={handleShare}>
+              <Share2 size={13} /> Share
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Apple Wallet")} title="Apple Wallet">
+              🍎
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Google Wallet")} title="Google Wallet">
+              📱
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Samsung Pay")} title="Samsung Pay">
+              💳
+            </Button>
           </div>
         </ScrollReveal>
 
         {/* ─── Promo Banner Carousel ─── */}
         {carouselSlides.length > 0 && (
-          <ScrollReveal delay={125}>
+          <ScrollReveal delay={100}>
             <Carousel setApi={setCarouselApi} opts={{ loop: true }} className="w-full">
               <CarouselContent>
                 {carouselSlides.map((slide, i) => (
@@ -496,17 +360,11 @@ const AccessCard = () => {
                       <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full border border-primary-foreground/8" />
                       <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-2">
-                          {slide.type === "campaign" ? (
-                            <Megaphone size={14} className="text-primary-foreground/70" />
-                          ) : (
-                            <CalendarDays size={14} className="text-primary-foreground/70" />
-                          )}
+                          {slide.type === "campaign" ? <Megaphone size={14} className="text-primary-foreground/70" /> : <CalendarDays size={14} className="text-primary-foreground/70" />}
                           <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">{slide.store}</span>
                         </div>
                         <h3 className="text-primary-foreground font-bold text-base sm:text-lg leading-tight">{slide.title}</h3>
-                        {slide.description && (
-                          <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{slide.description}</p>
-                        )}
+                        {slide.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{slide.description}</p>}
                       </div>
                       <div className="relative z-10 flex items-center justify-between mt-3">
                         <span className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
@@ -522,15 +380,11 @@ const AccessCard = () => {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              {/* Dot indicators */}
               {slideCount > 1 && (
                 <div className="flex justify-center gap-1.5 mt-3">
                   {Array.from({ length: slideCount }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => carouselApi?.scrollTo(i)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-primary w-5' : 'bg-border'}`}
-                    />
+                    <button key={i} onClick={() => carouselApi?.scrollTo(i)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-primary w-5' : 'bg-border'}`} />
                   ))}
                 </div>
               )}
@@ -538,18 +392,15 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Available Rewards ─── */}
-        <ScrollReveal delay={150}>
+        {/* ─── Available Rewards (clickable cards) ─── */}
+        <ScrollReveal delay={125}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
             <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-              <Gift size={16} className="text-accent" />
-              Available Rewards
+              <Gift size={16} className="text-accent" /> Available Rewards
             </h3>
             {rewards.length === 0 ? (
               <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3">
-                  <Gift size={22} className="text-muted-foreground/40" />
-                </div>
+                <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3"><Gift size={22} className="text-muted-foreground/40" /></div>
                 <p className="text-sm text-muted-foreground">No rewards available yet</p>
                 <p className="text-xs text-muted-foreground/60 mt-1">Shop at partner stores to unlock rewards.</p>
               </div>
@@ -557,17 +408,13 @@ const AccessCard = () => {
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
                 {rewards.map((r) => {
                   const progress = Math.min((customer.points_balance / r.points_required) * 100, 100);
-                  const almostThere = progress >= 80 && progress < 100;
                   const readyToRedeem = progress >= 100;
+                  const almostThere = progress >= 80 && progress < 100;
                   const IconComp = rewardTypeIcon(r.reward_type);
-
                   return (
-                    <div
-                      key={r.id}
-                      className={`min-w-[200px] sm:min-w-[220px] snap-start flex-shrink-0 rounded-xl border p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card ${
-                        readyToRedeem
-                          ? 'border-accent/50 bg-accent/5 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.3)]'
-                          : 'border-border/30 bg-muted/20'
+                    <div key={r.id} onClick={() => setSelectedReward(r)}
+                      className={`min-w-[200px] sm:min-w-[220px] snap-start flex-shrink-0 rounded-xl border p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card cursor-pointer ${
+                        readyToRedeem ? 'border-accent/50 bg-accent/5 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.3)]' : 'border-border/30 bg-muted/20'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -586,21 +433,7 @@ const AccessCard = () => {
                       </div>
                       <Progress value={progress} className="h-1.5" />
                       {r.is_limited_time && r.expires_at && (
-                        <p className="text-[9px] text-muted-foreground/60 mt-2 flex items-center gap-0.5">
-                          <Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                        </p>
-                      )}
-                      {readyToRedeem && (
-                        <Button
-                          size="sm"
-                          variant="hero"
-                          className="w-full mt-3 text-xs h-8 gap-1"
-                          disabled={redeeming === r.id}
-                          onClick={() => handleRedeem(r.id)}
-                        >
-                          <Ticket size={12} />
-                          {redeeming === r.id ? "Redeeming..." : "Redeem Now"}
-                        </Button>
+                        <p className="text-[9px] text-muted-foreground/60 mt-2 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
                       )}
                     </div>
                   );
@@ -610,62 +443,16 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Active Campaigns ─── */}
-        <ScrollReveal delay={200}>
-          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-              <Megaphone size={16} className="text-secondary" />
-              Active Campaigns
-            </h3>
-            {campaigns.length === 0 ? (
-              <div className="text-center py-6">
-                <Megaphone size={22} className="mx-auto text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No active campaigns right now</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {campaigns.map((c) => (
-                  <div key={c.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 cursor-default overflow-hidden relative">
-                    {/* Accent strip */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-secondary to-primary rounded-l-xl" />
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0 mt-0.5 ml-2">
-                      <Megaphone size={16} className="text-secondary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-xs sm:text-sm text-foreground">{c.title}</p>
-                        {c.ai_generated && (
-                          <span className="text-[9px] bg-accent/15 text-accent-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                            <Sparkles size={8} /> AI
-                          </span>
-                        )}
-                      </div>
-                      {c.description && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">{c.description}</p>}
-                      <p className="text-[10px] text-muted-foreground/60 mt-1">{c.store_name}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Monthly Offers ─── */}
-        <ScrollReveal delay={225}>
-          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-              <CalendarDays size={16} className="text-accent" />
-              Monthly Offers
-            </h3>
-            {monthlyOffers.length === 0 ? (
-              <div className="text-center py-6">
-                <CalendarDays size={22} className="mx-auto text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No monthly offers right now</p>
-              </div>
-            ) : (
+        {/* ─── Monthly Offers (only if present) ─── */}
+        {monthlyOffers.length > 0 && (
+          <ScrollReveal delay={150}>
+            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                <CalendarDays size={16} className="text-accent" /> Monthly Offers
+              </h3>
               <div className="space-y-3">
                 {monthlyOffers.map((o) => (
-                  <div key={o.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 cursor-default">
+                  <div key={o.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200">
                     <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
                       <CalendarDays size={16} className="text-accent-foreground" />
                     </div>
@@ -684,45 +471,44 @@ const AccessCard = () => {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </ScrollReveal>
+            </div>
+          </ScrollReveal>
+        )}
 
-        {/* ─── Points Earned (Transactions) ─── */}
-        <ScrollReveal delay={250}>
-          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-              <Shield size={16} className="text-secondary" />
-              Points Earned
-            </h3>
-            {transactions.length === 0 ? (
-              <div className="text-center py-8 sm:py-10">
-                <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3">
-                  <Gift size={24} className="text-muted-foreground/40" />
-                </div>
-                <p className="text-sm text-muted-foreground">No transactions yet.</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Visit a partner store to start earning!</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {transactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 cursor-default">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{tx.merchant_name}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[11px] sm:text-xs text-muted-foreground">${tx.purchase_amount.toFixed(2)}</span>
-                        <span className="text-muted-foreground/30">·</span>
-                        <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock size={10} />
-                          {new Date(tx.transaction_date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right pl-2 sm:pl-3">
-                      <span className="text-sm sm:text-base font-bold text-accent-foreground bg-accent/15 px-2 sm:px-2.5 py-1 rounded-lg">+{tx.points_awarded}</span>
-                    </div>
+        {/* ─── Points Earned (collapsible) ─── */}
+        <ScrollReveal delay={175}>
+          <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
+            <button onClick={() => setShowTransactions(!showTransactions)} className="w-full flex items-center justify-between p-5 sm:p-6 text-left">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Shield size={16} className="text-secondary" /> Points Earned
+                <span className="text-xs font-normal text-muted-foreground">({transactions.length})</span>
+              </h3>
+              <ChevronRight size={16} className={`text-muted-foreground transition-transform duration-200 ${showTransactions ? 'rotate-90' : ''}`} />
+            </button>
+            {showTransactions && (
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-2">
+                {transactions.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Gift size={24} className="text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No transactions yet.</p>
                   </div>
-                ))}
+                ) : (
+                  transactions.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{tx.merchant_name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] text-muted-foreground">${tx.purchase_amount.toFixed(2)}</span>
+                          <span className="text-muted-foreground/30">·</span>
+                          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                            <Clock size={10} /> {new Date(tx.transaction_date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-accent-foreground bg-accent/15 px-2 py-1 rounded-lg">+{tx.points_awarded}</span>
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -730,18 +516,16 @@ const AccessCard = () => {
 
         {/* ─── Redemption History ─── */}
         {redemptions.length > 0 && (
-          <ScrollReveal delay={260}>
+          <ScrollReveal delay={200}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
               <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                <Ticket size={16} className="text-secondary" />
-                My Redemptions
+                <Ticket size={16} className="text-secondary" /> My Redemptions
               </h3>
               <div className="space-y-2">
                 {redemptions.map((r) => {
                   const isExpired = r.status === 'expired' || (r.status === 'pending' && new Date(r.expires_at) < new Date());
                   const isVerified = r.status === 'verified';
                   const isPending = r.status === 'pending' && !isExpired;
-
                   return (
                     <div key={r.id} className={`p-3 rounded-xl border ${isPending ? 'border-accent/30 bg-accent/5' : 'border-border/30 bg-muted/30'}`}>
                       <div className="flex items-center justify-between">
@@ -776,33 +560,8 @@ const AccessCard = () => {
         )}
 
         {/* ─── Write a Review ─── */}
-        <ScrollReveal delay={275}>
+        <ScrollReveal delay={225}>
           <WriteReviewSection customerName={customer?.full_name || ""} />
-        </ScrollReveal>
-
-        {/* ─── Ways to Claim Points ─── */}
-        <ScrollReveal delay={300}>
-          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-              <Gift size={16} className="text-secondary" />
-              Ways to Claim Points
-            </h3>
-            <div className="space-y-3">
-              {[
-                { icon: ScanBarcode, text: "Show your loyalty barcode or number at checkout" },
-                { icon: Smartphone, text: "Merchant scans or enters your number" },
-                { icon: Star, text: "Points are added instantly" },
-                { icon: Gift, text: "Track your rewards anytime in Perk Back" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
-                    <item.icon size={14} className="text-secondary" />
-                  </div>
-                  <span className="text-xs sm:text-sm text-foreground/80">{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </ScrollReveal>
 
         {/* ─── Admin Panel ─── */}
@@ -811,9 +570,7 @@ const AccessCard = () => {
             <Link to="/admin" className="block">
               <div className="bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl p-5 sm:p-6 border border-accent/20 flex items-center justify-between hover:border-accent/40 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-                    <Shield size={20} className="text-accent" />
-                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center"><Shield size={20} className="text-accent" /></div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">Admin Panel</p>
                     <p className="text-xs text-muted-foreground">Manage blogs, testimonials & messages</p>
@@ -824,8 +581,73 @@ const AccessCard = () => {
             </Link>
           </ScrollReveal>
         )}
-
       </div>
+
+      {/* ─── Reward Detail / Redeem Dialog ─── */}
+      <Dialog open={!!selectedReward} onOpenChange={() => setSelectedReward(null)}>
+        <DialogContent className="max-w-sm">
+          {selectedReward && (() => {
+            const progress = Math.min((customer.points_balance / selectedReward.points_required) * 100, 100);
+            const readyToRedeem = progress >= 100;
+            const IconComp = rewardTypeIcon(selectedReward.reward_type);
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <IconComp size={18} className="text-accent" /> {selectedReward.title}
+                  </DialogTitle>
+                  <DialogDescription>{selectedReward.store_name} · {selectedReward.reward_type}</DialogDescription>
+                </DialogHeader>
+                {selectedReward.description && <p className="text-sm text-muted-foreground">{selectedReward.description}</p>}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Your points</span>
+                    <span className="font-bold text-foreground">{customer.points_balance}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Required</span>
+                    <span className="font-bold text-foreground">{selectedReward.points_required}</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                  {!readyToRedeem && (
+                    <p className="text-xs text-muted-foreground text-center">You need {selectedReward.points_required - customer.points_balance} more points</p>
+                  )}
+                </div>
+                {readyToRedeem && (
+                  <Button variant="hero" className="w-full gap-2" disabled={redeeming === selectedReward.id} onClick={() => handleRedeem(selectedReward.id)}>
+                    <Ticket size={16} /> {redeeming === selectedReward.id ? "Redeeming..." : "Redeem Now"}
+                  </Button>
+                )}
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Ways to Claim Points Popup ─── */}
+      <Dialog open={showClaimInfo} onOpenChange={setShowClaimInfo}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Gift size={18} className="text-secondary" /> Ways to Earn Points</DialogTitle>
+            <DialogDescription>Here's how you can earn points at partner stores</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {[
+              { icon: ScanBarcode, text: "Show your loyalty barcode or number at checkout" },
+              { icon: Smartphone, text: "Merchant scans or enters your number" },
+              { icon: Star, text: "Points are added instantly" },
+              { icon: Gift, text: "Track your rewards anytime in Perk Back" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+                  <item.icon size={14} className="text-secondary" />
+                </div>
+                <span className="text-sm text-foreground/80">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Redemption Success Modal ─── */}
       {showRedemptionModal && (
@@ -836,33 +658,20 @@ const AccessCard = () => {
             </div>
             <h2 className="text-lg font-bold text-foreground mb-1">Reward Redeemed! 🎉</h2>
             <p className="text-sm text-muted-foreground mb-4">{showRedemptionModal.title}</p>
-
             <div className="bg-muted/30 rounded-xl p-4 border border-border/50 mb-4">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Your Redemption Code</p>
               <p className="font-mono text-3xl font-bold text-foreground tracking-[0.3em]">{showRedemptionModal.code}</p>
               <p className="text-xs text-muted-foreground mt-2">Show this code to the merchant</p>
             </div>
-
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
               <span>{showRedemptionModal.points} pts spent</span>
               <span>Valid for 48 hours</span>
             </div>
-
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 gap-1"
-                onClick={() => {
-                  navigator.clipboard.writeText(showRedemptionModal.code);
-                  toast.success("Code copied!");
-                }}
-              >
+              <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => { navigator.clipboard.writeText(showRedemptionModal.code); toast.success("Code copied!"); }}>
                 <Copy size={14} /> Copy Code
               </Button>
-              <Button variant="hero" size="sm" className="flex-1" onClick={() => setShowRedemptionModal(null)}>
-                Done
-              </Button>
+              <Button variant="hero" size="sm" className="flex-1" onClick={() => setShowRedemptionModal(null)}>Done</Button>
             </div>
           </div>
         </div>

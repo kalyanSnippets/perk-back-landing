@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, CreditCard, LayoutDashboard, Shield } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
@@ -19,6 +19,13 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isAdmin, isMerchant, isCustomer, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Hide Pricing & Testimonials for customer-facing pages
+  const isCustomerPage = location.pathname.startsWith("/customer/");
+  const filteredNavLinks = isCustomerPage
+    ? navLinks.filter(l => !["Pricing", "Testimonials"].includes(l.label))
+    : navLinks;
 
   const handleLogout = async () => {
     await logout();
@@ -36,12 +43,12 @@ const Header = () => {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-4 lg:gap-8">
-          {navLinks.map((link) => (
+        <nav className="hidden lg:flex items-center gap-2 xl:gap-5">
+          {filteredNavLinks.map((link) => (
             <Link
               key={link.label}
               to={link.href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
+              className="text-xs xl:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 whitespace-nowrap flex-shrink-0"
             >
               {link.label}
             </Link>
@@ -49,7 +56,7 @@ const Header = () => {
         </nav>
 
         {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           {user ? (
             <>
               {isAdmin && (
@@ -89,7 +96,7 @@ const Header = () => {
         {/* Mobile Toggle */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden text-foreground p-2"
+          className="lg:hidden text-foreground p-2"
           aria-label="Toggle menu"
         >
           {mobileOpen ? <X size={24} /> : <Menu size={24} />}
@@ -98,9 +105,9 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-background border-t border-border px-4 pb-6 pt-2 animate-fade-up">
+        <div className="lg:hidden bg-background border-t border-border px-4 pb-6 pt-2 animate-fade-up">
           <nav className="flex flex-col gap-3">
-            {navLinks.map((link) => (
+            {filteredNavLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.href}

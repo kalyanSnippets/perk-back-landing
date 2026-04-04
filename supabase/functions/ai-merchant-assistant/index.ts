@@ -10,7 +10,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { merchant_id } = await req.json();
+    const body = await req.json();
+    const { merchant_id, type } = body;
     if (!merchant_id) {
       return new Response(JSON.stringify({ error: "merchant_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -24,7 +25,144 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch merchant's transaction summary
+    // Get merchant info
+    const { data: merchant } = await supabase
+      .from("merchants")
+      .select("store_name, industry_type")
+      .eq("id", merchant_id)
+      .maybeSingle();
+
+    const industryType = merchant?.industry_type || "general retail";
+    const storeName = merchant?.store_name || "Store";
+
+    // ─── Reward Suggestion Mode ───
+    if (type === "suggest_reward") {
+      // Get existing rewards for context
+      const { data: existingRewards } = await supabase
+        .from("rewards")
+        .select("title, reward_type, points_required")
+        .eq("merchant_id", merchant_id)
+        .limit(10);
+
+      const existingList = (existingRewards || []).map(r => `${r.title} (${r.reward_type}, ${r.points_required} pts)`).join(", ");
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content: `You are a loyalty reward expert for ${industryType} businesses. Suggest creative, appealing reward ideas that customers would love. Consider the business type and existing rewards to avoid duplicates.`,
+            },
+            {
+              role: "user",
+              content: `Business: "${storeName}" (${industryType})\nExisting rewards: ${existingList || "None yet"}\n\nSuggest 3 unique reward ideas.`,
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "suggest_rewards",
+                description: "Return reward suggestions",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    suggestions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string", description: "Short, catchy reward title" },
+                          description: { type: "string", description: "Brief description of the reward" },
+                          reward_type: { type: "string", enum: ["discount", "freebie", "voucher", "custom"] },
+                          points_required: { type: "number", description: "Suggested points cost (50-500)" },
+                          image_prompt: { type: "string", description: "A vivid image prompt to generate a visual for this reward" },
+                        },
+                        required: ["title", "description", "reward_type", "points_required", "image_prompt"],
+                      },
+                    },
+                  },
+                  required: ["suggestions"],
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "suggest_rewards" } },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limited. Please try again later." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error("AI gateway error");
+      }
+
+      const result = await response.json();
+      const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+      let suggestions = [];
+      if (toolCall?.function?.arguments) {
+        try { suggestions = JSON.parse(toolCall.function.arguments).suggestions || []; } catch { suggestions = []; }
+      }
+
+      return new Response(JSON.stringify({ suggestions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── Generate Reward Image Mode ───
+    if (type === "generate_image") {
+      const { prompt } = body;
+      if (!prompt) {
+        return new Response(JSON.stringify({ error: "prompt required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3.1-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: `Create a beautiful, professional reward card image for a loyalty program. The image should be: ${prompt}. Make it visually appealing with vibrant colors, modern design, clean composition. No text in the image.`,
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limited." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error("Image generation failed");
+      }
+
+      const result = await response.json();
+      const imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (!imageUrl) {
+        return new Response(JSON.stringify({ error: "No image generated" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ image_url: imageUrl }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── Default: Campaign Suggestions (existing behavior) ───
     const { data: transactions } = await supabase
       .from("transactions")
       .select("customer_id, purchase_amount, points_awarded, transaction_date")
@@ -37,7 +175,6 @@ serve(async (req) => {
     const totalRevenue = txs.reduce((s, t) => s + Number(t.purchase_amount), 0);
     const avgSpend = txs.length ? (totalRevenue / txs.length).toFixed(2) : "0";
 
-    // Day-of-week analysis
     const dayCount: Record<string, number> = {};
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     txs.forEach(t => {
@@ -105,16 +242,8 @@ Merchant data summary:
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited. Please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limited. Please try again later." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
       throw new Error("AI gateway error");
@@ -124,12 +253,7 @@ Merchant data summary:
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
     let suggestions = [];
     if (toolCall?.function?.arguments) {
-      try {
-        const parsed = JSON.parse(toolCall.function.arguments);
-        suggestions = parsed.suggestions || [];
-      } catch {
-        suggestions = [];
-      }
+      try { suggestions = JSON.parse(toolCall.function.arguments).suggestions || []; } catch { suggestions = []; }
     }
 
     return new Response(JSON.stringify({ suggestions }), {
