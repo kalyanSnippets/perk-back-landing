@@ -243,7 +243,7 @@ const AccessCard = () => {
     setTransactions(txs);
 
     // Fetch offers based on merchant IDs from transactions
-    const merchantIds = [...new Set(txs.filter(t => t.merchant_id).map(t => t.merchant_id as string))];
+    const merchantIds = Array.from(new Set(txs.filter(t => t.merchant_id).map(t => t.merchant_id as string)));
     if (merchantIds.length > 0) {
       const { data: merchantsData } = await supabase.from("merchants").select("id, store_name").in("id", merchantIds);
       const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
