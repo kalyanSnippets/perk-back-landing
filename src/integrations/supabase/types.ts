@@ -694,6 +694,76 @@ export type Database = {
           },
         ]
       }
+      redemptions: {
+        Row: {
+          created_at: string
+          customer_id: string
+          expires_at: string
+          id: string
+          merchant_id: string
+          points_spent: number
+          redeemed_at: string | null
+          redemption_code: string
+          reward_id: string
+          reward_title: string
+          status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          expires_at: string
+          id?: string
+          merchant_id: string
+          points_spent: number
+          redeemed_at?: string | null
+          redemption_code: string
+          reward_id: string
+          reward_title: string
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          expires_at?: string
+          id?: string
+          merchant_id?: string
+          points_spent?: number
+          redeemed_at?: string | null
+          redemption_code?: string
+          reward_id?: string
+          reward_title?: string
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redemptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rewards: {
         Row: {
           active: boolean
@@ -1006,6 +1076,14 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      redeem_reward: {
+        Args: { _customer_id: string; _reward_id: string }
+        Returns: Json
+      }
+      verify_redemption: {
+        Args: { _merchant_id: string; _redemption_code: string }
+        Returns: Json
       }
     }
     Enums: {
