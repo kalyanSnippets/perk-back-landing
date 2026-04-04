@@ -105,9 +105,9 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-background border-t border-border px-4 pb-6 pt-2 animate-fade-up">
+        <div className="lg:hidden bg-background border-t border-border px-4 pb-6 pt-2 animate-fade-up">
           <nav className="flex flex-col gap-3">
-            {navLinks.map((link) => (
+            {filteredNavLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.href}
