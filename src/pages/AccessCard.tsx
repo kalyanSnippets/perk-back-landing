@@ -728,6 +728,53 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
+        {/* ─── Redemption History ─── */}
+        {redemptions.length > 0 && (
+          <ScrollReveal delay={260}>
+            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                <Ticket size={16} className="text-secondary" />
+                My Redemptions
+              </h3>
+              <div className="space-y-2">
+                {redemptions.map((r) => {
+                  const isExpired = r.status === 'expired' || (r.status === 'pending' && new Date(r.expires_at) < new Date());
+                  const isVerified = r.status === 'verified';
+                  const isPending = r.status === 'pending' && !isExpired;
+
+                  return (
+                    <div key={r.id} className={`p-3 rounded-xl border ${isPending ? 'border-accent/30 bg-accent/5' : 'border-border/30 bg-muted/30'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-xs text-foreground">{r.reward_title}</p>
+                          <p className="text-[10px] text-muted-foreground/70 mt-0.5">{r.store_name}</p>
+                        </div>
+                        <div className="pl-2">
+                          {isVerified && <span className="text-[10px] bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10} /> Used</span>}
+                          {isPending && <span className="text-[10px] bg-accent/15 text-accent-foreground px-2 py-0.5 rounded-full flex items-center gap-1"><Clock size={10} /> Pending</span>}
+                          {isExpired && <span className="text-[10px] bg-destructive/15 text-destructive px-2 py-0.5 rounded-full flex items-center gap-1"><XCircle size={10} /> Expired</span>}
+                        </div>
+                      </div>
+                      {isPending && (
+                        <div className="mt-2 bg-card rounded-lg p-2 border border-border/30 text-center">
+                          <p className="text-[10px] text-muted-foreground mb-1">Show this code to merchant</p>
+                          <p className="font-mono text-lg font-bold text-foreground tracking-[0.3em]">{r.redemption_code}</p>
+                          <p className="text-[9px] text-muted-foreground/60 mt-1">Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                        <span>{r.points_spent} pts</span>
+                        <span className="text-muted-foreground/30">·</span>
+                        <span>{new Date(r.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
         {/* ─── Write a Review ─── */}
         <ScrollReveal delay={275}>
           <WriteReviewSection customerName={customer?.full_name || ""} />
@@ -779,6 +826,47 @@ const AccessCard = () => {
         )}
 
       </div>
+
+      {/* ─── Redemption Success Modal ─── */}
+      {showRedemptionModal && (
+        <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm flex items-center justify-center px-4" onClick={() => setShowRedemptionModal(null)}>
+          <div className="bg-card rounded-2xl p-6 shadow-card-hover w-full max-w-sm animate-fade-up text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-full bg-accent/15 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle size={32} className="text-accent" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground mb-1">Reward Redeemed! 🎉</h2>
+            <p className="text-sm text-muted-foreground mb-4">{showRedemptionModal.title}</p>
+
+            <div className="bg-muted/30 rounded-xl p-4 border border-border/50 mb-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Your Redemption Code</p>
+              <p className="font-mono text-3xl font-bold text-foreground tracking-[0.3em]">{showRedemptionModal.code}</p>
+              <p className="text-xs text-muted-foreground mt-2">Show this code to the merchant</p>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+              <span>{showRedemptionModal.points} pts spent</span>
+              <span>Valid for 48 hours</span>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1"
+                onClick={() => {
+                  navigator.clipboard.writeText(showRedemptionModal.code);
+                  toast.success("Code copied!");
+                }}
+              >
+                <Copy size={14} /> Copy Code
+              </Button>
+              <Button variant="hero" size="sm" className="flex-1" onClick={() => setShowRedemptionModal(null)}>
+                Done
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
