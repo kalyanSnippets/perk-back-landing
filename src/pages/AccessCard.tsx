@@ -240,22 +240,19 @@ const AccessCard = () => {
     const txs = txData || [];
     setTransactions(txs);
 
-    // Fetch offers based on merchant IDs from transactions
-    const merchantIds = Array.from(new Set(txs.filter(t => t.merchant_id).map(t => t.merchant_id as string)));
-    if (merchantIds.length > 0) {
-      const { data: merchantsData } = await supabase.from("merchants").select("id, store_name").in("id", merchantIds);
-      const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
+    // Fetch all active offers from all merchants
+    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name");
+    const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
 
-      const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
-        supabase.from("rewards").select("*").eq("active", true).in("merchant_id", merchantIds),
-        supabase.from("campaigns").select("*").eq("active", true).in("merchant_id", merchantIds),
-        supabase.from("monthly_offers").select("*").eq("active", true).in("merchant_id", merchantIds),
-      ]);
+    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
+      supabase.from("rewards").select("*").eq("active", true),
+      supabase.from("campaigns").select("*").eq("active", true),
+      supabase.from("monthly_offers").select("*").eq("active", true),
+    ]);
 
-      setRewards((rewardsRes.data || []).map(r => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
-      setCampaigns((campaignsRes.data || []).map(c => ({ ...c, store_name: merchantMap.get(c.merchant_id) || "Store" })));
-      setMonthlyOffers((offersRes.data || []).map(o => ({ ...o, store_name: merchantMap.get(o.merchant_id) || "Store" })));
-    }
+    setRewards((rewardsRes.data || []).map(r => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
+    setCampaigns((campaignsRes.data || []).map(c => ({ ...c, store_name: merchantMap.get(c.merchant_id) || "Store" })));
+    setMonthlyOffers((offersRes.data || []).map(o => ({ ...o, store_name: merchantMap.get(o.merchant_id) || "Store" })));
 
     setLoading(false);
     setTimeout(() => setPointsVisible(true), 300);
