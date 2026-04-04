@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, CreditCard, LayoutDashboard, Shield } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.png";
