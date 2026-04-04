@@ -59,7 +59,7 @@ const MerchantMonthlyOffers = () => {
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Offer created");
-    setTitle(""); setDescription(""); setShowForm(false);
+    setTitle(""); setDescription(""); setValidFrom(""); setValidTo(""); setShowForm(false);
     await fetchOffers(merchantId);
   };
 
