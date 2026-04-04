@@ -79,7 +79,7 @@ interface CampaignData { id: string; title: string; description: string | null; 
 interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
 interface RedemptionData { id: string; reward_title: string; points_spent: number; redemption_code: string; status: string; expires_at: string; created_at: string; merchant_id: string; store_name?: string; }
 
-const STAMPS_TOTAL = 10;
+const _STAMPS_TOTAL = 10;
 const CAROUSEL_GRADIENTS = [
   "from-primary via-primary/90 to-secondary",
   "from-secondary via-secondary/90 to-primary",
