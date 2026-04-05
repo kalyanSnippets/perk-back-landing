@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, CreditCard, LayoutDashboard, Shield } from "lucide-react";
-import perkbackLogo from "@/assets/perkback-logo.png";
+import perkbackLogo from "@/assets/perkback-logo.webp";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 

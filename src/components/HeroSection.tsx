@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Play, X } from "lucide-react";
-import loyaltyCardImg from "@/assets/loyalty-card-v2.png";
+import loyaltyCardImg from "@/assets/loyalty-card-v2.webp";
 
 const HeroSection = () => {
   const [videoOpen, setVideoOpen] = useState(false);
@@ -49,7 +49,7 @@ const HeroSection = () => {
               className="relative rounded-2xl overflow-hidden glass-card aspect-video group cursor-pointer hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
             >
               <img
-                src="/images/video-thumbnail.jpg"
+                src="/images/video-thumbnail.webp"
                 alt="PerkBack introduction video preview"
                 className="w-full h-full object-cover"
               />
