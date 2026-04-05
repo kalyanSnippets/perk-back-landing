@@ -439,6 +439,7 @@ const AccessCard = () => {
                       {r.is_limited_time && r.expires_at && (
                         <p className="text-[9px] text-muted-foreground/60 mt-2 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
                       )}
+                      </div>
                     </div>
                   );
                 })}
