@@ -1,96 +1,112 @@
 
 
-## Plan: 6 Feature Requests Implementation
+## Plan: 5 Feature Requests Implementation
 
-### Request 1: AI-Powered Reward Creation (Merchant Side)
-
-**What changes:**
-- In `src/pages/MerchantRewards.tsx`, add an "AI Suggest" button next to the title/description fields in the reward creation form
-- When clicked, calls the existing `ai-merchant-assistant` edge function with context about the merchant's industry type and existing rewards
-- Returns suggested title, description, and generates an AI image using the Lovable AI image generation model (`google/gemini-2.5-flash-image`)
-- Add an image_url column to the `rewards` table via migration
-- Display generated image preview in the form with option to regenerate
-
-**Files:** `src/pages/MerchantRewards.tsx`, `supabase/functions/ai-merchant-assistant/index.ts` (update to handle reward suggestions), migration for `rewards.image_url`
+### Overview
+This plan covers: (1) Stripe payment integration for pricing plans, (2) digital wallet guidance, (3) testimonials in customer nav, (4) reward images with merchant logo in customer dashboard + reward editing for merchants, and (5) SMS notifications for birthday/monthly offers via Twilio.
 
 ---
 
-### Request 2: Customer Access Card Redesign
+### 1. Enable Stripe + Payment Flow for Pricing Page
 
-**Layout restructuring in `src/pages/AccessCard.tsx`:**
+**Prerequisite:** Enable Stripe using the `stripe--enable_stripe` tool. This will collect the Stripe secret key and expose further Stripe tools for creating products/prices and checkout sessions.
 
-1. **Points balance** — move to the top, right after greeting (before the loyalty card)
-2. **Promo banner carousel** — move up, right after loyalty card
-3. **Digital Wallet buttons** — collapse into a single row of icon buttons adjacent to the card (inside the card actions row: Copy | Share | Apple | Google | Samsung), remove the separate "Add to Digital Wallet" card section
-4. **Rewards section** — keep, but make each reward card clickable. On click, if redeemable show the redemption modal inline; if not yet redeemable show a detail popup with progress
-5. **Remove "Active Campaigns" section** — campaigns already appear in the banner carousel, no need for a separate list
-6. **Monthly Offers** — only render the section if `monthlyOffers.length > 0` (remove the empty state)
-7. **Points Earned** — move to a collapsible sidebar/panel on larger screens, or keep below on mobile
-8. **Ways to Claim Points** — convert to a popup/modal triggered by an info button instead of a full section
+**After Stripe is enabled:**
+- Create Stripe products + prices for Growth ($29/mo) and Pro ($79/mo) plans
+- Create an edge function `create-checkout-session` that:
+  - Accepts `plan` (growth/pro), creates a Stripe Checkout session
+  - Sets `success_url` and `cancel_url` back to the app
+  - On success, updates `merchant_subscriptions` table
+- Create a webhook edge function `stripe-webhook` to handle `checkout.session.completed` and `customer.subscription.updated` events, updating the merchant's plan in the database
+- Update `src/pages/Pricing.tsx`: Growth/Pro CTAs call the checkout edge function instead of linking to `/get-started`. Free plan still links to signup.
 
-**Files:** `src/pages/AccessCard.tsx`
-
----
-
-### Request 3: Navigation Alignment Fix
-
-**Problem:** Nav links overlap on medium screens between mobile and desktop breakpoints.
-
-**Fix in `src/components/Header.tsx`:**
-- Change desktop nav from `hidden md:flex` with `gap-4 lg:gap-8` to use `gap-2 lg:gap-6` and add `text-xs lg:text-sm` for responsive font sizing
-- Add `flex-shrink-0` and `whitespace-nowrap` to prevent wrapping
-- Consider bumping the breakpoint to `lg:flex` if items still overflow, or use a horizontal scroll container
-
-**Files:** `src/components/Header.tsx`
+**Files:** `src/pages/Pricing.tsx`, new edge functions `create-checkout-session` + `stripe-webhook`, migration if needed for Stripe customer ID on merchant_subscriptions
 
 ---
 
-### Request 4: Get Started Page — Login-First + Password Toggle
+### 2. Digital Wallet Integration
 
-**Changes to `src/pages/GetStarted.tsx`:**
-- Default `authMode` to `"login"` instead of `"signup"`
-- Remove the Tabs component; show login form as the primary view
-- Add a small text link at the bottom: "Don't have an account? Sign up as Customer | Sign up as Merchant"
-- Clicking those links switches to signup mode with the appropriate role pre-selected
-- Add an eye icon toggle button (from lucide: `Eye`/`EyeOff`) inside the password `Input` field to show/hide password
+Apple Wallet and Google Wallet require external developer credentials:
+- **Apple Wallet:** Requires Apple Developer Program ($99/yr), a Pass Type ID certificate, and signing infrastructure to generate `.pkpass` files
+- **Google Wallet:** Requires Google Pay API access and a service account to create JWT-based save links
 
-**Files:** `src/pages/GetStarted.tsx`
+I will document the setup steps and create placeholder buttons that explain the requirements. Full implementation needs these credentials provided by the user.
 
----
-
-### Request 5: Hide Pricing/Testimonials Nav for Customers on Access Card
-
-**Changes to `src/components/Header.tsx`:**
-- When the current route is `/customer/access-card`, filter out "Pricing" and "Testimonials" from the `navLinks` array
-- Use `useLocation()` to detect the current path
-- Customer-facing pages should only show: Home, About Us, Blog, Contact Us
-
-**Files:** `src/components/Header.tsx`
+**Files:** Informational — no code changes until credentials are available
 
 ---
 
-### Request 6: Digital Wallet Info + Pricing Payment Integration
+### 3. Add Testimonials to Customer Dashboard Navigation
 
-**Digital Wallet:** This is informational — I will provide guidance in the plan notes below. Implementation requires Apple Developer account ($99/year) for Apple Wallet passes and Google Pay API for Google Wallet. Both use `.pkpass` (Apple) and JWT-based save links (Google). This is a future integration that needs third-party credentials.
+**Current state:** The Header already filters out "Pricing" and "Testimonials" for `/customer/*` routes.
 
-**Pricing Payment Page:** Enable the Stripe integration to create a checkout flow when users click "Start Free Trial" or "Get Started" on the pricing page. The pricing CTAs will redirect to a Stripe Checkout session for Growth ($29/mo) and Pro ($79/mo) plans.
+**Change:** Keep "Testimonials" visible for customer pages — only filter out "Pricing".
 
-**Files:** `src/pages/Pricing.tsx` (update CTAs), new edge function for Stripe checkout (after Stripe is enabled)
+**Files:** `src/components/Header.tsx` (line 27: remove `"Testimonials"` from the filter)
+
+---
+
+### 4. Reward Images in Customer Dashboard + Merchant Logo + Reward Editing
+
+**4a. Show reward images in customer Access Card:**
+- In the rewards section of `AccessCard.tsx`, display `image_url` from rewards as banner-style cards instead of plain text cards
+- In the promo carousel, include rewards that have images as visual slides
+
+**4b. Merchant logo for reward banner generation:**
+- Add `logo_url` column to `merchants` table (migration)
+- In `MerchantSettings.tsx`, add a logo upload field (using the existing `profile-images` storage bucket)
+- Update the `ai-merchant-assistant` edge function's `generate_image` mode to accept a `logo_url` parameter and include it in the prompt so the AI generates reward banners incorporating the merchant's logo
+
+**4c. Reward editing for merchants:**
+- In `MerchantRewards.tsx`, add an "Edit" button on each reward row
+- On click, populate the creation form with the reward's existing data
+- Change the form submit to call `UPDATE` instead of `INSERT` when editing
+- Add an `editingRewardId` state to track edit mode
+
+**Files:** `src/pages/AccessCard.tsx`, `src/pages/MerchantRewards.tsx`, `src/pages/MerchantSettings.tsx`, `supabase/functions/ai-merchant-assistant/index.ts`, migration for `merchants.logo_url`
+
+---
+
+### 5. SMS Notifications for Birthday and Monthly Offers (Twilio)
+
+**Prerequisite:** Connect Twilio via the `standard_connectors--connect` tool. The user needs a Twilio account with a phone number.
+
+**After Twilio is connected:**
+- Create edge function `send-sms-notification` that:
+  - Accepts `type` (birthday/monthly_offer), `customer_phone`, `message`
+  - Calls Twilio API via the connector gateway to send SMS
+- In `MerchantBirthdayOffers.tsx`, add a "Send SMS to birthday customers" button that:
+  - Fetches customers with birthdays matching the configured window
+  - Calls the SMS edge function for each
+- In `MerchantMonthlyOffers.tsx`, add a "Notify Customers" button on each offer that:
+  - Fetches all customers with phone numbers who have transacted with this merchant
+  - Sends them an SMS about the offer
+- Add a `phone` field requirement note in customer signup to ensure phone numbers are collected
+
+**Files:** New edge function `send-sms-notification`, `src/pages/MerchantBirthdayOffers.tsx`, `src/pages/MerchantMonthlyOffers.tsx`
 
 ---
 
 ### Implementation Order
-1. Request 3 — Nav fix (quick CSS)
-2. Request 4 — Login-first page + eye toggle
-3. Request 5 — Hide Pricing/Testimonials for customers
-4. Request 2 — Access Card redesign (largest change)
-5. Request 1 — AI reward suggestions
-6. Request 6 — Stripe payment (requires enabling Stripe connector first)
+1. Request 3 — Testimonials nav fix (1-line change)
+2. Request 1 — Enable Stripe, then implement payment flow
+3. Request 4 — Reward images + logo + editing
+4. Request 5 — Twilio SMS (requires connector setup)
+5. Request 2 — Digital wallet guidance
 
-### Technical Notes
-
-- **Migration needed:** Add `image_url text` column to `rewards` table for AI-generated reward images
-- **No new tables** required
-- **Stripe:** Will need to enable the Stripe connector before implementing payment flows
-- **Digital Wallet:** Apple Wallet requires an Apple Developer account and signing certificates; Google Wallet requires Google Pay API access. Both are external integrations that need API credentials — I will document the setup steps but cannot fully implement without those credentials.
+### Files Summary
+| File | Change |
+|------|--------|
+| `src/components/Header.tsx` | Keep Testimonials visible for customers |
+| `src/pages/Pricing.tsx` | Stripe Checkout integration |
+| `src/pages/MerchantRewards.tsx` | Add edit functionality |
+| `src/pages/AccessCard.tsx` | Show reward images as banners |
+| `src/pages/MerchantSettings.tsx` | Logo upload |
+| `src/pages/MerchantBirthdayOffers.tsx` | SMS send button |
+| `src/pages/MerchantMonthlyOffers.tsx` | SMS notify button |
+| `supabase/functions/ai-merchant-assistant/index.ts` | Accept logo_url in image generation |
+| `supabase/functions/create-checkout-session/index.ts` | New — Stripe checkout |
+| `supabase/functions/stripe-webhook/index.ts` | New — Stripe webhook handler |
+| `supabase/functions/send-sms-notification/index.ts` | New — Twilio SMS sender |
+| Migration | Add `logo_url` to merchants, Stripe fields to merchant_subscriptions |
 
