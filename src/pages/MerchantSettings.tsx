@@ -52,7 +52,7 @@ const MerchantSettings = () => {
 
     const { data: m } = await supabase
       .from("merchants")
-      .select("id, store_name, address, contact_number, industry_type, profile_image_url")
+      .select("id, store_name, address, contact_number, industry_type, profile_image_url, logo_url")
       .eq("user_id", user.id)
       .maybeSingle();
 
