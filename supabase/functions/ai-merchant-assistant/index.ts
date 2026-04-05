@@ -150,7 +150,7 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-              content: `Create a beautiful, professional reward card image for a loyalty program. The image should be: ${prompt}. Make it visually appealing with vibrant colors, modern design, clean composition. No text in the image.`,
+              content: `Create a beautiful, professional reward card image for a loyalty program. The image should be: ${prompt}. Make it visually appealing with vibrant colors, modern design, clean composition.${logoContext} No text in the image.`,
             },
           ],
           modalities: ["image", "text"],
