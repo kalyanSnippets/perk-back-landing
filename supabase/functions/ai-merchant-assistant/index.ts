@@ -117,11 +117,26 @@ serve(async (req) => {
 
     // ─── Generate Reward Image Mode ───
     if (type === "generate_image") {
-      const { prompt } = body;
+      const { prompt, logo_url } = body;
       if (!prompt) {
         return new Response(JSON.stringify({ error: "prompt required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Get merchant logo if not provided
+      let logoContext = "";
+      if (logo_url) {
+        logoContext = ` Include the merchant's brand logo prominently in the design. The logo is at: ${logo_url}.`;
+      } else {
+        const { data: merchantLogo } = await supabase
+          .from("merchants")
+          .select("logo_url")
+          .eq("id", merchant_id)
+          .maybeSingle();
+        if (merchantLogo?.logo_url) {
+          logoContext = ` Include the merchant's brand logo prominently in the design. The logo is at: ${merchantLogo.logo_url}.`;
+        }
       }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
