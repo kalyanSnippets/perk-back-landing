@@ -182,6 +182,9 @@ const MerchantMonthlyOffers = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 pl-3">
+                        {o.active && merchantId && (
+                          <SmsNotifyButton merchantId={merchantId} offerId={o.id} />
+                        )}
                         <button onClick={() => toggleActive(o.id, o.active)} className="text-muted-foreground hover:text-foreground">
                           {o.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
                         </button>
