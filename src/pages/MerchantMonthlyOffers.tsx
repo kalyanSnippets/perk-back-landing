@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { CalendarHeart, Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { CalendarHeart, Plus, ToggleLeft, ToggleRight, Trash2, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,49 @@ interface Offer {
   valid_from: string | null;
   valid_to: string | null;
 }
+
+const SmsNotifyButton = ({ merchantId, offerId }: { merchantId: string; offerId: string }) => {
+  const [sending, setSending] = useState(false);
+  const [fromNumber, setFromNumber] = useState("");
+  const [showInput, setShowInput] = useState(false);
+
+  const handleSend = async () => {
+    if (!fromNumber.trim()) { toast.error("Enter your Twilio phone number"); return; }
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-sms-notification", {
+        body: { type: "monthly_offer", merchant_id: merchantId, from_number: fromNumber, offer_id: offerId },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success(`SMS sent to ${data?.sent || 0} customers`);
+      setShowInput(false);
+    } catch (err: any) {
+      toast.error(err.message || "SMS failed");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!showInput) {
+    return (
+      <button onClick={() => setShowInput(true)} className="text-muted-foreground hover:text-primary" title="Notify via SMS">
+        <Send size={15} />
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex gap-1 items-center">
+      <input type="tel" placeholder="+61..." value={fromNumber} onChange={e => setFromNumber(e.target.value)}
+        className="h-7 px-2 rounded border border-border text-xs bg-background w-24" />
+      <button onClick={handleSend} disabled={sending} className="text-primary hover:text-primary/80">
+        {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+      </button>
+      <button onClick={() => setShowInput(false)} className="text-muted-foreground text-xs">✕</button>
+    </div>
+  );
+};
 
 const MerchantMonthlyOffers = () => {
   const navigate = useNavigate();
@@ -139,6 +182,9 @@ const MerchantMonthlyOffers = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 pl-3">
+                        {o.active && merchantId && (
+                          <SmsNotifyButton merchantId={merchantId} offerId={o.id} />
+                        )}
                         <button onClick={() => toggleActive(o.id, o.active)} className="text-muted-foreground hover:text-foreground">
                           {o.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
                         </button>

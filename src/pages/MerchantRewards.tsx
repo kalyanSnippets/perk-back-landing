@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Gift, Plus, ToggleLeft, ToggleRight, Trash2, Clock, Sparkles, Loader2, Image as ImageIcon } from "lucide-react";
+import { Gift, Plus, ToggleLeft, ToggleRight, Trash2, Clock, Sparkles, Loader2, Image as ImageIcon, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +41,7 @@ const MerchantRewards = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [pointsRequired, setPointsRequired] = useState("100");
@@ -71,6 +72,24 @@ const MerchantRewards = () => {
     setRewards((data || []) as Reward[]);
   };
 
+  const resetForm = () => {
+    setTitle(""); setDescription(""); setPointsRequired("100"); setRewardType("discount");
+    setIsLimitedTime(false); setExpiresAt(""); setImageUrl("");
+    setEditingRewardId(null); setShowForm(false);
+  };
+
+  const startEdit = (r: Reward) => {
+    setEditingRewardId(r.id);
+    setTitle(r.title);
+    setDescription(r.description || "");
+    setPointsRequired(String(r.points_required));
+    setRewardType(r.reward_type);
+    setIsLimitedTime(r.is_limited_time);
+    setExpiresAt(r.expires_at ? r.expires_at.slice(0, 16) : "");
+    setImageUrl(r.image_url || "");
+    setShowForm(true);
+  };
+
   const handleAiSuggest = async () => {
     if (!merchantId) return;
     setAiLoading(true);
@@ -95,10 +114,10 @@ const MerchantRewards = () => {
     setDescription(suggestion.description);
     setRewardType(suggestion.reward_type);
     setPointsRequired(String(suggestion.points_required));
+    setEditingRewardId(null);
     setShowForm(true);
     setAiSuggestions([]);
     toast.success("Suggestion applied! You can edit before creating.");
-    // Auto-generate image
     if (suggestion.image_prompt) {
       generateImage(suggestion.image_prompt);
     }
@@ -124,12 +143,12 @@ const MerchantRewards = () => {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!merchantId || !title.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("rewards").insert({
-      merchant_id: merchantId,
+
+    const payload = {
       title: title.trim(),
       description: description.trim() || null,
       points_required: parseInt(pointsRequired) || 100,
@@ -137,13 +156,21 @@ const MerchantRewards = () => {
       is_limited_time: isLimitedTime,
       expires_at: isLimitedTime && expiresAt ? new Date(expiresAt).toISOString() : null,
       image_url: imageUrl || null,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Reward created");
-    setTitle(""); setDescription(""); setPointsRequired("100"); setRewardType("discount");
-    setIsLimitedTime(false); setExpiresAt(""); setImageUrl("");
-    setShowForm(false);
+    };
+
+    if (editingRewardId) {
+      const { error } = await supabase.from("rewards").update(payload).eq("id", editingRewardId);
+      setSaving(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Reward updated");
+    } else {
+      const { error } = await supabase.from("rewards").insert({ ...payload, merchant_id: merchantId });
+      setSaving(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Reward created");
+    }
+
+    resetForm();
     await fetchRewards(merchantId);
   };
 
@@ -180,7 +207,7 @@ const MerchantRewards = () => {
                       {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                       AI Suggest
                     </Button>
-                    <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowForm(!showForm)}>
+                    <Button variant="hero" size="sm" className="gap-1.5" onClick={() => { resetForm(); setShowForm(!showForm); }}>
                       <Plus size={14} /> New Reward
                     </Button>
                   </div>
@@ -213,7 +240,15 @@ const MerchantRewards = () => {
               )}
 
               {showForm && (
-                <form onSubmit={handleCreate} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
+                <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-foreground">{editingRewardId ? "Edit Reward" : "New Reward"}</h3>
+                    {editingRewardId && (
+                      <button type="button" onClick={resetForm} className="text-muted-foreground hover:text-foreground">
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
                   <Input placeholder="Reward title" value={title} onChange={e => setTitle(e.target.value)} required />
                   <Textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} rows={2} />
                   <div className="grid grid-cols-2 gap-3">
@@ -264,8 +299,10 @@ const MerchantRewards = () => {
                     <Input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} />
                   )}
                   <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
-                    <Button type="submit" variant="hero" size="sm" disabled={saving}>{saving ? "Creating..." : "Create"}</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={resetForm}>Cancel</Button>
+                    <Button type="submit" variant="hero" size="sm" disabled={saving}>
+                      {saving ? "Saving..." : editingRewardId ? "Update" : "Create"}
+                    </Button>
                   </div>
                 </form>
               )}
@@ -301,6 +338,9 @@ const MerchantRewards = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 pl-3">
+                        <button onClick={() => startEdit(r)} className="text-muted-foreground hover:text-primary" title="Edit">
+                          <Pencil size={15} />
+                        </button>
                         <button onClick={() => toggleActive(r.id, r.active)} className="text-muted-foreground hover:text-foreground">
                           {r.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
                         </button>

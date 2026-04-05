@@ -74,7 +74,7 @@ const WriteReviewSection = ({ customerName }: { customerName: string }) => {
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
-interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; }
+interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
 interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
 interface RedemptionData { id: string; reward_title: string; points_spent: number; redemption_code: string; status: string; expires_at: string; created_at: string; merchant_id: string; store_name?: string; }
@@ -413,10 +413,14 @@ const AccessCard = () => {
                   const IconComp = rewardTypeIcon(r.reward_type);
                   return (
                     <div key={r.id} onClick={() => setSelectedReward(r)}
-                      className={`min-w-[200px] sm:min-w-[220px] snap-start flex-shrink-0 rounded-xl border p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card cursor-pointer ${
+                      className={`min-w-[200px] sm:min-w-[220px] snap-start flex-shrink-0 rounded-xl border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card cursor-pointer ${
                         readyToRedeem ? 'border-accent/50 bg-accent/5 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.3)]' : 'border-border/30 bg-muted/20'
                       }`}
                     >
+                      {r.image_url && (
+                        <img src={r.image_url} alt={r.title} className="w-full h-24 object-cover" />
+                      )}
+                      <div className="p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${readyToRedeem ? 'bg-accent/20' : 'bg-secondary/10'}`}>
                           <IconComp size={14} className={readyToRedeem ? 'text-accent-foreground' : 'text-secondary'} />
@@ -435,6 +439,7 @@ const AccessCard = () => {
                       {r.is_limited_time && r.expires_at && (
                         <p className="text-[9px] text-muted-foreground/60 mt-2 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
                       )}
+                      </div>
                     </div>
                   );
                 })}

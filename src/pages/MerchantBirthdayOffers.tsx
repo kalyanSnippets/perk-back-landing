@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Cake, Save } from "lucide-react";
+import { Cake, Save, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,55 @@ import BackToDashboard from "@/components/merchant/BackToDashboard";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
+
+const SmsButton = ({ merchantId, type, offerId }: { merchantId: string; type: string; offerId?: string }) => {
+  const [sending, setSending] = useState(false);
+  const [fromNumber, setFromNumber] = useState("");
+  const [showInput, setShowInput] = useState(false);
+
+  const handleSend = async () => {
+    if (!fromNumber.trim()) { toast.error("Enter your Twilio phone number"); return; }
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-sms-notification", {
+        body: { type, merchant_id: merchantId, from_number: fromNumber, offer_id: offerId },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success(`SMS sent to ${data?.sent || 0} customers`);
+      setShowInput(false);
+    } catch (err: any) {
+      toast.error(err.message || "SMS failed");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!showInput) {
+    return (
+      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowInput(true)}>
+        <Send size={14} /> Send SMS
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex gap-2 items-center">
+      <input
+        type="tel"
+        placeholder="+61..."
+        value={fromNumber}
+        onChange={e => setFromNumber(e.target.value)}
+        className="h-9 px-3 rounded-lg border border-border text-sm bg-background w-32"
+      />
+      <Button variant="hero" size="sm" className="gap-1.5" onClick={handleSend} disabled={sending}>
+        {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+        {sending ? "Sending..." : "Send"}
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => setShowInput(false)}>Cancel</Button>
+    </div>
+  );
+};
 
 const MerchantBirthdayOffers = () => {
   const navigate = useNavigate();
@@ -130,9 +179,14 @@ const MerchantBirthdayOffers = () => {
                   <Textarea value={message} onChange={e => setMessage(e.target.value)} rows={2} placeholder="Happy Birthday! Enjoy your special reward." />
                 </div>
 
-                <Button variant="hero" size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
-                  <Save size={14} /> {saving ? "Saving..." : "Save Settings"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="hero" size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+                    <Save size={14} /> {saving ? "Saving..." : "Save Settings"}
+                  </Button>
+                  {enabled && (
+                    <SmsButton merchantId={merchantId!} type="birthday" />
+                  )}
+                </div>
               </div>
 
               {enabled && (
