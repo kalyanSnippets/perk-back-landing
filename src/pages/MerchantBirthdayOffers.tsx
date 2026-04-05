@@ -130,9 +130,14 @@ const MerchantBirthdayOffers = () => {
                   <Textarea value={message} onChange={e => setMessage(e.target.value)} rows={2} placeholder="Happy Birthday! Enjoy your special reward." />
                 </div>
 
-                <Button variant="hero" size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
-                  <Save size={14} /> {saving ? "Saving..." : "Save Settings"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="hero" size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+                    <Save size={14} /> {saving ? "Saving..." : "Save Settings"}
+                  </Button>
+                  {enabled && (
+                    <SmsButton merchantId={merchantId!} />
+                  )}
+                </div>
               </div>
 
               {enabled && (

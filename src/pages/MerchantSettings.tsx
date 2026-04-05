@@ -227,6 +227,43 @@ const MerchantSettings = () => {
                     </div>
                   </label>
                 </div>
+
+                {/* Logo Upload */}
+                <div className="border-t border-border/50 pt-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Business Logo</h3>
+                  <p className="text-xs text-muted-foreground">Used in AI-generated reward banners</p>
+                  <div className="flex items-center gap-4">
+                    {merchant.logo_url ? (
+                      <img src={merchant.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-contain border border-border bg-background p-1" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-muted/40 flex items-center justify-center border border-border/50">
+                        <Building2 size={24} className="text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <label className="cursor-pointer">
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !merchant) return;
+                        if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2MB"); return; }
+                        setUploading(true);
+                        const ext = file.name.split(".").pop();
+                        const path = `${merchant.id}-logo.${ext}`;
+                        const { error: upErr } = await supabase.storage.from("profile-images").upload(path, file, { upsert: true });
+                        if (upErr) { setUploading(false); toast.error("Upload failed"); return; }
+                        const { data: urlData } = supabase.storage.from("profile-images").getPublicUrl(path);
+                        await supabase.from("merchants").update({ logo_url: urlData.publicUrl } as any).eq("id", merchant.id);
+                        setMerchant(prev => prev ? { ...prev, logo_url: urlData.publicUrl } : prev);
+                        setUploading(false);
+                        toast.success("Logo uploaded");
+                      }} />
+                      <div className="flex items-center gap-2 text-sm text-secondary font-semibold hover:text-secondary/80 transition-colors">
+                        <Upload size={14} />
+                        {uploading ? "Uploading..." : "Upload Logo"}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="text-center">
                   <p className="text-sm font-semibold text-foreground">{merchant.store_name}</p>
                   <p className="text-xs text-muted-foreground">{merchant.industry_type || "Business"}</p>
