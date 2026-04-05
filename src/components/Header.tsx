@@ -24,7 +24,7 @@ const Header = () => {
   // Hide Pricing & Testimonials for customer-facing pages
   const isCustomerPage = location.pathname.startsWith("/customer/");
   const filteredNavLinks = isCustomerPage
-    ? navLinks.filter(l => !["Pricing", "Testimonials"].includes(l.label))
+    ? navLinks.filter(l => l.label !== "Pricing")
     : navLinks;
 
   const handleLogout = async () => {
