@@ -11,7 +11,7 @@ import {
   Megaphone, CalendarDays, ChevronRight,
   CheckCircle, XCircle, Ticket, Info
 } from "lucide-react";
-import perkbackLogo from "@/assets/perkback-logo.png";
+import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 import StarRating from "@/components/StarRating";

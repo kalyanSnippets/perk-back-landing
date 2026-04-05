@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Mail, Lock, User, Store, ArrowLeft, ShieldCheck, Phone, Calendar, MapPin, Briefcase, Eye, EyeOff } from "lucide-react";
-import perkbackLogo from "@/assets/perkback-logo.png";
+import perkbackLogo from "@/assets/perkback-logo.webp";
 import { z } from "zod";
 
 const emailSchema = z.string().trim().email("Invalid email address").max(255);

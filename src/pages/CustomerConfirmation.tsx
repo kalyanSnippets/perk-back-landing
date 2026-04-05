@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Sparkles, CreditCard } from "lucide-react";
-import perkbackLogo from "@/assets/perkback-logo.png";
+import perkbackLogo from "@/assets/perkback-logo.webp";
 
 const CustomerConfirmation = () => {
   const navigate = useNavigate();
