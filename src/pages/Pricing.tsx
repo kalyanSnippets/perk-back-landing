@@ -1,9 +1,13 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Loader2 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const plans = [
   {
@@ -19,6 +23,7 @@ const plans = [
     ],
     cta: "Get Started",
     highlighted: false,
+    plan: "free",
   },
   {
     name: "Growth",
@@ -36,6 +41,7 @@ const plans = [
     ],
     cta: "Start Free Trial",
     highlighted: true,
+    plan: "growth",
   },
   {
     name: "Pro",
@@ -51,12 +57,51 @@ const plans = [
       "Monthly offers",
       "Priority support",
     ],
-    cta: "Contact Sales",
+    cta: "Upgrade to Pro",
     highlighted: false,
+    plan: "pro",
   },
 ];
 
 const Pricing = () => {
+  const { user, isMerchant } = useAuth();
+  const navigate = useNavigate();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const handlePlanClick = async (plan: string) => {
+    if (plan === "free") {
+      navigate("/get-started");
+      return;
+    }
+
+    if (!user) {
+      toast.info("Please sign in first to subscribe");
+      navigate("/get-started");
+      return;
+    }
+
+    if (!isMerchant) {
+      toast.error("Only merchants can subscribe to plans");
+      return;
+    }
+
+    setLoadingPlan(plan);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start checkout");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
@@ -118,14 +163,25 @@ const Pricing = () => {
                     ))}
                   </ul>
 
-                  <Button
-                    variant={plan.highlighted ? "secondary" : "hero"}
-                    size="lg"
-                    className="w-full"
-                    asChild
-                  >
-                    <Link to="/get-started">{plan.cta}</Link>
-                  </Button>
+                  {plan.plan === "free" ? (
+                    <Button variant={plan.highlighted ? "secondary" : "hero"} size="lg" className="w-full" asChild>
+                      <Link to="/get-started">{plan.cta}</Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={plan.highlighted ? "secondary" : "hero"}
+                      size="lg"
+                      className="w-full"
+                      disabled={loadingPlan === plan.plan}
+                      onClick={() => handlePlanClick(plan.plan)}
+                    >
+                      {loadingPlan === plan.plan ? (
+                        <><Loader2 size={16} className="animate-spin mr-2" /> Processing...</>
+                      ) : (
+                        plan.cta
+                      )}
+                    </Button>
+                  )}
                 </div>
               </ScrollReveal>
             ))}
