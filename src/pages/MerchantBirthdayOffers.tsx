@@ -184,7 +184,7 @@ const MerchantBirthdayOffers = () => {
                     <Save size={14} /> {saving ? "Saving..." : "Save Settings"}
                   </Button>
                   {enabled && (
-                    <SmsButton merchantId={merchantId!} />
+                    <SmsButton merchantId={merchantId!} type="birthday" />
                   )}
                 </div>
               </div>
