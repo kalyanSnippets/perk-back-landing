@@ -1,46 +1,79 @@
 
 
-## Plan: Make PerkBack an Installable PWA
+## Plan: Fix All PWA Issues for iOS and Android
 
-### Overview
-Add a web app manifest and PWA icons so PerkBack can be installed to a phone's home screen directly from the browser. No app store needed. No service workers or offline caching — just installability.
+### Current Issues
 
-### What Gets Added
+**Issue 1: iOS home screen icon not showing (the uploaded screenshot problem)**
+- The `apple-touch-icon` in `index.html` points to `/pwa-icon-192.png` but there is no dedicated Apple touch icon
+- Missing `sizes="180x180"` attribute on the apple-touch-icon link
+- No `apple-touch-icon-precomposed` fallback
+- The 192px icon likely has transparency, which iOS fills with gray/white
 
-**1. `public/manifest.json`** — PWA manifest
-- App name: "PerkBack", short name: "PerkBack"
-- Theme color: `#0A2463` (PerkBack navy), background: `#ffffff`
-- Display: `standalone`, start URL: `/`
-- Icons: 192x192 and 512x512
+**Issue 2: Icon too small on home screen**
+- The logo inside the PWA icons has excessive padding, making it appear smaller than other app icons
+- No `"purpose": "any maskable"` in manifest, so Android adaptive icons may crop the logo further
 
-**2. PWA Icons** — generated from existing `public/favicon.png`
-- `public/pwa-icon-192.png` (192x192)
-- `public/pwa-icon-512.png` (512x512)
+**Issue 3: No in-app install prompt**
+- The `PWAInstallPrompt` component was planned but never created
+- Mobile users have no guidance on how to install the app
 
-**3. `index.html`** — add manifest link and Apple meta tags
-- `<link rel="manifest" href="/manifest.json">`
-- `<meta name="theme-color" content="#0A2463">`
-- `<meta name="apple-mobile-web-app-capable" content="yes">`
-- `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`
-- `<link rel="apple-touch-icon" href="/pwa-icon-192.png">`
+---
 
-**4. `src/main.tsx`** — add iframe/preview guard
-- Detect if running inside Lovable preview (iframe or preview hostname)
-- Unregister any stale service workers in that context
-- Prevents any caching issues in the editor
+### Fix 1: Regenerate All Icons with Solid Background + Larger Logo
 
-### Important Notes
-- The install prompt only works on the **published site** (perkback.com.au), not in the Lovable editor
-- On iOS: users tap Share → Add to Home Screen
-- On Android: Chrome shows an automatic install banner
-- No `vite-plugin-pwa` or service workers — keeps things simple and avoids caching issues with live database data
+**Regenerate from `public/favicon.png`:**
+- Crop the favicon to just the logo content area (remove surrounding whitespace)
+- Place on solid `#0A2463` navy background
+- Use ~10% padding so logo fills ~80% of the icon
+
+**Files created/updated:**
+- `public/apple-touch-icon.png` — 180x180, solid navy background, no transparency (iOS standard)
+- `public/pwa-icon-192.png` — 192x192, solid navy background
+- `public/pwa-icon-512.png` — 512x512, solid navy background
+
+### Fix 2: Update HTML Meta Tags for iOS
+
+Update `index.html`:
+```html
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png">
+```
+
+### Fix 3: Update Manifest for Android
+
+Update `public/manifest.json`:
+- Add `"purpose": "any maskable"` to each icon entry
+- Add 180x180 apple-touch-icon entry for completeness
+
+### Fix 4: Create PWA Install Prompt Banner
+
+**New file: `src/components/PWAInstallPrompt.tsx`**
+- Detects Android Chrome `beforeinstallprompt` event and shows an install banner
+- Detects iOS Safari (not already in standalone mode) and shows "Tap Share, then Add to Home Screen" instructions
+- Dismissal saved to `localStorage` so it does not reappear
+- Only shows on mobile viewports (< 768px)
+- Styled as a bottom slide-up banner with PerkBack branding
+- Auto-hides if already running as installed PWA
+
+**Edit: `src/App.tsx`**
+- Import and render `<PWAInstallPrompt />` inside the app tree
+
+---
 
 ### Files Changed
+
 | File | Change |
 |------|--------|
-| `public/manifest.json` | New — PWA manifest config |
-| `public/pwa-icon-192.png` | New — 192px app icon |
-| `public/pwa-icon-512.png` | New — 512px app icon |
-| `index.html` | Add manifest link + Apple meta tags |
-| `src/main.tsx` | Add preview/iframe service worker guard |
+| `public/apple-touch-icon.png` | New — 180x180 with solid navy background |
+| `public/pwa-icon-192.png` | Regenerate — solid navy background, larger logo |
+| `public/pwa-icon-512.png` | Regenerate — solid navy background, larger logo |
+| `public/manifest.json` | Add `purpose: "any maskable"` to icons |
+| `index.html` | Fix apple-touch-icon tags with sizes and precomposed fallback |
+| `src/components/PWAInstallPrompt.tsx` | New — mobile install prompt banner |
+| `src/App.tsx` | Add `<PWAInstallPrompt />` |
+
+### Important Notes
+- After publishing, users need to clear Safari cache or re-add the app to see updated iOS icons
+- The install prompt only works on the published site, not in the Lovable editor
 
