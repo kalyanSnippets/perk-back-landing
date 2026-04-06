@@ -48,6 +48,7 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <BackToTopButton />
+        <PWAInstallPrompt />
         <AuthProvider>
           <Routes>
             {/* Public pages */}
