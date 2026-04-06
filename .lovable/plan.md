@@ -1,79 +1,53 @@
 
 
-## Plan: Fix All PWA Issues for iOS and Android
+## Plan: Add PWA Splash Screens for iOS and Android
 
-### Current Issues
+### How Splash Screens Work
 
-**Issue 1: iOS home screen icon not showing (the uploaded screenshot problem)**
-- The `apple-touch-icon` in `index.html` points to `/pwa-icon-192.png` but there is no dedicated Apple touch icon
-- Missing `sizes="180x180"` attribute on the apple-touch-icon link
-- No `apple-touch-icon-precomposed` fallback
-- The 192px icon likely has transparency, which iOS fills with gray/white
+**Android**: Uses the `background_color`, `theme_color`, icon, and app name from `manifest.json` to auto-generate a splash screen. No extra files needed — just ensure the manifest has the right values (already done).
 
-**Issue 2: Icon too small on home screen**
-- The logo inside the PWA icons has excessive padding, making it appear smaller than other app icons
-- No `"purpose": "any maskable"` in manifest, so Android adaptive icons may crop the logo further
+**iOS**: Does NOT use the manifest for splash screens. iOS requires explicit `apple-touch-startup-image` link tags in `index.html` pointing to pre-rendered splash screen images for every device size. Without these, iOS shows a blank white screen on launch.
 
-**Issue 3: No in-app install prompt**
-- The `PWAInstallPrompt` component was planned but never created
-- Mobile users have no guidance on how to install the app
+### What Gets Done
 
----
+**1. Generate iOS splash screen images**
+Using a Python script, generate splash screen PNGs for all current iOS device sizes. Each image will have:
+- White background
+- PerkBack logo centered (from `public/favicon.png`)
+- Sized for each device resolution
 
-### Fix 1: Regenerate All Icons with Solid Background + Larger Logo
+Device sizes to cover (portrait + landscape for each):
+- iPhone SE / 8: 750x1334, 1334x750
+- iPhone 8 Plus: 1242x2208, 2208x1242
+- iPhone X / XS / 11 Pro: 1125x2436, 2436x1125
+- iPhone XR / 11: 828x1792, 1792x828
+- iPhone XS Max / 11 Pro Max: 1242x2688, 2688x1242
+- iPhone 12 / 13 / 14: 1170x2532, 2532x1170
+- iPhone 12/13/14 Pro Max: 1284x2778, 2778x1284
+- iPhone 14 Pro: 1179x2556, 2556x1179
+- iPhone 14 Pro Max: 1290x2796, 2796x1290
+- iPhone 15/16 Pro Max: 1320x2868, 2868x1320
+- iPad Mini / Air: 1536x2048, 2048x1536
+- iPad Pro 11": 1668x2388, 2388x1668
+- iPad Pro 12.9": 2048x2732, 2732x2048
 
-**Regenerate from `public/favicon.png`:**
-- Crop the favicon to just the logo content area (remove surrounding whitespace)
-- Place on solid `#0A2463` navy background
-- Use ~10% padding so logo fills ~80% of the icon
+Files go to `public/splash/` directory.
 
-**Files created/updated:**
-- `public/apple-touch-icon.png` — 180x180, solid navy background, no transparency (iOS standard)
-- `public/pwa-icon-192.png` — 192x192, solid navy background
-- `public/pwa-icon-512.png` — 512x512, solid navy background
+**2. Update `index.html`**
+Add `<link rel="apple-touch-startup-image">` tags with `media` queries matching each device's screen dimensions and pixel ratio.
 
-### Fix 2: Update HTML Meta Tags for iOS
-
-Update `index.html`:
-```html
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png">
-```
-
-### Fix 3: Update Manifest for Android
-
-Update `public/manifest.json`:
-- Add `"purpose": "any maskable"` to each icon entry
-- Add 180x180 apple-touch-icon entry for completeness
-
-### Fix 4: Create PWA Install Prompt Banner
-
-**New file: `src/components/PWAInstallPrompt.tsx`**
-- Detects Android Chrome `beforeinstallprompt` event and shows an install banner
-- Detects iOS Safari (not already in standalone mode) and shows "Tap Share, then Add to Home Screen" instructions
-- Dismissal saved to `localStorage` so it does not reappear
-- Only shows on mobile viewports (< 768px)
-- Styled as a bottom slide-up banner with PerkBack branding
-- Auto-hides if already running as installed PWA
-
-**Edit: `src/App.tsx`**
-- Import and render `<PWAInstallPrompt />` inside the app tree
-
----
+**3. Android — already handled**
+Android auto-generates splash from the manifest. The current `background_color: "#ffffff"` and 512px icon are sufficient. No changes needed.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `public/apple-touch-icon.png` | New — 180x180 with solid navy background |
-| `public/pwa-icon-192.png` | Regenerate — solid navy background, larger logo |
-| `public/pwa-icon-512.png` | Regenerate — solid navy background, larger logo |
-| `public/manifest.json` | Add `purpose: "any maskable"` to icons |
-| `index.html` | Fix apple-touch-icon tags with sizes and precomposed fallback |
-| `src/components/PWAInstallPrompt.tsx` | New — mobile install prompt banner |
-| `src/App.tsx` | Add `<PWAInstallPrompt />` |
+| `public/splash/*.png` | New — ~30 splash screen images for iOS devices |
+| `index.html` | Add `apple-touch-startup-image` link tags for each device |
 
-### Important Notes
-- After publishing, users need to clear Safari cache or re-add the app to see updated iOS icons
-- The install prompt only works on the published site, not in the Lovable editor
+### Notes
+- Splash images are static PNGs, roughly 50-150KB each
+- Only visible when launching the PWA from the home screen on iOS
+- Android splash screen works automatically from existing manifest config
 
