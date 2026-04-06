@@ -20,8 +20,7 @@ const PWAInstallPrompt = () => {
     if (window.matchMedia("(display-mode: standalone)").matches) return;
     if ((navigator as any).standalone) return; // iOS standalone
 
-    // Only show on mobile
-    if (window.innerWidth >= 768) return;
+    // Show on all screen sizes
 
     setDismissed(false);
 
