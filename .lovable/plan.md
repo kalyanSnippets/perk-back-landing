@@ -1,41 +1,109 @@
 
 
-## Plan: Fix Negative Points Balance
+## Plan: Deals Discovery Platform + Location-Based Merchant Discovery
 
-### Root Cause
+This combines the two previously approved plans into one implementation: (1) an Explore marketplace tab on the customer Access Card page, and (2) location-based merchant sorting and proximity suggestions.
 
-The negative balance (-34 pts) for Cafe Shop KK is a **data integrity issue from the multi-merchant migration backfill**. Here's what happened:
+---
 
-1. The customer earned 86 points at this merchant (across 5 transactions)
-2. The customer redeemed 120 points (100 + 20) -- these redemptions happened **before** the multi-merchant migration, when the old `redeem_reward` function used the global balance and didn't have proper per-merchant checks
-3. The backfill migration calculated: `86 earned - 120 redeemed = -34`
-4. The current `redeem_reward` function now correctly checks per-merchant balance before allowing redemptions, so this won't happen again going forward
+### What Gets Built
 
-### Fix
+**1. Database: Add coordinates to merchants**
 
-**1. Data fix -- correct the negative balance**
+Add `latitude` (numeric, nullable) and `longitude` (numeric, nullable) columns to the `merchants` table. No new tables needed.
 
-Run a migration that resets this customer's balance to 0 (since they've already over-redeemed, they shouldn't owe points):
+**2. Geocoding Edge Function**
 
-```sql
-UPDATE customer_merchants
-SET points_balance = GREATEST(points_balance, 0), updated_at = now()
-WHERE points_balance < 0;
+Create `supabase/functions/geocode-address/index.ts` that calls the free OpenStreetMap Nominatim API to convert a merchant's text address into lat/lng. Called when a merchant saves their address in settings.
+
+**3. Merchant Settings: Auto-geocode on save**
+
+Update `MerchantSettings.tsx` to call the geocode edge function after saving the address, storing the returned coordinates.
+
+**4. Customer Access Card: Add Explore tab**
+
+Refactor `AccessCard.tsx` to add a two-tab switcher at the top:
+- **My Rewards** — the current personalized view (My Stores, filtered rewards, transactions, etc.)
+- **Explore** — new marketplace view showing ALL active promotions across ALL merchants
+
+**5. New components in `src/components/customer/`**
+
+| Component | Purpose |
+|-----------|---------|
+| `ExploreTab.tsx` | Main Explore view with sections: Near You, Featured Campaigns, Hot Rewards, Monthly Offers, Browse Merchants |
+| `NearbyMerchants.tsx` | "Near You" section showing merchants sorted by distance with distance badges |
+| `MerchantPreview.tsx` | Bottom sheet / dialog showing a merchant's deals, rewards, and offers when tapped |
+| `IndustryFilter.tsx` | Filter chips for Coffee Shop, Retail, Restaurant |
+
+**6. Geolocation utility**
+
+Create `src/lib/geo.ts` with:
+- Haversine distance formula
+- A React hook `useUserLocation()` that requests `navigator.geolocation` permission and returns lat/lng
+- Graceful fallback when permission is denied (show all merchants without distance sorting)
+
+**7. Proximity suggestion banner**
+
+When the Explore tab loads and location is available, if any merchant is within ~500m, show a toast/banner: "You're near [Store Name]! They have a deal: [top reward/campaign title]"
+
+---
+
+### Explore Tab Layout
+
+```text
+┌─────────────────────────────┐
+│  [My Rewards]  [Explore]    │  ← Tab switcher
+├─────────────────────────────┤
+│  📍 Near You (if location)  │  ← Merchants within 5km, sorted
+│  distance badges on cards   │     by distance
+├─────────────────────────────┤
+│  🔥 Featured Campaigns      │  ← Full-width carousel, all
+│  (all merchants)             │     active campaigns
+├─────────────────────────────┤
+│  🎁 Hot Rewards              │  ← Horizontal scroll cards
+│  "Visit to start earning"   │
+├─────────────────────────────┤
+│  📅 Monthly Offers           │  ← Active offers grouped by
+│                              │     merchant
+├─────────────────────────────┤
+│  ☕ 🛍️ 🍴  Industry Filters  │  ← Filter chips
+│  🏪 Browse All Merchants     │  ← Grid of all merchants
+│  Each card: logo, name,     │
+│  reward count, distance     │
+└─────────────────────────────┘
 ```
 
-Also update the global `customers.points_balance` to stay in sync.
+---
 
-**2. Add a database constraint to prevent future negatives**
+### Data Strategy
 
-Add a validation trigger on `customer_merchants` that prevents `points_balance` from going below 0 (using a trigger, not a CHECK constraint, per project guidelines).
+No new RLS policies needed. Existing policies already allow authenticated users to SELECT active rewards, campaigns, monthly_offers, and merchant records. The Explore tab simply queries all active items without merchant filtering.
+
+---
 
 ### Files Changed
 
-| Area | Change |
+| File | Change |
 |------|--------|
-| Database migration | Fix negative balances to 0, add validation trigger |
+| Database migration | Add `latitude`, `longitude` to `merchants` |
+| `supabase/functions/geocode-address/index.ts` | New — geocodes address via Nominatim |
+| `src/lib/geo.ts` | New — Haversine formula + `useUserLocation` hook |
+| `src/components/customer/ExploreTab.tsx` | New — Explore marketplace with all sections |
+| `src/components/customer/NearbyMerchants.tsx` | New — Near You section with distance badges |
+| `src/components/customer/MerchantPreview.tsx` | New — Merchant detail dialog |
+| `src/components/customer/IndustryFilter.tsx` | New — Industry filter chips |
+| `src/pages/AccessCard.tsx` | Add My Rewards / Explore tab switcher |
+| `src/pages/MerchantSettings.tsx` | Call geocode function on address save |
 
-### What's already correct
-- The current `redeem_reward` function already validates sufficient balance before deducting -- this bug can't recur through normal redemption flow
-- The trigger adds a safety net at the database level
+### What stays the same
+- All existing My Rewards functionality (My Stores, points, filtered data, redemptions)
+- Merchant dashboard — no changes
+- Authentication — no changes
+- Multi-merchant architecture — no changes
+- Plan gating — no changes
+
+### Limitations
+- PWA cannot do background geolocation — suggestions only work while the app is open
+- Geocoding uses free Nominatim API (no API key needed), sufficient for Australian addresses
+- Existing merchants will need to re-save their address to trigger geocoding (or a one-time backfill)
 
