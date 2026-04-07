@@ -9,7 +9,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2,
   Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info
+  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
@@ -73,13 +73,13 @@ const WriteReviewSection = ({ customerName }: { customerName: string }) => {
 };
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
+interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; }
 interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
 interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
 interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
 interface RedemptionData { id: string; reward_title: string; points_spent: number; redemption_code: string; status: string; expires_at: string; created_at: string; merchant_id: string; store_name?: string; }
 
-const _STAMPS_TOTAL = 10;
 const CAROUSEL_GRADIENTS = [
   "from-primary via-primary/90 to-secondary",
   "from-secondary via-secondary/90 to-primary",
@@ -93,6 +93,8 @@ const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": retur
 const AccessCard = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [customerMerchants, setCustomerMerchants] = useState<CustomerMerchantData[]>([]);
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [rewards, setRewards] = useState<RewardData[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
@@ -161,10 +163,31 @@ const AccessCard = () => {
     if (error || !customerData) { navigate("/get-started"); return; }
     if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
     setCustomer(customerData);
+
+    // Fetch customer-merchant relationships
+    const { data: cmData } = await supabase
+      .from("customer_merchants")
+      .select("merchant_id, points_balance, total_spend, visit_count, last_visit_at")
+      .eq("customer_id", customerData.id);
+
     const { data: txData } = await supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false });
     setTransactions(txData || []);
-    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name");
+    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name, logo_url");
     const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
+    const merchantLogoMap = new Map((merchantsData || []).map(m => [m.id, m.logo_url]));
+
+    // Build customer merchants list
+    const cmList: CustomerMerchantData[] = (cmData || []).map(cm => ({
+      merchant_id: cm.merchant_id,
+      store_name: merchantMap.get(cm.merchant_id) || "Store",
+      points_balance: cm.points_balance,
+      total_spend: Number(cm.total_spend),
+      visit_count: cm.visit_count,
+      last_visit_at: cm.last_visit_at,
+      logo_url: merchantLogoMap.get(cm.merchant_id),
+    }));
+    setCustomerMerchants(cmList);
+
     const [rewardsRes, campaignsRes, offersRes, redemptionsRes] = await Promise.all([
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
@@ -220,20 +243,31 @@ const AccessCard = () => {
 
   if (!customer) return null;
 
+  // Get merchant-specific points for the selected merchant
+  const selectedMerchant = selectedMerchantId ? customerMerchants.find(cm => cm.merchant_id === selectedMerchantId) : null;
+  const displayPoints = selectedMerchant ? selectedMerchant.points_balance : customer.points_balance;
+
+  // Filter data by selected merchant
+  const filteredRewards = selectedMerchantId ? rewards.filter(r => r.merchant_id === selectedMerchantId) : rewards;
+  const filteredCampaigns = selectedMerchantId ? campaigns.filter(c => c.merchant_id === selectedMerchantId) : campaigns;
+  const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
+  const filteredTransactions = selectedMerchantId ? transactions.filter(t => t.merchant_id === selectedMerchantId) : transactions;
+  const filteredRedemptions = selectedMerchantId ? redemptions.filter(r => r.merchant_id === selectedMerchantId) : redemptions;
+
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
-    ...campaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null })),
-    ...monthlyOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null })),
+    ...filteredCampaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null })),
+    ...filteredOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null })),
   ];
-  const nearestReward = rewards.length > 0
-    ? rewards.reduce((closest, r) => {
-        const diff = r.points_required - customer.points_balance;
-        const closestDiff = closest.points_required - customer.points_balance;
+  const nearestReward = filteredRewards.length > 0
+    ? filteredRewards.reduce((closest, r) => {
+        const diff = r.points_required - displayPoints;
+        const closestDiff = closest.points_required - displayPoints;
         if (diff > 0 && (closestDiff <= 0 || diff < closestDiff)) return r;
         return closest;
-      }, rewards[0])
+      }, filteredRewards[0])
     : null;
-  const nearestProgress = nearestReward ? Math.min((customer.points_balance / nearestReward.points_required) * 100, 100) : 0;
+  const nearestProgress = nearestReward ? Math.min((displayPoints / nearestReward.points_required) * 100, 100) : 0;
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -257,28 +291,83 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Points Balance (moved to top) ─── */}
+        {/* ─── My Stores Section ─── */}
+        {customerMerchants.length > 0 && (
+          <ScrollReveal delay={15}>
+            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Store size={16} className="text-secondary" /> My Stores
+                </h3>
+                {selectedMerchantId && (
+                  <button onClick={() => setSelectedMerchantId(null)} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
+                    <ArrowLeft size={12} /> All Stores
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
+                {customerMerchants.map(cm => {
+                  const isSelected = selectedMerchantId === cm.merchant_id;
+                  return (
+                    <button
+                      key={cm.merchant_id}
+                      onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
+                      className={`min-w-[160px] snap-start flex-shrink-0 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 shadow-[0_0_15px_-4px_hsl(var(--primary)/0.3)]'
+                          : 'border-border/30 bg-muted/20 hover:shadow-card'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center overflow-hidden">
+                          {cm.logo_url ? (
+                            <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Store size={14} className="text-secondary" />
+                          )}
+                        </div>
+                        <p className="font-semibold text-xs text-foreground truncate flex-1">{cm.store_name}</p>
+                      </div>
+                      <p className="text-lg font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-[10px] font-normal text-muted-foreground">pts</span></p>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                        <span>{cm.visit_count} visits</span>
+                        <span className="text-muted-foreground/30">·</span>
+                        <span>${cm.total_spend.toFixed(0)} spent</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
+        {/* ─── Points Balance ─── */}
         <ScrollReveal delay={25}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3">Points Balance</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3">
+              {selectedMerchant ? `${selectedMerchant.store_name} Points` : "Total Points Balance"}
+            </p>
             <div className={`flex items-center justify-center gap-3 transition-all duration-700 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-accent/15 flex items-center justify-center">
                 <Star className="text-accent fill-accent" size={22} />
               </div>
-              <span className="text-4xl sm:text-5xl font-bold text-foreground tabular-nums">{customer.points_balance}</span>
+              <span className="text-4xl sm:text-5xl font-bold text-foreground tabular-nums">{displayPoints}</span>
             </div>
-            {nearestReward && nearestReward.points_required > customer.points_balance ? (
+            {selectedMerchantId && !selectedMerchant && (
+              <p className="text-xs text-muted-foreground mt-2">No points at this store yet. Make a purchase to start earning!</p>
+            )}
+            {nearestReward && nearestReward.points_required > displayPoints ? (
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>Next: <span className="font-semibold text-foreground">{nearestReward.title}</span></span>
-                  <span>{nearestReward.points_required - customer.points_balance} pts to go</span>
+                  <span>{nearestReward.points_required - displayPoints} pts to go</span>
                 </div>
                 <Progress value={nearestProgress} className="h-2" />
               </div>
             ) : (
               <p className="text-muted-foreground text-xs mt-3">Keep earning to unlock exclusive rewards!</p>
             )}
-            {/* Inline claim info button */}
             <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors">
               <Info size={10} /> How to earn points
             </button>
@@ -327,7 +416,7 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Card Actions (compact row with wallet icons) ─── */}
+        {/* ─── Card Actions ─── */}
         <ScrollReveal delay={75}>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
@@ -392,13 +481,14 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Available Rewards (clickable cards) ─── */}
+        {/* ─── Available Rewards ─── */}
         <ScrollReveal delay={125}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
             <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
               <Gift size={16} className="text-accent" /> Available Rewards
+              {selectedMerchant && <span className="text-xs font-normal text-muted-foreground">at {selectedMerchant.store_name}</span>}
             </h3>
-            {rewards.length === 0 ? (
+            {filteredRewards.length === 0 ? (
               <div className="text-center py-6">
                 <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3"><Gift size={22} className="text-muted-foreground/40" /></div>
                 <p className="text-sm text-muted-foreground">No rewards available yet</p>
@@ -406,8 +496,11 @@ const AccessCard = () => {
               </div>
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-                {rewards.map((r) => {
-                  const progress = Math.min((customer.points_balance / r.points_required) * 100, 100);
+                {filteredRewards.map((r) => {
+                  // Use per-merchant points if viewing a specific merchant, else global
+                  const merchantCm = customerMerchants.find(cm => cm.merchant_id === r.merchant_id);
+                  const pointsForThisMerchant = merchantCm ? merchantCm.points_balance : 0;
+                  const progress = Math.min((pointsForThisMerchant / r.points_required) * 100, 100);
                   const readyToRedeem = progress >= 100;
                   const almostThere = progress >= 80 && progress < 100;
                   const IconComp = rewardTypeIcon(r.reward_type);
@@ -431,7 +524,7 @@ const AccessCard = () => {
                       <p className="text-[10px] text-muted-foreground/70 mb-0.5">{r.store_name}</p>
                       {r.description && <p className="text-[10px] text-muted-foreground line-clamp-2 mb-2">{r.description}</p>}
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
-                        <span>{customer.points_balance}/{r.points_required} pts</span>
+                        <span>{pointsForThisMerchant}/{r.points_required} pts</span>
                         {readyToRedeem && <span className="text-accent-foreground font-bold animate-pulse">Ready to redeem!</span>}
                         {almostThere && <span className="text-secondary font-semibold">Almost there!</span>}
                       </div>
@@ -448,15 +541,15 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Monthly Offers (only if present) ─── */}
-        {monthlyOffers.length > 0 && (
+        {/* ─── Monthly Offers ─── */}
+        {filteredOffers.length > 0 && (
           <ScrollReveal delay={150}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
               <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <CalendarDays size={16} className="text-accent" /> Monthly Offers
               </h3>
               <div className="space-y-3">
-                {monthlyOffers.map((o) => (
+                {filteredOffers.map((o) => (
                   <div key={o.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200">
                     <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
                       <CalendarDays size={16} className="text-accent-foreground" />
@@ -480,25 +573,25 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Points Earned (collapsible) ─── */}
+        {/* ─── Points Earned ─── */}
         <ScrollReveal delay={175}>
           <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
             <button onClick={() => setShowTransactions(!showTransactions)} className="w-full flex items-center justify-between p-5 sm:p-6 text-left">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <Shield size={16} className="text-secondary" /> Points Earned
-                <span className="text-xs font-normal text-muted-foreground">({transactions.length})</span>
+                <span className="text-xs font-normal text-muted-foreground">({filteredTransactions.length})</span>
               </h3>
               <ChevronRight size={16} className={`text-muted-foreground transition-transform duration-200 ${showTransactions ? 'rotate-90' : ''}`} />
             </button>
             {showTransactions && (
               <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-2">
-                {transactions.length === 0 ? (
+                {filteredTransactions.length === 0 ? (
                   <div className="text-center py-6">
                     <Gift size={24} className="text-muted-foreground/40 mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">No transactions yet.</p>
                   </div>
                 ) : (
-                  transactions.map((tx) => (
+                  filteredTransactions.map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{tx.merchant_name}</p>
@@ -520,14 +613,14 @@ const AccessCard = () => {
         </ScrollReveal>
 
         {/* ─── Redemption History ─── */}
-        {redemptions.length > 0 && (
+        {filteredRedemptions.length > 0 && (
           <ScrollReveal delay={200}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
               <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <Ticket size={16} className="text-secondary" /> My Redemptions
               </h3>
               <div className="space-y-2">
-                {redemptions.map((r) => {
+                {filteredRedemptions.map((r) => {
                   const isExpired = r.status === 'expired' || (r.status === 'pending' && new Date(r.expires_at) < new Date());
                   const isVerified = r.status === 'verified';
                   const isPending = r.status === 'pending' && !isExpired;
@@ -592,7 +685,9 @@ const AccessCard = () => {
       <Dialog open={!!selectedReward} onOpenChange={() => setSelectedReward(null)}>
         <DialogContent className="max-w-sm">
           {selectedReward && (() => {
-            const progress = Math.min((customer.points_balance / selectedReward.points_required) * 100, 100);
+            const merchantCm = customerMerchants.find(cm => cm.merchant_id === selectedReward.merchant_id);
+            const pointsForThisMerchant = merchantCm ? merchantCm.points_balance : 0;
+            const progress = Math.min((pointsForThisMerchant / selectedReward.points_required) * 100, 100);
             const readyToRedeem = progress >= 100;
             const IconComp = rewardTypeIcon(selectedReward.reward_type);
             return (
@@ -606,8 +701,8 @@ const AccessCard = () => {
                 {selectedReward.description && <p className="text-sm text-muted-foreground">{selectedReward.description}</p>}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Your points</span>
-                    <span className="font-bold text-foreground">{customer.points_balance}</span>
+                    <span className="text-muted-foreground">Your points at {selectedReward.store_name}</span>
+                    <span className="font-bold text-foreground">{pointsForThisMerchant}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Required</span>
@@ -615,7 +710,7 @@ const AccessCard = () => {
                   </div>
                   <Progress value={progress} className="h-2" />
                   {!readyToRedeem && (
-                    <p className="text-xs text-muted-foreground text-center">You need {selectedReward.points_required - customer.points_balance} more points</p>
+                    <p className="text-xs text-muted-foreground text-center">You need {selectedReward.points_required - pointsForThisMerchant} more points at {selectedReward.store_name}</p>
                   )}
                 </div>
                 {readyToRedeem && (

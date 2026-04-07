@@ -33,29 +33,28 @@ const MerchantCustomers = () => {
       const { data: m } = await supabase.from("merchants").select("id").eq("user_id", user.id).maybeSingle();
       if (!m) { navigate("/get-started"); return; }
 
-      const { data: txData } = await supabase.from("transactions").select("customer_id, purchase_amount").eq("merchant_id", m.id);
-      const customerSpend = new Map<string, { spend: number; count: number }>();
-      (txData || []).forEach(t => {
-        const existing = customerSpend.get(t.customer_id) || { spend: 0, count: 0 };
-        customerSpend.set(t.customer_id, { spend: existing.spend + Number(t.purchase_amount), count: existing.count + 1 });
-      });
+      // Fetch customer-merchant relationships for this merchant
+      const { data: cmData } = await supabase
+        .from("customer_merchants")
+        .select("customer_id, points_balance, total_spend, visit_count")
+        .eq("merchant_id", m.id);
 
-      const customerIds = [...customerSpend.keys()];
+      const customerIds = (cmData || []).map(cm => cm.customer_id);
       if (customerIds.length > 0) {
         const { data: custs } = await supabase.rpc("get_customers_by_ids", { _ids: customerIds });
-        // Also fetch points balances
-        const { data: pointsData } = await supabase.from("customers").select("id, points_balance").in("id", customerIds);
-        const pointsMap = new Map((pointsData || []).map(p => [p.id, p.points_balance]));
+
+        // Build a map of customer_id -> merchant-specific data
+        const cmMap = new Map((cmData || []).map(cm => [cm.customer_id, cm]));
 
         setCustomers((custs || []).map((c: any) => {
-          const spendData = customerSpend.get(c.id) || { spend: 0, count: 0 };
+          const cmRecord = cmMap.get(c.id);
           return {
             id: c.id,
             full_name: c.full_name || "Unknown",
             loyalty_card_number: c.loyalty_card_number || "—",
-            points_balance: pointsMap.get(c.id) || 0,
-            total_spend: spendData.spend,
-            tx_count: spendData.count,
+            points_balance: cmRecord?.points_balance || 0,
+            total_spend: Number(cmRecord?.total_spend || 0),
+            tx_count: cmRecord?.visit_count || 0,
           };
         }));
       }
@@ -121,7 +120,7 @@ const MerchantCustomers = () => {
                   </div>
                   <div className="text-right pl-3 shrink-0">
                     <p className="text-sm font-bold text-primary">{c.points_balance} pts</p>
-                    <p className="text-[10px] text-muted-foreground">${c.total_spend.toFixed(2)} · {c.tx_count} txns</p>
+                    <p className="text-[10px] text-muted-foreground">${c.total_spend.toFixed(2)} · {c.tx_count} visits</p>
                   </div>
                 </div>
               ))
