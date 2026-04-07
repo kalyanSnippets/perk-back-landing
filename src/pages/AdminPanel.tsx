@@ -16,6 +16,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import UsersTab from "@/components/admin/UsersTab";
 import SubscriptionsTab from "@/components/admin/SubscriptionsTab";
+import PlatformStatsTab from "@/components/admin/PlatformStatsTab";
 import {
   Pencil, Trash2, Plus, Save, X, Eye, EyeOff,
   FileText, MessageSquare, Mail, Users, Bold, Italic,
