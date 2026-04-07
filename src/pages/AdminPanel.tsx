@@ -181,7 +181,7 @@ const AdminPanel = () => {
         <div className="container mx-auto px-4 max-w-5xl">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">Admin Panel</h1>
 
-          <Tabs defaultValue="blogs" className="w-full">
+          <Tabs defaultValue="platform" className="w-full">
             <TabsList className="w-full grid grid-cols-6 mb-6">
               <TabsTrigger value="platform" className="gap-1.5"><BarChart3 size={14} /> Platform</TabsTrigger>
               <TabsTrigger value="blogs" className="gap-1.5"><FileText size={14} /> Blogs</TabsTrigger>
