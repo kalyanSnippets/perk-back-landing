@@ -20,7 +20,7 @@ import PlatformStatsTab from "@/components/admin/PlatformStatsTab";
 import {
   Pencil, Trash2, Plus, Save, X, Eye, EyeOff,
   FileText, MessageSquare, Mail, Users, Bold, Italic,
-  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard
+  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard, BarChart3
 } from "lucide-react";
 
 /* ── Types ── */
