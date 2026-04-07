@@ -709,6 +709,8 @@ const AccessCard = () => {
             </Link>
           </ScrollReveal>
         )}
+        </>
+        )}
       </div>
 
       {/* ─── Reward Detail / Redeem Dialog ─── */}
