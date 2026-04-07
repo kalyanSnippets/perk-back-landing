@@ -182,13 +182,19 @@ const AdminPanel = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">Admin Panel</h1>
 
           <Tabs defaultValue="blogs" className="w-full">
-            <TabsList className="w-full grid grid-cols-5 mb-6">
+            <TabsList className="w-full grid grid-cols-6 mb-6">
+              <TabsTrigger value="platform" className="gap-1.5"><BarChart3 size={14} /> Platform</TabsTrigger>
               <TabsTrigger value="blogs" className="gap-1.5"><FileText size={14} /> Blogs</TabsTrigger>
-              <TabsTrigger value="testimonials" className="gap-1.5"><MessageSquare size={14} /> Testimonials</TabsTrigger>
+              <TabsTrigger value="testimonials" className="gap-1.5"><MessageSquare size={14} /> Reviews</TabsTrigger>
               <TabsTrigger value="contacts" className="gap-1.5"><Mail size={14} /> Messages</TabsTrigger>
               <TabsTrigger value="users" className="gap-1.5"><Users size={14} /> Users</TabsTrigger>
               <TabsTrigger value="subscriptions" className="gap-1.5"><CreditCard size={14} /> Plans</TabsTrigger>
             </TabsList>
+
+            {/* ═══ PLATFORM STATS TAB ═══ */}
+            <TabsContent value="platform">
+              <PlatformStatsTab />
+            </TabsContent>
 
             {/* ═══ BLOGS TAB ═══ */}
             <TabsContent value="blogs">
