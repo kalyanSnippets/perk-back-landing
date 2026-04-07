@@ -1,149 +1,41 @@
 
 
-## Plan: Refactor PerkBack to Multi-Merchant Architecture
+## Plan: Fix Negative Points Balance
 
-### Current State Analysis
+### Root Cause
 
-The existing system is **almost multi-merchant already** in many areas, but has one critical flaw: **the `customers.points_balance` is a single global number**, not per-merchant. Here is the full gap analysis:
+The negative balance (-34 pts) for Cafe Shop KK is a **data integrity issue from the multi-merchant migration backfill**. Here's what happened:
 
-**What already works for multi-merchant:**
-- Transactions already have `merchant_id` -- correctly scoped
-- Rewards, campaigns, monthly_offers all have `merchant_id` -- correctly scoped
-- Merchant dashboard queries already filter by `merchant_id`
-- RLS policies on merchant tables already scope to the owning merchant
-- Redemptions already have `merchant_id`
+1. The customer earned 86 points at this merchant (across 5 transactions)
+2. The customer redeemed 120 points (100 + 20) -- these redemptions happened **before** the multi-merchant migration, when the old `redeem_reward` function used the global balance and didn't have proper per-merchant checks
+3. The backfill migration calculated: `86 earned - 120 redeemed = -34`
+4. The current `redeem_reward` function now correctly checks per-merchant balance before allowing redemptions, so this won't happen again going forward
 
-**What breaks in multi-merchant:**
-1. `customers.points_balance` is a **single global balance** -- should be per-merchant
-2. The `sync_points_on_transaction` trigger adds points to this global balance
-3. `redeem_reward` function deducts from the global balance
-4. `add_points_to_customer` function reads/writes the global balance
-5. Customer AccessCard page shows one total points balance instead of per-merchant balances
-6. MerchantCustomers page reads from global `customers.points_balance`
-7. No "My Stores" view for customers -- they see all rewards/campaigns from all merchants mixed together
-8. No `customer_merchants` relationship table exists
+### Fix
 
----
+**1. Data fix -- correct the negative balance**
 
-### Phase 1: Database Schema Changes
+Run a migration that resets this customer's balance to 0 (since they've already over-redeemed, they shouldn't owe points):
 
-**New table: `customer_merchants`**
-```
-customer_merchants
-- id (uuid, PK)
-- customer_id (uuid, NOT NULL)
-- merchant_id (uuid, NOT NULL)
-- points_balance (integer, default 0)
-- total_spend (numeric, default 0)
-- visit_count (integer, default 0)
-- joined_at (timestamptz, default now())
-- last_visit_at (timestamptz)
-- UNIQUE(customer_id, merchant_id)
+```sql
+UPDATE customer_merchants
+SET points_balance = GREATEST(points_balance, 0), updated_at = now()
+WHERE points_balance < 0;
 ```
 
-RLS policies:
-- Customers can view their own records (customer_id matches auth user's customer record)
-- Merchants can view records for their merchant_id
-- Service role has full access
+Also update the global `customers.points_balance` to stay in sync.
 
-**Modify trigger: `sync_points_on_transaction`**
-- Instead of updating `customers.points_balance`, update `customer_merchants.points_balance` for the specific merchant
-- Also increment `visit_count`, update `total_spend`, and `last_visit_at`
-- Auto-create the `customer_merchants` row if it doesn't exist (first transaction = auto-join)
+**2. Add a database constraint to prevent future negatives**
 
-**Modify function: `redeem_reward`**
-- Deduct points from `customer_merchants.points_balance` (for the reward's merchant) instead of `customers.points_balance`
+Add a validation trigger on `customer_merchants` that prevents `points_balance` from going below 0 (using a trigger, not a CHECK constraint, per project guidelines).
 
-**Modify function: `add_points_to_customer`**
-- No change needed -- it already inserts into transactions, and the trigger handles the rest
+### Files Changed
 
-**Keep `customers.points_balance`** as a denormalized total (sum of all merchant balances) for backward compatibility, or deprecate it gradually. The trigger can update both.
+| Area | Change |
+|------|--------|
+| Database migration | Fix negative balances to 0, add validation trigger |
 
----
-
-### Phase 2: Customer App -- Multi-Store Experience
-
-**Refactor `AccessCard.tsx` (the main customer page):**
-
-Current: Shows one global points balance, all rewards/campaigns mixed from all merchants.
-
-New structure:
-- **"My Stores" section** at the top showing cards for each merchant the customer has a relationship with (from `customer_merchants`)
-- Each store card shows: store name, merchant-specific points balance, last visit
-- Tapping a store card expands/navigates to that merchant's detail view showing:
-  - Merchant-specific loyalty card (same barcode, but context is per-merchant)
-  - Merchant-specific points balance
-  - That merchant's rewards (with Redeem buttons)
-  - That merchant's campaigns
-  - That merchant's monthly offers
-  - Transaction history filtered to that merchant
-- Keep the overall greeting and global loyalty card number at the top
-- Rewards "Redeem" button checks `customer_merchants.points_balance` for that merchant
-
-**No changes to:**
-- Loyalty card number generation (stays global -- one card number per customer)
-- Authentication flow
-- Customer confirmation page
-
----
-
-### Phase 3: Merchant Dashboard Isolation
-
-**Already correct:** Most merchant pages already query by `merchant_id`. Minor fixes needed:
-
-- **MerchantCustomers page**: Currently reads `customers.points_balance` (global). Must read from `customer_merchants.points_balance` instead, showing only customers who have a relationship with this merchant.
-- **MerchantDashboard KPIs**: `totalCustomers` currently counts distinct `customer_id` from transactions. Can also use `customer_merchants` count. Both work.
-- **All other merchant pages** (campaigns, rewards, analytics, etc.): Already correctly scoped by `merchant_id`. No changes needed.
-
----
-
-### Phase 4: Admin Layer
-
-**Already exists** with UsersTab, SubscriptionsTab, blog/testimonial management.
-
-**Enhancements:**
-- Add a "Merchants" overview tab showing all merchants with customer counts, transaction volumes, plan status (partially exists in SubscriptionsTab already)
-- Add ability to view platform-wide stats: total customers, total merchants, total transactions
-- No structural changes needed -- just additive UI in AdminPanel
-
----
-
-### Phase 5: Security / RLS
-
-**New RLS on `customer_merchants`:**
-- Customer SELECT: `customer_id IN (SELECT id FROM customers WHERE user_id = auth.uid())`
-- Merchant SELECT: `merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())`
-- INSERT/UPDATE: service role only (managed by triggers/functions)
-
-**Existing RLS is already correct** for all other tables -- campaigns, rewards, transactions, etc. are already merchant-scoped.
-
----
-
-### Files Changed Summary
-
-| Area | File/Table | Change |
-|------|-----------|--------|
-| **Database** | New migration | Create `customer_merchants` table with RLS |
-| **Database** | New migration | Update `sync_points_on_transaction` trigger to write to `customer_merchants` |
-| **Database** | New migration | Update `redeem_reward` function to use per-merchant balance |
-| **Database** | New migration | Backfill `customer_merchants` from existing transactions data |
-| **Frontend** | `src/pages/AccessCard.tsx` | Add "My Stores" view, per-merchant points/rewards/campaigns |
-| **Frontend** | `src/pages/MerchantCustomers.tsx` | Read points from `customer_merchants` instead of `customers` |
-| **Frontend** | `src/pages/AdminPanel.tsx` | Add platform-wide stats section |
-| **Frontend** | `src/integrations/supabase/types.ts` | Auto-updated after migration |
-
-### What stays exactly the same
-- All merchant dashboard pages (already scoped)
-- Authentication flow
-- Plan gating logic
-- Subscription management
-- POS integration
-- All UI components and design
-- Header, navigation, routing
-- Customer card generation flow
-
-### Migration Safety
-- A backfill migration will populate `customer_merchants` from existing transaction data, calculating points per merchant from transaction history
-- The global `customers.points_balance` stays as a convenience field (updated alongside)
-- Zero downtime -- additive changes only
+### What's already correct
+- The current `redeem_reward` function already validates sufficient balance before deducting -- this bug can't recur through normal redemption flow
+- The trigger adds a safety net at the database level
 
