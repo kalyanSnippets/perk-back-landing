@@ -180,6 +180,60 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_merchants: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          joined_at: string
+          last_visit_at: string | null
+          merchant_id: string
+          points_balance: number
+          total_spend: number
+          updated_at: string
+          visit_count: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          joined_at?: string
+          last_visit_at?: string | null
+          merchant_id: string
+          points_balance?: number
+          total_spend?: number
+          updated_at?: string
+          visit_count?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          joined_at?: string
+          last_visit_at?: string | null
+          merchant_id?: string
+          points_balance?: number
+          total_spend?: number
+          updated_at?: string
+          visit_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_merchants_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_merchants_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           card_issued_at: string | null

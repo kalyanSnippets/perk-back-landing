@@ -16,10 +16,11 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import UsersTab from "@/components/admin/UsersTab";
 import SubscriptionsTab from "@/components/admin/SubscriptionsTab";
+import PlatformStatsTab from "@/components/admin/PlatformStatsTab";
 import {
   Pencil, Trash2, Plus, Save, X, Eye, EyeOff,
   FileText, MessageSquare, Mail, Users, Bold, Italic,
-  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard
+  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard, BarChart3
 } from "lucide-react";
 
 /* ── Types ── */
@@ -180,14 +181,20 @@ const AdminPanel = () => {
         <div className="container mx-auto px-4 max-w-5xl">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">Admin Panel</h1>
 
-          <Tabs defaultValue="blogs" className="w-full">
-            <TabsList className="w-full grid grid-cols-5 mb-6">
+          <Tabs defaultValue="platform" className="w-full">
+            <TabsList className="w-full grid grid-cols-6 mb-6">
+              <TabsTrigger value="platform" className="gap-1.5"><BarChart3 size={14} /> Platform</TabsTrigger>
               <TabsTrigger value="blogs" className="gap-1.5"><FileText size={14} /> Blogs</TabsTrigger>
-              <TabsTrigger value="testimonials" className="gap-1.5"><MessageSquare size={14} /> Testimonials</TabsTrigger>
+              <TabsTrigger value="testimonials" className="gap-1.5"><MessageSquare size={14} /> Reviews</TabsTrigger>
               <TabsTrigger value="contacts" className="gap-1.5"><Mail size={14} /> Messages</TabsTrigger>
               <TabsTrigger value="users" className="gap-1.5"><Users size={14} /> Users</TabsTrigger>
               <TabsTrigger value="subscriptions" className="gap-1.5"><CreditCard size={14} /> Plans</TabsTrigger>
             </TabsList>
+
+            {/* ═══ PLATFORM STATS TAB ═══ */}
+            <TabsContent value="platform">
+              <PlatformStatsTab />
+            </TabsContent>
 
             {/* ═══ BLOGS TAB ═══ */}
             <TabsContent value="blogs">
