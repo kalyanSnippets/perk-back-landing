@@ -112,6 +112,7 @@ const AccessCard = () => {
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "explore">("my-rewards");
 
   // Auto-play carousel
   useEffect(() => {
