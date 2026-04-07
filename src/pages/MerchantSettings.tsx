@@ -99,10 +99,25 @@ const MerchantSettings = () => {
       })
       .eq("id", merchant.id);
 
-    setSavingBiz(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { setSavingBiz(false); toast.error(error.message); return; }
     setMerchant((prev) => prev ? { ...prev, ...bizForm } : prev);
     toast.success("Business info updated");
+
+    // Geocode address in background
+    if (bizForm.address.trim()) {
+      try {
+        const { data: geoData, error: geoError } = await supabase.functions.invoke("geocode-address", {
+          body: { address: bizForm.address.trim() },
+        });
+        if (!geoError && geoData?.latitude != null && geoData?.longitude != null) {
+          await supabase.from("merchants").update({
+            latitude: geoData.latitude,
+            longitude: geoData.longitude,
+          } as any).eq("id", merchant.id);
+        }
+      } catch {}
+    }
+    setSavingBiz(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,0 +1,1 @@
+ALTER TABLE public.merchants ADD COLUMN latitude numeric NULL, ADD COLUMN longitude numeric NULL;

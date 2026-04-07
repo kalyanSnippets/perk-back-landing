@@ -14,6 +14,7 @@ import {
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
+import ExploreTab from "@/components/customer/ExploreTab";
 import StarRating from "@/components/StarRating";
 import { MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -111,6 +112,7 @@ const AccessCard = () => {
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "explore">("my-rewards");
 
   // Auto-play carousel
   useEffect(() => {
@@ -291,6 +293,34 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
+        {/* ─── Main Tab Switcher ─── */}
+        <div className="flex gap-1 bg-card rounded-xl p-1 border border-border/50 shadow-card">
+          <button
+            onClick={() => setActiveMainTab("my-rewards")}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === "my-rewards"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            🎁 My Rewards
+          </button>
+          <button
+            onClick={() => setActiveMainTab("explore")}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === "explore"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            🔍 Explore
+          </button>
+        </div>
+
+        {activeMainTab === "explore" ? (
+          <ExploreTab customerMerchantIds={customerMerchants.map(cm => cm.merchant_id)} />
+        ) : (
+        <>
         {/* ─── My Stores Section ─── */}
         {customerMerchants.length > 0 && (
           <ScrollReveal delay={15}>
@@ -678,6 +708,8 @@ const AccessCard = () => {
               </div>
             </Link>
           </ScrollReveal>
+        )}
+        </>
         )}
       </div>
 
