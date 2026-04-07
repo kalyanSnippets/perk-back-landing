@@ -619,7 +619,9 @@ export type Database = {
           created_at: string
           id: string
           industry_type: string | null
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           profile_image_url: string | null
           store_name: string
           updated_at: string
@@ -631,7 +633,9 @@ export type Database = {
           created_at?: string
           id?: string
           industry_type?: string | null
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           profile_image_url?: string | null
           store_name: string
           updated_at?: string
@@ -643,7 +647,9 @@ export type Database = {
           created_at?: string
           id?: string
           industry_type?: string | null
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           profile_image_url?: string | null
           store_name?: string
           updated_at?: string
