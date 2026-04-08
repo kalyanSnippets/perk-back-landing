@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Save, Stamp, Flame, Trophy } from "lucide-react";
+import { Save, Stamp, Flame, Trophy, Users, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import BackToDashboard from "@/components/merchant/BackToDashboard";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ScrollReveal from "@/components/ScrollReveal";
+import StampQrScanner from "@/components/merchant/StampQrScanner";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
 const MerchantGamification = () => {
