@@ -119,6 +119,9 @@ const App = () => (
             <Route path="/merchant/gamification" element={
               <ProtectedRoute requiredRole="merchant"><MerchantGamification /></ProtectedRoute>
             } />
+            <Route path="/merchant/promotions" element={
+              <ProtectedRoute requiredRole="merchant"><MerchantPromotions /></ProtectedRoute>
+            } />
             <Route path="/merchant/birthday-offers" element={
               <ProtectedRoute requiredRole="merchant"><MerchantBirthdayOffers /></ProtectedRoute>
             } />
