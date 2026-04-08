@@ -469,6 +469,23 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
+        {/* ─── Stamp Card & NFC Tap ─── */}
+        {selectedMerchantId && customer && (
+          <ScrollReveal delay={80}>
+            <div className="space-y-3">
+              <StampCardProgress
+                customerId={customer.id}
+                merchantId={selectedMerchantId}
+                merchantName={selectedMerchant?.store_name || "Store"}
+              />
+              <NfcTapButton
+                customerId={customer.id}
+                customerCardNumber={customer.loyalty_card_number || ""}
+              />
+            </div>
+          </ScrollReveal>
+        )}
+
         {/* ─── Promo Banner Carousel ─── */}
         {carouselSlides.length > 0 && (
           <ScrollReveal delay={100}>
