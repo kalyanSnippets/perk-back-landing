@@ -1,83 +1,140 @@
 
 
-## Plan: Deals Discovery Platform + Location-Based Merchant Discovery
+## Plan: Smart Promotion Rules + Stamp Cards + NFC Tap Loyalty
 
-This combines the two previously approved plans into one implementation: (1) an Explore marketplace tab on the customer Access Card page, and (2) location-based merchant sorting and proximity suggestions.
+### What This Adds
 
----
+Three major capabilities that combine Stamp Me's simplicity with PerkBack's platform power:
 
-### What Gets Built
+1. **Smart Promotion Rules** — Merchants create "Buy X Get Y Free" rules (e.g., "Buy 9 coffees, get 10th free")
+2. **Customer Stamp Progress Tracking** — Track each customer's stamp count per merchant, auto-reward when threshold is met
+3. **NFC Tap-to-Earn** — Customers tap their phone on an NFC tag at the merchant counter to log a visit/stamp (Web NFC API, Android Chrome only; fallback QR code for iOS)
 
-**1. Database: Add coordinates to merchants**
+### What PerkBack Still Needs (Feature Gap Analysis)
 
-Add `latitude` (numeric, nullable) and `longitude` (numeric, nullable) columns to the `merchants` table. No new tables needed.
-
-**2. Geocoding Edge Function**
-
-Create `supabase/functions/geocode-address/index.ts` that calls the free OpenStreetMap Nominatim API to convert a merchant's text address into lat/lng. Called when a merchant saves their address in settings.
-
-**3. Merchant Settings: Auto-geocode on save**
-
-Update `MerchantSettings.tsx` to call the geocode edge function after saving the address, storing the returned coordinates.
-
-**4. Customer Access Card: Add Explore tab**
-
-Refactor `AccessCard.tsx` to add a two-tab switcher at the top:
-- **My Rewards** — the current personalized view (My Stores, filtered rewards, transactions, etc.)
-- **Explore** — new marketplace view showing ALL active promotions across ALL merchants
-
-**5. New components in `src/components/customer/`**
-
-| Component | Purpose |
-|-----------|---------|
-| `ExploreTab.tsx` | Main Explore view with sections: Near You, Featured Campaigns, Hot Rewards, Monthly Offers, Browse Merchants |
-| `NearbyMerchants.tsx` | "Near You" section showing merchants sorted by distance with distance badges |
-| `MerchantPreview.tsx` | Bottom sheet / dialog showing a merchant's deals, rewards, and offers when tapped |
-| `IndustryFilter.tsx` | Filter chips for Coffee Shop, Retail, Restaurant |
-
-**6. Geolocation utility**
-
-Create `src/lib/geo.ts` with:
-- Haversine distance formula
-- A React hook `useUserLocation()` that requests `navigator.geolocation` permission and returns lat/lng
-- Graceful fallback when permission is denied (show all merchants without distance sorting)
-
-**7. Proximity suggestion banner**
-
-When the Explore tab loads and location is available, if any merchant is within ~500m, show a toast/banner: "You're near [Store Name]! They have a deal: [top reward/campaign title]"
+| Feature | Status | Priority |
+|---------|--------|----------|
+| **Stamp card progress per customer** | Missing — `gamification_settings` exists but no `customer_stamps` tracking table | Critical |
+| **Smart promo rules engine** | Missing — no "Buy X Get Y" rule definitions | Critical |
+| **NFC tap-to-earn** | Missing — no Web NFC integration | High |
+| **QR code fallback for iOS** | Missing — needed since Web NFC is Android-only | High |
+| **Auto-reward on stamp completion** | Missing — no trigger to grant reward when stamps hit threshold | Critical |
+| **Stamp card visual on customer Access Card** | Missing — customer sees points but no stamp card UI | High |
+| **Apple/Google Wallet passes** | Placeholder buttons only | Medium |
+| **Push notifications** | Not possible in PWA without service worker push | Medium |
+| **Customer segmentation tools** | Not built | Medium |
+| **Multi-promo stacking rules** | Not built | Low |
 
 ---
 
-### Explore Tab Layout
+### Database Changes
+
+**New table: `customer_stamps`**
+Tracks each customer's stamp progress per merchant.
 
 ```text
-┌─────────────────────────────┐
-│  [My Rewards]  [Explore]    │  ← Tab switcher
-├─────────────────────────────┤
-│  📍 Near You (if location)  │  ← Merchants within 5km, sorted
-│  distance badges on cards   │     by distance
-├─────────────────────────────┤
-│  🔥 Featured Campaigns      │  ← Full-width carousel, all
-│  (all merchants)             │     active campaigns
-├─────────────────────────────┤
-│  🎁 Hot Rewards              │  ← Horizontal scroll cards
-│  "Visit to start earning"   │
-├─────────────────────────────┤
-│  📅 Monthly Offers           │  ← Active offers grouped by
-│                              │     merchant
-├─────────────────────────────┤
-│  ☕ 🛍️ 🍴  Industry Filters  │  ← Filter chips
-│  🏪 Browse All Merchants     │  ← Grid of all merchants
-│  Each card: logo, name,     │
-│  reward count, distance     │
-└─────────────────────────────┘
+customer_stamps
+├── id (uuid, PK)
+├── customer_id (uuid)
+├── merchant_id (uuid)
+├── stamps_collected (integer, default 0)
+├── stamps_required (integer) — snapshot from settings at time of card start
+├── reward_text (text) — snapshot of reward
+├── completed (boolean, default false)
+├── completed_at (timestamptz, null)
+├── created_at (timestamptz)
+├── updated_at (timestamptz)
+└── UNIQUE(customer_id, merchant_id) WHERE completed = false
 ```
+
+**New table: `promotion_rules`**
+Merchant-defined smart promo rules.
+
+```text
+promotion_rules
+├── id (uuid, PK)
+├── merchant_id (uuid)
+├── rule_type (text) — 'buy_x_get_y', 'spend_x_get_y', 'visit_x_get_y'
+├── trigger_count (integer) — X value (e.g., 9 coffees)
+├── reward_description (text) — "Free coffee"
+├── reward_type (text) — 'free_item', 'discount_percent', 'bonus_points'
+├── reward_value (text) — "100" or "10%"
+├── active (boolean, default true)
+├── created_at (timestamptz)
+├── updated_at (timestamptz)
+```
+
+**New table: `nfc_tap_tokens`**
+Short-lived tokens for NFC tap verification.
+
+```text
+nfc_tap_tokens
+├── id (uuid, PK)
+├── merchant_id (uuid)
+├── token (text, unique) — 8-char code written to NFC tag
+├── created_at (timestamptz)
+├── expires_at (timestamptz) — rotate every 24h
+```
+
+### RLS Policies
+- `customer_stamps`: Customers SELECT own, merchants SELECT/INSERT/UPDATE own
+- `promotion_rules`: Merchants ALL own, authenticated users SELECT active
+- `nfc_tap_tokens`: Merchants ALL own, service role full access
+
+### Database Function: `process_stamp`
+Called when a customer taps NFC or scans QR. Validates the merchant token, increments `stamps_collected`, and if stamps hit the threshold, marks completed + auto-creates a redemption or bonus points entry. Resets with a new stamp card row.
 
 ---
 
-### Data Strategy
+### Merchant Side
 
-No new RLS policies needed. Existing policies already allow authenticated users to SELECT active rewards, campaigns, monthly_offers, and merchant records. The Explore tab simply queries all active items without merchant filtering.
+**New page: `MerchantPromotions.tsx`** (`/merchant/promotions`)
+- Create/edit/delete promotion rules
+- Rule builder UI: "When customer [buys/visits/spends] [X] times → they get [free item/discount/bonus points]"
+- List of active rules with toggle on/off
+- Gated behind Growth plan (same as campaigns)
+
+**Update: `MerchantGamification.tsx`**
+- Show live stamp card stats: how many customers have active stamp cards, completion rate
+- Link to view promotion rules
+
+**Update: `MerchantDashboard.tsx`**
+- Add "Promotions" card to dashboard grid
+
+### Customer Side
+
+**Update: `AccessCard.tsx`**
+- Add stamp card section below points balance (per selected merchant)
+- Visual stamp grid: filled circles for collected stamps, empty for remaining
+- "X more to go!" progress text
+- Auto-celebration animation when stamp card completes
+
+**New: NFC Tap Component** (`src/components/customer/NfcTapButton.tsx`)
+- "Tap to Earn" button that activates Web NFC reader
+- Reads merchant token from NFC tag, calls `process_stamp` function
+- Fallback: "Show QR Code" for iOS users — merchant scans customer's QR instead
+
+**New: QR Code for merchants** (`src/components/merchant/StampQrScanner.tsx`)
+- Merchant can scan a customer's QR code to award a stamp
+- Alternative to NFC for merchants without NFC hardware
+
+### Edge Function: `process-nfc-tap/index.ts`
+- Accepts: `{ token, customer_id }`
+- Validates token against `nfc_tap_tokens`
+- Calls `process_stamp` DB function
+- Returns stamp progress
+
+---
+
+### Feature Catalog Update
+
+Add to `src/lib/features.ts`:
+```text
+promotions → Growth tier (allow_promotions override)
+nfc_tap → Pro tier (allow_nfc_tap override)
+```
+
+Add `allow_promotions` and `allow_nfc_tap` to `merchant_feature_overrides` table.
 
 ---
 
@@ -85,25 +142,24 @@ No new RLS policies needed. Existing policies already allow authenticated users 
 
 | File | Change |
 |------|--------|
-| Database migration | Add `latitude`, `longitude` to `merchants` |
-| `supabase/functions/geocode-address/index.ts` | New — geocodes address via Nominatim |
-| `src/lib/geo.ts` | New — Haversine formula + `useUserLocation` hook |
-| `src/components/customer/ExploreTab.tsx` | New — Explore marketplace with all sections |
-| `src/components/customer/NearbyMerchants.tsx` | New — Near You section with distance badges |
-| `src/components/customer/MerchantPreview.tsx` | New — Merchant detail dialog |
-| `src/components/customer/IndustryFilter.tsx` | New — Industry filter chips |
-| `src/pages/AccessCard.tsx` | Add My Rewards / Explore tab switcher |
-| `src/pages/MerchantSettings.tsx` | Call geocode function on address save |
+| Database migration | Create `customer_stamps`, `promotion_rules`, `nfc_tap_tokens` tables + `process_stamp` function |
+| Database migration | Add `allow_promotions`, `allow_nfc_tap` to `merchant_feature_overrides` |
+| `supabase/functions/process-nfc-tap/index.ts` | New — NFC tap verification endpoint |
+| `src/lib/features.ts` | Add `promotions` and `nfc_tap` feature definitions |
+| `src/pages/MerchantPromotions.tsx` | New — Smart promotion rules builder |
+| `src/components/customer/NfcTapButton.tsx` | New — NFC tap-to-earn + QR fallback |
+| `src/components/customer/StampCardProgress.tsx` | New — Visual stamp card on Access Card |
+| `src/components/merchant/StampQrScanner.tsx` | New — QR scanner for manual stamp awarding |
+| `src/pages/AccessCard.tsx` | Add stamp card section per merchant |
+| `src/pages/MerchantGamification.tsx` | Add stamp card stats + link to promotions |
+| `src/pages/MerchantDashboard.tsx` | Add Promotions card |
+| `src/App.tsx` | Add `/merchant/promotions` route |
 
-### What stays the same
-- All existing My Rewards functionality (My Stores, points, filtered data, redemptions)
-- Merchant dashboard — no changes
-- Authentication — no changes
-- Multi-merchant architecture — no changes
-- Plan gating — no changes
-
-### Limitations
-- PWA cannot do background geolocation — suggestions only work while the app is open
-- Geocoding uses free Nominatim API (no API key needed), sufficient for Australian addresses
-- Existing merchants will need to re-save their address to trigger geocoding (or a one-time backfill)
+### What Stays the Same
+- All existing points-based loyalty logic
+- Rewards, campaigns, monthly offers
+- Multi-merchant architecture
+- Authentication
+- Subscription gating
+- Explore tab and location features
 
