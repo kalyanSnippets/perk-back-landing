@@ -139,6 +139,23 @@ const MerchantGamification = () => {
                 )}
               </div>
 
+              {/* Stamp Stats & Scanner */}
+              {stampEnabled && merchantId && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-card text-center">
+                      <p className="text-2xl font-bold text-foreground">{stampStats.active}</p>
+                      <p className="text-[11px] text-muted-foreground">Active Cards</p>
+                    </div>
+                    <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-card text-center">
+                      <p className="text-2xl font-bold text-foreground">{stampStats.completed}</p>
+                      <p className="text-[11px] text-muted-foreground">Completed Cards</p>
+                    </div>
+                  </div>
+                  <StampQrScanner merchantId={merchantId} />
+                </>
+              )}
+
               {/* Visit Streaks */}
               <div className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-4">
                 <div className="flex items-center justify-between">
