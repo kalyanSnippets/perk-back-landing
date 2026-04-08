@@ -28,6 +28,7 @@ const MerchantGamification = () => {
   const [streakThreshold, setStreakThreshold] = useState("5");
   const [streakReward, setStreakReward] = useState("Bonus points");
   const [levelsEnabled, setLevelsEnabled] = useState(false);
+  const [stampStats, setStampStats] = useState({ active: 0, completed: 0 });
 
   useEffect(() => {
     (async () => {
