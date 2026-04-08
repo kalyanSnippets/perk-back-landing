@@ -234,6 +234,60 @@ export type Database = {
           },
         ]
       }
+      customer_stamps: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          merchant_id: string
+          reward_text: string
+          stamps_collected: number
+          stamps_required: number
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          merchant_id: string
+          reward_text?: string
+          stamps_collected?: number
+          stamps_required?: number
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          merchant_id?: string
+          reward_text?: string
+          stamps_collected?: number
+          stamps_required?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_stamps_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_stamps_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           card_issued_at: string | null
@@ -506,8 +560,10 @@ export type Database = {
           allow_campaigns: boolean
           allow_gamification: boolean
           allow_monthly_offers: boolean
+          allow_nfc_tap: boolean
           allow_pos_integration: boolean
           allow_priority_support: boolean
+          allow_promotions: boolean
           allow_rewards: boolean
           created_at: string
           id: string
@@ -522,8 +578,10 @@ export type Database = {
           allow_campaigns?: boolean
           allow_gamification?: boolean
           allow_monthly_offers?: boolean
+          allow_nfc_tap?: boolean
           allow_pos_integration?: boolean
           allow_priority_support?: boolean
+          allow_promotions?: boolean
           allow_rewards?: boolean
           created_at?: string
           id?: string
@@ -538,8 +596,10 @@ export type Database = {
           allow_campaigns?: boolean
           allow_gamification?: boolean
           allow_monthly_offers?: boolean
+          allow_nfc_tap?: boolean
           allow_pos_integration?: boolean
           allow_priority_support?: boolean
+          allow_promotions?: boolean
           allow_rewards?: boolean
           created_at?: string
           id?: string
@@ -701,6 +761,38 @@ export type Database = {
           },
         ]
       }
+      nfc_tap_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          merchant_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          merchant_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          merchant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfc_tap_tokens_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_connections: {
         Row: {
           access_token: string | null
@@ -756,6 +848,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pos_connections_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          merchant_id: string
+          reward_description: string
+          reward_type: string
+          reward_value: string
+          rule_type: string
+          trigger_count: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          merchant_id: string
+          reward_description?: string
+          reward_type?: string
+          reward_value?: string
+          rule_type?: string
+          trigger_count?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          reward_description?: string
+          reward_type?: string
+          reward_value?: string
+          rule_type?: string
+          trigger_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_rules_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
@@ -1140,6 +1279,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      process_stamp: {
+        Args: { _customer_id: string; _merchant_id: string }
+        Returns: Json
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
