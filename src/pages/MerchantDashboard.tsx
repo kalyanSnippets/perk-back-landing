@@ -9,7 +9,7 @@ import {
   Users, Receipt, Star, DollarSign,
   Plus, Settings, CreditCard,
   CheckCircle, X, TrendingUp, Megaphone, Gamepad2, Wifi,
-  Gift, Sparkles, FileBarChart, Cake, CalendarHeart, BarChart3
+  Gift, Sparkles, FileBarChart, Cake, CalendarHeart, BarChart3, ShoppingBag
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
