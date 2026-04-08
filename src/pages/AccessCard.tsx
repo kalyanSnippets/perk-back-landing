@@ -15,6 +15,8 @@ import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
+import StampCardProgress from "@/components/customer/StampCardProgress";
+import NfcTapButton from "@/components/customer/NfcTapButton";
 import StarRating from "@/components/StarRating";
 import { MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
