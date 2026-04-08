@@ -31,6 +31,9 @@ export const FEATURE_CATALOG: FeatureDefinition[] = [
   { key: "birthday_offers", name: "Birthday Offers", minimumPlan: "pro", upgradeDescription: "Send automatic birthday rewards to keep customers feeling special.", overrideKey: "allow_birthday_offers" },
   { key: "monthly_offers", name: "Monthly Offers", minimumPlan: "pro", upgradeDescription: "Run recurring monthly promotions to drive consistent foot traffic.", overrideKey: "allow_monthly_offers" },
   { key: "priority_support", name: "Priority Support", minimumPlan: "pro", upgradeDescription: "Get dedicated priority support for your business.", overrideKey: "allow_priority_support" },
+  // Smart Promotions & NFC
+  { key: "promotions", name: "Promotions", minimumPlan: "growth", upgradeDescription: "Create smart 'Buy X Get Y' promotion rules to drive repeat visits.", overrideKey: "allow_promotions" },
+  { key: "nfc_tap", name: "NFC Tap-to-Earn", minimumPlan: "pro", upgradeDescription: "Let customers tap their phone on an NFC tag to collect stamps.", overrideKey: "allow_nfc_tap" },
 ];
 
 export const CUSTOMER_LIMIT: Record<PlanTier, number> = {

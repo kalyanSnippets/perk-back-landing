@@ -15,6 +15,8 @@ import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
+import StampCardProgress from "@/components/customer/StampCardProgress";
+import NfcTapButton from "@/components/customer/NfcTapButton";
 import StarRating from "@/components/StarRating";
 import { MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -466,6 +468,23 @@ const AccessCard = () => {
             </Button>
           </div>
         </ScrollReveal>
+
+        {/* ─── Stamp Card & NFC Tap ─── */}
+        {selectedMerchantId && customer && (
+          <ScrollReveal delay={80}>
+            <div className="space-y-3">
+              <StampCardProgress
+                customerId={customer.id}
+                merchantId={selectedMerchantId}
+                merchantName={selectedMerchant?.store_name || "Store"}
+              />
+              <NfcTapButton
+                customerId={customer.id}
+                customerCardNumber={customer.loyalty_card_number || ""}
+              />
+            </div>
+          </ScrollReveal>
+        )}
 
         {/* ─── Promo Banner Carousel ─── */}
         {carouselSlides.length > 0 && (

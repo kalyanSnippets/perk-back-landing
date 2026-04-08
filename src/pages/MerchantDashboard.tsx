@@ -9,7 +9,7 @@ import {
   Users, Receipt, Star, DollarSign,
   Plus, Settings, CreditCard,
   CheckCircle, X, TrendingUp, Megaphone, Gamepad2, Wifi,
-  Gift, Sparkles, FileBarChart, Cake, CalendarHeart, BarChart3
+  Gift, Sparkles, FileBarChart, Cake, CalendarHeart, BarChart3, ShoppingBag
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
@@ -172,6 +172,7 @@ const MerchantDashboard = () => {
     { icon: TrendingUp, label: "Analytics", description: "Insights into customer behaviour and spending.", route: "/merchant/analytics", featureKey: "analytics" },
     { icon: Sparkles, label: "AI Suggestions", description: "AI-powered campaign ideas from your data.", route: "/merchant/ai-suggestions", featureKey: "ai_suggestions" },
     { icon: Gamepad2, label: "Gamification", description: "Stamp cards, streaks, and challenges.", route: "/merchant/gamification", featureKey: "gamification" },
+    { icon: ShoppingBag, label: "Promotions", description: "Smart 'Buy X Get Y' promotion rules.", route: "/merchant/promotions", featureKey: "promotions" },
     { icon: Cake, label: "Birthday Offers", description: "Automatic birthday rewards for customers.", route: "/merchant/birthday-offers", featureKey: "birthday_offers" },
     { icon: CalendarHeart, label: "Monthly Offers", description: "Recurring monthly promotions.", route: "/merchant/monthly-offers", featureKey: "monthly_offers" },
     { icon: Wifi, label: "POS Integration", description: "Connect Square POS to auto-sync transactions.", route: "/merchant/pos", featureKey: "pos_integration" },

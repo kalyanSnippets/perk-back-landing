@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import BackToDashboard from "@/components/merchant/BackToDashboard";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ScrollReveal from "@/components/ScrollReveal";
+import StampQrScanner from "@/components/merchant/StampQrScanner";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
 const MerchantGamification = () => {
@@ -27,6 +28,7 @@ const MerchantGamification = () => {
   const [streakThreshold, setStreakThreshold] = useState("5");
   const [streakReward, setStreakReward] = useState("Bonus points");
   const [levelsEnabled, setLevelsEnabled] = useState(false);
+  const [stampStats, setStampStats] = useState({ active: 0, completed: 0 });
 
   useEffect(() => {
     (async () => {
@@ -46,6 +48,23 @@ const MerchantGamification = () => {
         setStreakReward(settings.streak_reward || "Bonus points");
         setLevelsEnabled(settings.levels_enabled);
       }
+
+      // Fetch stamp stats
+      const { data: activeStamps } = await supabase
+        .from("customer_stamps")
+        .select("id", { count: "exact" })
+        .eq("merchant_id", m.id)
+        .eq("completed", false);
+      const { data: completedStamps } = await supabase
+        .from("customer_stamps")
+        .select("id", { count: "exact" })
+        .eq("merchant_id", m.id)
+        .eq("completed", true);
+      setStampStats({
+        active: activeStamps?.length || 0,
+        completed: completedStamps?.length || 0,
+      });
+
       setLoading(false);
     })();
   }, [navigate]);
@@ -119,6 +138,23 @@ const MerchantGamification = () => {
                   </div>
                 )}
               </div>
+
+              {/* Stamp Stats & Scanner */}
+              {stampEnabled && merchantId && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-card text-center">
+                      <p className="text-2xl font-bold text-foreground">{stampStats.active}</p>
+                      <p className="text-[11px] text-muted-foreground">Active Cards</p>
+                    </div>
+                    <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-card text-center">
+                      <p className="text-2xl font-bold text-foreground">{stampStats.completed}</p>
+                      <p className="text-[11px] text-muted-foreground">Completed Cards</p>
+                    </div>
+                  </div>
+                  <StampQrScanner merchantId={merchantId} />
+                </>
+              )}
 
               {/* Visit Streaks */}
               <div className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-4">
