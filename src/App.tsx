@@ -23,6 +23,7 @@ import MerchantRewards from "./pages/MerchantRewards.tsx";
 import MerchantAnalytics from "./pages/MerchantAnalytics.tsx";
 import MerchantAISuggestions from "./pages/MerchantAISuggestions.tsx";
 import MerchantGamification from "./pages/MerchantGamification.tsx";
+import MerchantPromotions from "./pages/MerchantPromotions.tsx";
 import MerchantBirthdayOffers from "./pages/MerchantBirthdayOffers.tsx";
 import MerchantMonthlyOffers from "./pages/MerchantMonthlyOffers.tsx";
 import MerchantPOS from "./pages/MerchantPOS.tsx";
