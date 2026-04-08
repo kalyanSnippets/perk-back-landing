@@ -48,6 +48,23 @@ const MerchantGamification = () => {
         setStreakReward(settings.streak_reward || "Bonus points");
         setLevelsEnabled(settings.levels_enabled);
       }
+
+      // Fetch stamp stats
+      const { data: activeStamps } = await supabase
+        .from("customer_stamps")
+        .select("id", { count: "exact" })
+        .eq("merchant_id", m.id)
+        .eq("completed", false);
+      const { data: completedStamps } = await supabase
+        .from("customer_stamps")
+        .select("id", { count: "exact" })
+        .eq("merchant_id", m.id)
+        .eq("completed", true);
+      setStampStats({
+        active: activeStamps?.length || 0,
+        completed: completedStamps?.length || 0,
+      });
+
       setLoading(false);
     })();
   }, [navigate]);
