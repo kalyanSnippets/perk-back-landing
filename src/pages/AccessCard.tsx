@@ -9,7 +9,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2,
   Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft
+  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
