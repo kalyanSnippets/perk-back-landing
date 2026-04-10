@@ -14,6 +14,7 @@ import {
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
 import StampQrScanner from "@/components/merchant/StampQrScanner";
+import CustomerSearch from "@/components/merchant/CustomerSearch";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
@@ -25,12 +26,10 @@ const MerchantPoints = () => {
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Add points state
   const [cardNumber, setCardNumber] = useState("");
   const [purchaseAmount, setPurchaseAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Gamification state
   const [stampEnabled, setStampEnabled] = useState(false);
   const [stampsRequired, setStampsRequired] = useState("10");
   const [stampReward, setStampReward] = useState("Free item");
@@ -46,13 +45,7 @@ const MerchantPoints = () => {
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/get-started"); return; }
-
-    const { data: m } = await supabase
-      .from("merchants")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
+    const { data: m } = await supabase.from("merchants").select("id").eq("user_id", user.id).maybeSingle();
     if (!m) { navigate("/get-started"); return; }
     setMerchantId(m.id);
 
@@ -92,27 +85,20 @@ const MerchantPoints = () => {
       const result = data as { success: boolean; error?: string; customer_name?: string; points_awarded?: number };
       if (!result.success) { toast.error(result.error || "Failed to add points"); return; }
       toast.success(`Awarded ${result.points_awarded} points to ${result.customer_name}`);
-      setCardNumber("");
-      setPurchaseAmount("");
+      setCardNumber(""); setPurchaseAmount("");
     } catch (error: any) {
       toast.error(error.message || "Failed to add points");
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
   const saveGamification = async () => {
     if (!merchantId) return;
     setSavingGamification(true);
     const { error } = await supabase.from("gamification_settings").upsert({
-      merchant_id: merchantId,
-      stamp_card_enabled: stampEnabled,
-      stamps_required: parseInt(stampsRequired) || 10,
-      stamp_reward: stampReward.trim() || "Free item",
-      visit_streak_enabled: streakEnabled,
-      streak_threshold: parseInt(streakThreshold) || 5,
-      streak_reward: streakReward.trim() || "Bonus points",
-      levels_enabled: levelsEnabled,
+      merchant_id: merchantId, stamp_card_enabled: stampEnabled,
+      stamps_required: parseInt(stampsRequired) || 10, stamp_reward: stampReward.trim() || "Free item",
+      visit_streak_enabled: streakEnabled, streak_threshold: parseInt(streakThreshold) || 5,
+      streak_reward: streakReward.trim() || "Bonus points", levels_enabled: levelsEnabled,
     }, { onConflict: "merchant_id" });
     setSavingGamification(false);
     if (error) { toast.error(error.message); return; }
@@ -157,6 +143,10 @@ const MerchantPoints = () => {
                   <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                     <CreditCard size={18} className="text-secondary" /> Award Loyalty Points
                   </h2>
+                  
+                  {/* Customer Search */}
+                  <CustomerSearch merchantId={merchantId} onSelect={(num) => setCardNumber(num)} />
+
                   <form onSubmit={handleAddPoints} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="cardNumber">Loyalty Card Number</Label>
@@ -180,14 +170,13 @@ const MerchantPoints = () => {
                       </div>
                     )}
                     <Button type="submit" variant="hero" className="w-full gap-2" disabled={submitting}>
-                      <CheckCircle size={16} />
-                      {submitting ? "Processing..." : "Award Points"}
+                      <CheckCircle size={16} /> {submitting ? "Processing..." : "Award Points"}
                     </Button>
                   </form>
                 </div>
               </TabsContent>
 
-              {/* Stamp Cards / Gamification */}
+              {/* Stamp Cards */}
               <TabsContent value="stamps" className="space-y-4">
                 {!canAccess("gamification") ? <LockedFeature featureKey="gamification" /> : (
                   <>
@@ -273,7 +262,8 @@ const MerchantPoints = () => {
               </TabsContent>
 
               {/* QR Scanner */}
-              <TabsContent value="scanner">
+              <TabsContent value="scanner" className="space-y-4">
+                <CustomerSearch merchantId={merchantId} onSelect={() => {}} />
                 <StampQrScanner merchantId={merchantId} />
               </TabsContent>
             </Tabs>

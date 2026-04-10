@@ -9,8 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Upload, CreditCard, Check,
+  Phone, MapPin, Upload, CreditCard, Check, Trash2, ArrowUpRight, AlertTriangle, Image,
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import PosTab from "@/components/merchant/PosTab";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
@@ -47,6 +50,8 @@ const MerchantSettings = () => {
   const [bizForm, setBizForm] = useState({ store_name: "", address: "", contact_number: "", industry_type: "" });
   const [savingBiz, setSavingBiz] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showDeleteSubDialog, setShowDeleteSubDialog] = useState(false);
+  const [deletingSub, setDeletingSub] = useState(false);
 
   const { plan, status, canAccess, loading: subLoading } = useMerchantSubscription(merchant?.id);
 
@@ -123,6 +128,36 @@ const MerchantSettings = () => {
     toast.success("Profile image updated");
   };
 
+  const handleDeletePhoto = async () => {
+    if (!merchant) return;
+    const { error } = await supabase.from("merchants").update({ profile_image_url: null } as any).eq("id", merchant.id);
+    if (error) { toast.error("Failed to delete"); return; }
+    setMerchant(prev => prev ? { ...prev, profile_image_url: null } : prev);
+    toast.success("Profile photo removed");
+  };
+
+  const handleDeleteLogo = async () => {
+    if (!merchant) return;
+    const { error } = await supabase.from("merchants").update({ logo_url: null } as any).eq("id", merchant.id);
+    if (error) { toast.error("Failed to delete"); return; }
+    setMerchant(prev => prev ? { ...prev, logo_url: null } : prev);
+    toast.success("Logo removed");
+  };
+
+  const handleDeleteSubscription = async () => {
+    if (!merchant) return;
+    setDeletingSub(true);
+    const { error } = await supabase
+      .from("merchant_subscriptions")
+      .update({ current_plan: "free", status: "active", stripe_subscription_id: null, stripe_customer_id: null })
+      .eq("merchant_id", merchant.id);
+    setDeletingSub(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Subscription cancelled. You're now on the Free plan.");
+    setShowDeleteSubDialog(false);
+    window.location.reload();
+  };
+
   const handleTabChange = (value: string) => setSearchParams({ tab: value });
 
   if (loading) {
@@ -175,38 +210,79 @@ const MerchantSettings = () => {
               <TabsContent value="profile">
                 <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 space-y-5">
                   <h2 className="text-base font-bold text-foreground flex items-center gap-2"><User size={18} className="text-secondary" /> Profile</h2>
-                  <div className="flex flex-col items-center gap-4">
-                    {merchant.profile_image_url ? (
-                      <img src={merchant.profile_image_url} alt="Profile" className="w-20 h-20 rounded-2xl object-cover border-2 border-border" />
-                    ) : (
-                      <div className="w-20 h-20 rounded-2xl bg-secondary/15 flex items-center justify-center"><User size={32} className="text-secondary" /></div>
-                    )}
-                    <label className="cursor-pointer"><input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                      <div className="flex items-center gap-2 text-sm text-secondary font-semibold hover:text-secondary/80 transition-colors"><Upload size={14} />{uploading ? "Uploading..." : "Upload Photo"}</div>
-                    </label>
+                  
+                  {/* Profile Photo */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Image size={14} className="text-muted-foreground" />
+                      <Label className="text-sm font-semibold">Profile Photo</Label>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Recommended: 400×400px, square, JPG/PNG, max 2MB</p>
+                    <div className="flex items-center gap-4">
+                      {merchant.profile_image_url ? (
+                        <img src={merchant.profile_image_url} alt="Profile" className="w-20 h-20 rounded-2xl object-cover border-2 border-border" />
+                      ) : (
+                        <div className="w-20 h-20 rounded-2xl bg-secondary/15 flex items-center justify-center"><User size={32} className="text-secondary" /></div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <label className="cursor-pointer">
+                          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                          <div className="flex items-center gap-2 text-sm text-secondary font-semibold hover:text-secondary/80 transition-colors">
+                            <Upload size={14} />{uploading ? "Uploading..." : "Upload Photo"}
+                          </div>
+                        </label>
+                        {merchant.profile_image_url && (
+                          <button onClick={handleDeletePhoto} className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors">
+                            <Trash2 size={12} /> Delete Photo
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Business Logo */}
                   <div className="border-t border-border/50 pt-4 space-y-3">
-                    <h3 className="text-sm font-semibold text-foreground">Business Logo</h3>
+                    <div className="flex items-center gap-2">
+                      <Building2 size={14} className="text-muted-foreground" />
+                      <Label className="text-sm font-semibold">Business Logo</Label>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Recommended: 200×200px, square with transparent background, PNG, max 2MB. Appears on dashboard banner and customer cards.</p>
                     <div className="flex items-center gap-4">
                       {merchant.logo_url ? (
                         <img src={merchant.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-contain border border-border bg-background p-1" />
                       ) : (
                         <div className="w-16 h-16 rounded-xl bg-muted/40 flex items-center justify-center border border-border/50"><Building2 size={24} className="text-muted-foreground/40" /></div>
                       )}
-                      <label className="cursor-pointer"><input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                        const file = e.target.files?.[0]; if (!file || !merchant) return;
-                        if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2MB"); return; }
-                        setUploading(true); const ext = file.name.split(".").pop(); const path = `${merchant.id}-logo.${ext}`;
-                        const { error: upErr } = await supabase.storage.from("profile-images").upload(path, file, { upsert: true });
-                        if (upErr) { setUploading(false); toast.error("Upload failed"); return; }
-                        const { data: urlData } = supabase.storage.from("profile-images").getPublicUrl(path);
-                        await supabase.from("merchants").update({ logo_url: urlData.publicUrl } as any).eq("id", merchant.id);
-                        setMerchant(prev => prev ? { ...prev, logo_url: urlData.publicUrl } : prev);
-                        setUploading(false); toast.success("Logo uploaded");
-                      }} /><div className="flex items-center gap-2 text-sm text-secondary font-semibold hover:text-secondary/80 transition-colors"><Upload size={14} />{uploading ? "Uploading..." : "Upload Logo"}</div></label>
+                      <div className="flex flex-col gap-2">
+                        <label className="cursor-pointer">
+                          <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                            const file = e.target.files?.[0]; if (!file || !merchant) return;
+                            if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2MB"); return; }
+                            setUploading(true); const ext = file.name.split(".").pop(); const path = `${merchant.id}-logo.${ext}`;
+                            const { error: upErr } = await supabase.storage.from("profile-images").upload(path, file, { upsert: true });
+                            if (upErr) { setUploading(false); toast.error("Upload failed"); return; }
+                            const { data: urlData } = supabase.storage.from("profile-images").getPublicUrl(path);
+                            await supabase.from("merchants").update({ logo_url: urlData.publicUrl } as any).eq("id", merchant.id);
+                            setMerchant(prev => prev ? { ...prev, logo_url: urlData.publicUrl } : prev);
+                            setUploading(false); toast.success("Logo uploaded");
+                          }} />
+                          <div className="flex items-center gap-2 text-sm text-secondary font-semibold hover:text-secondary/80 transition-colors">
+                            <Upload size={14} />{uploading ? "Uploading..." : "Upload Logo"}
+                          </div>
+                        </label>
+                        {merchant.logo_url && (
+                          <button onClick={handleDeleteLogo} className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors">
+                            <Trash2 size={12} /> Delete Logo
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-center"><p className="text-sm font-semibold text-foreground">{merchant.store_name}</p><p className="text-xs text-muted-foreground">{merchant.industry_type || "Business"}</p></div>
+
+                  <div className="text-center border-t border-border/50 pt-4">
+                    <p className="text-sm font-semibold text-foreground">{merchant.store_name}</p>
+                    <p className="text-xs text-muted-foreground">{merchant.industry_type || "Business"}</p>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -250,11 +326,26 @@ const MerchantSettings = () => {
                         </div>
                       )}
                     </div>
-                    {plan !== "pro" && (
+
+                    {/* Plan Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button variant="hero" className="flex-1 gap-2" onClick={() => navigate("/pricing")}>
+                        <ArrowUpRight size={16} /> Change Plan
+                      </Button>
+                      {plan !== "free" && (
+                        <Button variant="outline" className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => setShowDeleteSubDialog(true)}>
+                          <Trash2 size={16} /> Cancel Subscription
+                        </Button>
+                      )}
+                    </div>
+
+                    {plan === "free" && (
                       <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/5 rounded-2xl p-5 border border-primary/20 text-center space-y-3">
-                        <p className="text-sm font-semibold text-foreground">Want to unlock more features?</p>
-                        <p className="text-xs text-muted-foreground">Contact your admin to upgrade your plan.</p>
-                        <Button variant="hero" size="sm" className="gap-1.5">Request Upgrade</Button>
+                        <p className="text-sm font-semibold text-foreground">Unlock more features with Growth or Pro</p>
+                        <p className="text-xs text-muted-foreground">Campaigns, rewards, analytics, and more.</p>
+                        <Button variant="hero" size="sm" className="gap-1.5" onClick={() => navigate("/pricing")}>
+                          <ArrowUpRight size={14} /> View Plans
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -264,6 +355,22 @@ const MerchantSettings = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Subscription Confirmation */}
+      <Dialog open={showDeleteSubDialog} onOpenChange={setShowDeleteSubDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><AlertTriangle size={18} className="text-destructive" /> Cancel Subscription</DialogTitle>
+            <DialogDescription>Are you sure you want to cancel? You'll be downgraded to the Free plan. Your data won't be deleted, but you'll lose access to premium features.</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setShowDeleteSubDialog(false)}>Keep Plan</Button>
+            <Button variant="destructive" className="flex-1 gap-1.5" onClick={handleDeleteSubscription} disabled={deletingSub}>
+              {deletingSub ? "Cancelling..." : "Confirm Cancel"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

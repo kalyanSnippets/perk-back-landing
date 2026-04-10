@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Smartphone, QrCode, Loader2, CheckCircle, WifiOff } from "lucide-react";
+import { Smartphone, QrCode, Loader2, CheckCircle, WifiOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NfcTapButtonProps {
   customerId: string;
@@ -73,7 +74,17 @@ const NfcTapButton = ({ customerId, customerCardNumber }: NfcTapButtonProps) => 
           <Smartphone size={14} className="text-secondary" />
         </div>
         <div>
-          <p className="text-xs font-bold text-foreground">Tap to Earn</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-bold text-foreground">Tap to Earn</p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="text-muted-foreground hover:text-foreground"><Info size={11} /></button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-[10px]">
+                NFC works on Android Chrome only. Hold your phone near the merchant's NFC tag at the counter. For iOS, use the QR fallback instead.
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <p className="text-[10px] text-muted-foreground">Collect stamps at the counter</p>
         </div>
       </div>
