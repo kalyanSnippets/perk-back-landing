@@ -347,22 +347,32 @@ const AccessCard = () => {
                     <button
                       key={cm.merchant_id}
                       onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
-                      className={`min-w-[160px] snap-start flex-shrink-0 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                      className={`min-w-[180px] snap-start flex-shrink-0 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${
                         isSelected
                           ? 'border-primary bg-primary/5 shadow-[0_0_15px_-4px_hsl(var(--primary)/0.3)]'
                           : 'border-border/30 bg-muted/20 hover:shadow-card'
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center overflow-hidden">
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center overflow-hidden shrink-0">
                           {cm.logo_url ? (
                             <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
                           ) : (
-                            <Store size={14} className="text-secondary" />
+                            <Store size={16} className="text-secondary" />
                           )}
                         </div>
-                        <p className="font-semibold text-xs text-foreground truncate flex-1">{cm.store_name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-xs text-foreground truncate">{cm.store_name}</p>
+                          {cm.industry_type && (
+                            <span className="text-[9px] text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-full">{cm.industry_type}</span>
+                          )}
+                        </div>
                       </div>
+                      {cm.address && (
+                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mb-1.5 truncate">
+                          <MapPin size={8} /> {cm.address}
+                        </p>
+                      )}
                       <p className="text-lg font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-[10px] font-normal text-muted-foreground">pts</span></p>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
                         <span>{cm.visit_count} visits</span>
