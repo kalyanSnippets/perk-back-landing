@@ -4,8 +4,6 @@ import { Smartphone, QrCode, Loader2, CheckCircle, WifiOff, Info } from "lucide-
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 interface NfcTapButtonProps {
   customerId: string;
