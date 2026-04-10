@@ -194,6 +194,8 @@ const MerchantDashboard = () => {
           <MerchantNav merchantId={merchant.id} />
           <div className="flex-1 min-w-0 space-y-6">
           <ScrollReveal>
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-[0.15em]">Merchant Dashboard</p>
                 <h1 className="text-2xl font-bold text-foreground mt-1">{merchant.store_name}</h1>
               </div>
@@ -253,6 +255,7 @@ const MerchantDashboard = () => {
               </div>
             </div>
           </ScrollReveal>
+          </div>
         </div>
       </div>
 
