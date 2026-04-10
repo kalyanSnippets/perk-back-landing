@@ -1396,6 +1396,14 @@ export type Database = {
         Args: { _customer_id: string; _reward_id: string }
         Returns: Json
       }
+      search_customer_by_phone: {
+        Args: { _merchant_id: string; _phone: string }
+        Returns: {
+          customer_id: string
+          full_name: string
+          loyalty_card_number: string
+        }[]
+      }
       verify_redemption: {
         Args: { _merchant_id: string; _redemption_code: string }
         Returns: Json
