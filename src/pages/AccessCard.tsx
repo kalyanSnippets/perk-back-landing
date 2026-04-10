@@ -76,7 +76,7 @@ const WriteReviewSection = ({ customerName }: { customerName: string }) => {
 };
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
-interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; }
+interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
 interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
 interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
@@ -176,9 +176,11 @@ const AccessCard = () => {
 
     const { data: txData } = await supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false });
     setTransactions(txData || []);
-    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name, logo_url");
+    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name, logo_url, industry_type, address");
     const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
     const merchantLogoMap = new Map((merchantsData || []).map(m => [m.id, m.logo_url]));
+    const merchantIndustryMap = new Map((merchantsData || []).map(m => [m.id, m.industry_type]));
+    const merchantAddressMap = new Map((merchantsData || []).map(m => [m.id, m.address]));
 
     // Build customer merchants list
     const cmList: CustomerMerchantData[] = (cmData || []).map(cm => ({
@@ -189,6 +191,8 @@ const AccessCard = () => {
       visit_count: cm.visit_count,
       last_visit_at: cm.last_visit_at,
       logo_url: merchantLogoMap.get(cm.merchant_id),
+      industry_type: merchantIndustryMap.get(cm.merchant_id),
+      address: merchantAddressMap.get(cm.merchant_id),
     }));
     setCustomerMerchants(cmList);
 
@@ -705,10 +709,7 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Write a Review ─── */}
-        <ScrollReveal delay={225}>
-          <WriteReviewSection customerName={customer?.full_name || ""} />
-        </ScrollReveal>
+        {/* Admin Panel */}
 
         {/* ─── Admin Panel ─── */}
         {isAdmin && (
