@@ -7,9 +7,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   Users, Receipt, Star, DollarSign,
-  Plus, Settings, CreditCard,
-  CheckCircle, X, TrendingUp, Megaphone, Gamepad2, Wifi,
-  Gift, Sparkles, FileBarChart, Cake, CalendarHeart, BarChart3, ShoppingBag
+  Plus, CreditCard,
+  CheckCircle, X, BarChart3, Megaphone, Settings
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
@@ -166,20 +165,10 @@ const MerchantDashboard = () => {
 
   const featureCards = [
     { icon: Users, label: "Customers", description: "View and manage your loyalty customers.", route: "/merchant/customers", featureKey: "customers" },
-    { icon: Receipt, label: "Transactions", description: "Browse all transaction history.", route: "/merchant/transactions", featureKey: "transactions" },
     { icon: Plus, label: "Add Points", description: "Award loyalty points to customers.", featureKey: "add_points", onClick: () => setShowAddPoints(true) },
-    { icon: Megaphone, label: "Campaigns", description: "Create targeted campaigns to boost retention.", route: "/merchant/campaigns", featureKey: "campaigns" },
-    { icon: Gift, label: "Rewards", description: "Design custom rewards for your customers.", route: "/merchant/rewards", featureKey: "rewards" },
-    { icon: TrendingUp, label: "Analytics", description: "Insights into customer behaviour and spending.", route: "/merchant/analytics", featureKey: "analytics" },
-    { icon: Sparkles, label: "AI Suggestions", description: "AI-powered campaign ideas from your data.", route: "/merchant/ai-suggestions", featureKey: "ai_suggestions" },
-    { icon: Gamepad2, label: "Gamification", description: "Stamp cards, streaks, and challenges.", route: "/merchant/gamification", featureKey: "gamification" },
-    { icon: ShoppingBag, label: "Promotions", description: "Smart 'Buy X Get Y' promotion rules.", route: "/merchant/promotions", featureKey: "promotions" },
-    { icon: Cake, label: "Birthday Offers", description: "Automatic birthday rewards for customers.", route: "/merchant/birthday-offers", featureKey: "birthday_offers" },
-    { icon: CalendarHeart, label: "Monthly Offers", description: "Recurring monthly promotions.", route: "/merchant/monthly-offers", featureKey: "monthly_offers" },
-    { icon: Wifi, label: "POS Integration", description: "Connect Square POS to auto-sync transactions.", route: "/merchant/pos", featureKey: "pos_integration" },
-    { icon: FileBarChart, label: "Reports", description: "Export detailed reports and analytics.", route: "/merchant/reports", featureKey: "advanced_reports" },
-    { icon: CheckCircle, label: "Redemptions", description: "Verify customer reward redemption codes.", route: "/merchant/redemptions", featureKey: "rewards" },
-    { icon: Settings, label: "Settings", description: "Manage your business profile and account.", route: "/merchant/settings", featureKey: "settings" },
+    { icon: Receipt, label: "Insights", description: "Transactions, analytics, reports & redemptions.", route: "/merchant/insights", featureKey: "transactions" },
+    { icon: Megaphone, label: "Marketing", description: "Campaigns, rewards, promotions & offers.", route: "/merchant/marketing", featureKey: "campaigns" },
+    { icon: Settings, label: "Settings", description: "Business profile, POS, gamification & plan.", route: "/merchant/settings", featureKey: "settings" },
   ];
 
   return (
