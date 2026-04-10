@@ -17,8 +17,6 @@ import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
 import StampCardProgress from "@/components/customer/StampCardProgress";
 import NfcTapButton from "@/components/customer/NfcTapButton";
-import StarRating from "@/components/StarRating";
-import { MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -28,52 +26,6 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-
-/* ── Write a Review Section ── */
-const WriteReviewSection = ({ customerName }: { customerName: string }) => {
-  const [message, setMessage] = useState("");
-  const [rating, setRating] = useState(5);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!message.trim()) { toast.error("Please write a review"); return; }
-    setSubmitting(true);
-    const { error } = await supabase.from("testimonials").insert({
-      name: customerName || "Anonymous", message: message.trim(), rating, is_published: false,
-    });
-    setSubmitting(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Thank you! Your testimonial will be reviewed.");
-    setSubmitted(true);
-  };
-
-  if (submitted) {
-    return (
-      <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
-        <MessageSquare size={24} className="mx-auto text-accent mb-2" />
-        <p className="text-sm font-semibold text-foreground">Review Submitted!</p>
-        <p className="text-xs text-muted-foreground mt-1">It will appear on the site once approved.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-      <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-        <MessageSquare size={16} className="text-secondary" /> Write a Review
-      </h3>
-      <div className="space-y-3">
-        <StarRating rating={rating} onChange={setRating} />
-        <textarea placeholder="Tell us about your experience..." value={message} onChange={(e) => setMessage(e.target.value)}
-          className="w-full rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[80px] resize-none" maxLength={500} />
-        <Button onClick={handleSubmit} disabled={submitting} size="sm" className="gap-2">
-          {submitting ? "Submitting..." : "Submit Review"}
-        </Button>
-      </div>
-    </div>
-  );
-};
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -87,6 +39,13 @@ const CAROUSEL_GRADIENTS = [
   "from-primary via-primary/90 to-secondary",
   "from-secondary via-secondary/90 to-primary",
   "from-accent/90 via-accent/80 to-primary/80",
+];
+
+const REWARD_GRADIENTS = [
+  "from-primary/20 via-primary/10 to-secondary/10",
+  "from-secondary/20 via-secondary/10 to-accent/10",
+  "from-accent/20 via-accent/10 to-primary/10",
+  "from-purple-500/20 via-purple-400/10 to-primary/10",
 ];
 
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
@@ -114,9 +73,8 @@ const AccessCard = () => {
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
-  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "explore" | "review">("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore">("my-rewards");
 
-  // Auto-play carousel
   useEffect(() => {
     if (!carouselApi) return;
     setSlideCount(carouselApi.scrollSnapList().length);
@@ -128,7 +86,6 @@ const AccessCard = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Realtime subscription
   useEffect(() => {
     if (!customer) return;
     const channel = supabase
@@ -168,7 +125,6 @@ const AccessCard = () => {
     if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
     setCustomer(customerData);
 
-    // Fetch customer-merchant relationships
     const { data: cmData } = await supabase
       .from("customer_merchants")
       .select("merchant_id, points_balance, total_spend, visit_count, last_visit_at")
@@ -182,7 +138,6 @@ const AccessCard = () => {
     const merchantIndustryMap = new Map((merchantsData || []).map(m => [m.id, m.industry_type]));
     const merchantAddressMap = new Map((merchantsData || []).map(m => [m.id, m.address]));
 
-    // Build customer merchants list
     const cmList: CustomerMerchantData[] = (cmData || []).map(cm => ({
       merchant_id: cm.merchant_id,
       store_name: merchantMap.get(cm.merchant_id) || "Store",
@@ -251,11 +206,9 @@ const AccessCard = () => {
 
   if (!customer) return null;
 
-  // Get merchant-specific points for the selected merchant
   const selectedMerchant = selectedMerchantId ? customerMerchants.find(cm => cm.merchant_id === selectedMerchantId) : null;
   const displayPoints = selectedMerchant ? selectedMerchant.points_balance : customer.points_balance;
 
-  // Filter data by selected merchant
   const filteredRewards = selectedMerchantId ? rewards.filter(r => r.merchant_id === selectedMerchantId) : rewards;
   const filteredCampaigns = selectedMerchantId ? campaigns.filter(c => c.merchant_id === selectedMerchantId) : campaigns;
   const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
@@ -303,8 +256,8 @@ const AccessCard = () => {
         <div className="flex gap-1 bg-card rounded-xl p-1 border border-border/50 shadow-card">
           {[
             { key: "my-rewards" as const, label: "🎁 My Rewards" },
+            { key: "my-card" as const, label: "💳 My Card" },
             { key: "explore" as const, label: "🔍 Explore" },
-            { key: "review" as const, label: "✍️ Review" },
           ].map(tab => (
             <button
               key={tab.key}
@@ -322,11 +275,94 @@ const AccessCard = () => {
 
         {activeMainTab === "explore" ? (
           <ExploreTab customerMerchantIds={customerMerchants.map(cm => cm.merchant_id)} />
-        ) : activeMainTab === "review" ? (
-          <WriteReviewSection customerName={customer?.full_name || ""} />
+        ) : activeMainTab === "my-card" ? (
+          /* ─── My Card Tab ─── */
+          <>
+            {/* Loyalty Card */}
+            <ScrollReveal>
+              <div className="relative rounded-3xl overflow-hidden shadow-card-hover">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
+                <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-primary-foreground/10" />
+                <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full border border-primary-foreground/8" />
+                <div className="relative z-10 p-5 sm:p-6 pb-4 sm:pb-5">
+                  <div className="flex items-start justify-between mb-4 sm:mb-5">
+                    <div>
+                      <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.2em] mb-0.5">Digital Loyalty Card</p>
+                      <img src={perkbackLogo} alt="Perk Back" className="h-6 sm:h-7 w-auto brightness-0 invert" />
+                    </div>
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/90 flex items-center justify-center shadow-lg">
+                      <Star className="text-accent-foreground" size={16} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-3 mb-4 sm:mb-5">
+                    <div>
+                      <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><User size={10} /> Name</p>
+                      <p className="text-primary-foreground font-semibold text-xs sm:text-sm truncate">{customer.full_name || "—"}</p>
+                    </div>
+                    <div className="group cursor-pointer" onClick={() => handleCopy("CRN", customer.crn || "")}>
+                      <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Hash size={10} /> CRN <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
+                      <p className="text-primary-foreground font-semibold font-mono text-xs sm:text-sm">{customer.crn}</p>
+                    </div>
+                    <div className="group cursor-pointer" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
+                      <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><CreditCard size={10} /> Card No. <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
+                      <p className="text-primary-foreground font-semibold font-mono text-[11px] sm:text-xs tracking-wide">{customer.loyalty_card_number}</p>
+                    </div>
+                    <div>
+                      <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Calendar size={10} /> Issued</p>
+                      <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
+                    </div>
+                  </div>
+                  <div className="bg-primary-foreground rounded-2xl p-3 flex justify-center overflow-hidden">
+                    <Barcode value={customer.loyalty_card_number || ""} height={55} />
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Card Actions */}
+            <ScrollReveal delay={50}>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
+                  <Copy size={13} /> Copy
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={handleShare}>
+                  <Share2 size={13} /> Share
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Apple Wallet")} title="Apple Wallet">🍎</Button>
+                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Google Wallet")} title="Google Wallet">📱</Button>
+                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Samsung Pay")} title="Samsung Pay">💳</Button>
+              </div>
+            </ScrollReveal>
+
+            {/* Card Details */}
+            <ScrollReveal delay={75}>
+              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <CreditCard size={16} className="text-secondary" /> Card Details
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { label: "Full Name", value: customer.full_name || "—", icon: User },
+                    { label: "CRN", value: customer.crn || "—", icon: Hash },
+                    { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
+                    { label: "Issued Date", value: issuedDate, icon: Calendar },
+                    { label: "Total Points", value: String(customer.points_balance), icon: Star },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/20 last:border-0">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5"><item.icon size={12} /> {item.label}</span>
+                      <span className="text-xs font-semibold text-foreground font-mono">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
+          </>
         ) : (
         <>
-        {/* ─── My Stores Section ─── */}
+        {/* ─── MY REWARDS TAB ─── */}
+
+        {/* My Stores */}
         {customerMerchants.length > 0 && (
           <ScrollReveal delay={15}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
@@ -387,7 +423,7 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Points Balance ─── */}
+        {/* Points Balance */}
         <ScrollReveal delay={25}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
             <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3">
@@ -399,9 +435,6 @@ const AccessCard = () => {
               </div>
               <span className="text-4xl sm:text-5xl font-bold text-foreground tabular-nums">{displayPoints}</span>
             </div>
-            {selectedMerchantId && !selectedMerchant && (
-              <p className="text-xs text-muted-foreground mt-2">No points at this store yet. Make a purchase to start earning!</p>
-            )}
             {nearestReward && nearestReward.points_required > displayPoints ? (
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
@@ -419,89 +452,9 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Loyalty Card ─── */}
-        <ScrollReveal delay={50}>
-          <div className="relative rounded-3xl overflow-hidden shadow-card-hover">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
-            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-primary-foreground/10" />
-            <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full border border-primary-foreground/8" />
-            <div className="relative z-10 p-5 sm:p-6 pb-4 sm:pb-5">
-              <div className="flex items-start justify-between mb-4 sm:mb-5">
-                <div>
-                  <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.2em] mb-0.5">Digital Loyalty Card</p>
-                  <img src={perkbackLogo} alt="Perk Back" className="h-6 sm:h-7 w-auto brightness-0 invert" />
-                </div>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/90 flex items-center justify-center shadow-lg">
-                  <Star className="text-accent-foreground" size={16} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-3 mb-4 sm:mb-5">
-                <div>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><User size={10} /> Name</p>
-                  <p className="text-primary-foreground font-semibold text-xs sm:text-sm truncate">{customer.full_name || "—"}</p>
-                </div>
-                <div className="group cursor-pointer" onClick={() => handleCopy("CRN", customer.crn || "")}>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Hash size={10} /> CRN <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
-                  <p className="text-primary-foreground font-semibold font-mono text-xs sm:text-sm">{customer.crn}</p>
-                </div>
-                <div className="group cursor-pointer" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><CreditCard size={10} /> Card No. <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
-                  <p className="text-primary-foreground font-semibold font-mono text-[11px] sm:text-xs tracking-wide">{customer.loyalty_card_number}</p>
-                </div>
-                <div>
-                  <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Calendar size={10} /> Issued</p>
-                  <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
-                </div>
-              </div>
-              <div className="bg-primary-foreground rounded-2xl p-3 flex justify-center overflow-hidden">
-                <Barcode value={customer.loyalty_card_number || ""} height={55} />
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Card Actions ─── */}
-        <ScrollReveal delay={75}>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
-              <Copy size={13} /> Copy
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={handleShare}>
-              <Share2 size={13} /> Share
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Apple Wallet")} title="Apple Wallet">
-              🍎
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Google Wallet")} title="Google Wallet">
-              📱
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Samsung Pay")} title="Samsung Pay">
-              💳
-            </Button>
-          </div>
-        </ScrollReveal>
-
-        {/* ─── Stamp Card & NFC Tap ─── */}
-        {selectedMerchantId && customer && (
-          <ScrollReveal delay={80}>
-            <div className="space-y-3">
-              <StampCardProgress
-                customerId={customer.id}
-                merchantId={selectedMerchantId}
-                merchantName={selectedMerchant?.store_name || "Store"}
-              />
-              <NfcTapButton
-                customerId={customer.id}
-                customerCardNumber={customer.loyalty_card_number || ""}
-              />
-            </div>
-          </ScrollReveal>
-        )}
-
-        {/* ─── Promo Banner Carousel ─── */}
+        {/* Promo Carousel */}
         {carouselSlides.length > 0 && (
-          <ScrollReveal delay={100}>
+          <ScrollReveal delay={50}>
             <Carousel setApi={setCarouselApi} opts={{ loop: true }} className="w-full">
               <CarouselContent>
                 {carouselSlides.map((slide, i) => (
@@ -543,8 +496,8 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Available Rewards ─── */}
-        <ScrollReveal delay={125}>
+        {/* Available Rewards - Enhanced */}
+        <ScrollReveal delay={75}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
             <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
               <Gift size={16} className="text-accent" /> Available Rewards
@@ -552,48 +505,65 @@ const AccessCard = () => {
             </h3>
             {filteredRewards.length === 0 ? (
               <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3"><Gift size={22} className="text-muted-foreground/40" /></div>
-                <p className="text-sm text-muted-foreground">No rewards available yet</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Shop at partner stores to unlock rewards.</p>
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/10 flex items-center justify-center mx-auto mb-3"><Gift size={24} className="text-accent" /></div>
+                <p className="text-sm font-medium text-foreground">No rewards available yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Shop at partner stores to unlock exclusive rewards!</p>
               </div>
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-                {filteredRewards.map((r) => {
-                  // Use per-merchant points if viewing a specific merchant, else global
+                {filteredRewards.map((r, idx) => {
                   const merchantCm = customerMerchants.find(cm => cm.merchant_id === r.merchant_id);
                   const pointsForThisMerchant = merchantCm ? merchantCm.points_balance : 0;
                   const progress = Math.min((pointsForThisMerchant / r.points_required) * 100, 100);
                   const readyToRedeem = progress >= 100;
                   const almostThere = progress >= 80 && progress < 100;
                   const IconComp = rewardTypeIcon(r.reward_type);
+                  const gradient = REWARD_GRADIENTS[idx % REWARD_GRADIENTS.length];
                   return (
                     <div key={r.id} onClick={() => setSelectedReward(r)}
-                      className={`min-w-[200px] sm:min-w-[220px] snap-start flex-shrink-0 rounded-xl border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card cursor-pointer ${
-                        readyToRedeem ? 'border-accent/50 bg-accent/5 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.3)]' : 'border-border/30 bg-muted/20'
+                      className={`min-w-[220px] sm:min-w-[240px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer border ${
+                        readyToRedeem
+                          ? 'border-accent/40 shadow-[0_0_25px_-4px_hsl(var(--accent)/0.4)]'
+                          : 'border-border/20 shadow-card'
                       }`}
                     >
-                      {r.image_url && (
-                        <img src={r.image_url} alt={r.title} className="w-full h-24 object-cover" />
-                      )}
-                      <div className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${readyToRedeem ? 'bg-accent/20' : 'bg-secondary/10'}`}>
-                          <IconComp size={14} className={readyToRedeem ? 'text-accent-foreground' : 'text-secondary'} />
+                      {/* Gradient header */}
+                      <div className={`relative bg-gradient-to-br ${gradient} p-4 pb-3`}>
+                        {readyToRedeem && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent animate-pulse" />
+                        )}
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-background/40'}`}>
+                            <IconComp size={18} className={readyToRedeem ? 'text-accent-foreground' : 'text-foreground/70'} />
+                          </div>
+                          <span className="text-[9px] uppercase tracking-wider font-semibold bg-background/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-foreground/70">{r.reward_type}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground capitalize bg-muted/40 px-1.5 py-0.5 rounded">{r.reward_type}</span>
                       </div>
-                      <p className="font-semibold text-xs text-foreground mb-0.5">{r.title}</p>
-                      <p className="text-[10px] text-muted-foreground/70 mb-0.5">{r.store_name}</p>
-                      {r.description && <p className="text-[10px] text-muted-foreground line-clamp-2 mb-2">{r.description}</p>}
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
-                        <span>{pointsForThisMerchant}/{r.points_required} pts</span>
-                        {readyToRedeem && <span className="text-accent-foreground font-bold animate-pulse">Ready to redeem!</span>}
-                        {almostThere && <span className="text-secondary font-semibold">Almost there!</span>}
-                      </div>
-                      <Progress value={progress} className="h-1.5" />
-                      {r.is_limited_time && r.expires_at && (
-                        <p className="text-[9px] text-muted-foreground/60 mt-2 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
-                      )}
+                      {/* Content */}
+                      <div className="bg-card p-4 space-y-2">
+                        <p className="font-bold text-sm text-foreground leading-tight">{r.title}</p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Store size={9} /> {r.store_name}</p>
+                        {r.description && <p className="text-[10px] text-muted-foreground/70 line-clamp-2">{r.description}</p>}
+                        <div className="pt-1">
+                          <div className="flex items-center justify-between text-[10px] mb-1">
+                            <span className="text-muted-foreground">{pointsForThisMerchant}/{r.points_required} pts</span>
+                            {readyToRedeem && <span className="text-accent-foreground font-bold">✨ Ready!</span>}
+                            {almostThere && <span className="text-secondary font-semibold">Almost there!</span>}
+                          </div>
+                          <Progress value={progress} className="h-1.5" />
+                        </div>
+                        {readyToRedeem ? (
+                          <Button variant="hero" size="sm" className="w-full gap-1.5 text-xs mt-1">
+                            <Ticket size={12} /> Claim Reward
+                          </Button>
+                        ) : (
+                          <p className="text-[10px] text-center text-muted-foreground mt-1">
+                            {r.points_required - pointsForThisMerchant} pts to go
+                          </p>
+                        )}
+                        {r.is_limited_time && r.expires_at && (
+                          <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
+                        )}
                       </div>
                     </div>
                   );
@@ -603,9 +573,26 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Monthly Offers ─── */}
+        {/* Stamp Card & NFC */}
+        {selectedMerchantId && customer && (
+          <ScrollReveal delay={100}>
+            <div className="space-y-3">
+              <StampCardProgress
+                customerId={customer.id}
+                merchantId={selectedMerchantId}
+                merchantName={selectedMerchant?.store_name || "Store"}
+              />
+              <NfcTapButton
+                customerId={customer.id}
+                customerCardNumber={customer.loyalty_card_number || ""}
+              />
+            </div>
+          </ScrollReveal>
+        )}
+
+        {/* Monthly Offers */}
         {filteredOffers.length > 0 && (
-          <ScrollReveal delay={150}>
+          <ScrollReveal delay={125}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
               <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <CalendarDays size={16} className="text-accent" /> Monthly Offers
@@ -635,8 +622,8 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Points Earned ─── */}
-        <ScrollReveal delay={175}>
+        {/* Points History (collapsed) */}
+        <ScrollReveal delay={150}>
           <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
             <button onClick={() => setShowTransactions(!showTransactions)} className="w-full flex items-center justify-between p-5 sm:p-6 text-left">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -674,9 +661,9 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Redemption History ─── */}
+        {/* Redemption History */}
         {filteredRedemptions.length > 0 && (
-          <ScrollReveal delay={200}>
+          <ScrollReveal delay={175}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
               <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <Ticket size={16} className="text-secondary" /> My Redemptions
@@ -720,8 +707,6 @@ const AccessCard = () => {
         )}
 
         {/* Admin Panel */}
-
-        {/* ─── Admin Panel ─── */}
         {isAdmin && (
           <ScrollReveal>
             <Link to="/admin" className="block">
@@ -742,7 +727,7 @@ const AccessCard = () => {
         )}
       </div>
 
-      {/* ─── Reward Detail / Redeem Dialog ─── */}
+      {/* Reward Detail Dialog */}
       <Dialog open={!!selectedReward} onOpenChange={() => setSelectedReward(null)}>
         <DialogContent className="max-w-sm">
           {selectedReward && (() => {
@@ -785,7 +770,7 @@ const AccessCard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Ways to Claim Points Popup ─── */}
+      {/* Ways to Claim Points */}
       <Dialog open={showClaimInfo} onOpenChange={setShowClaimInfo}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -810,7 +795,7 @@ const AccessCard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Redemption Success Modal ─── */}
+      {/* Redemption Success Modal */}
       {showRedemptionModal && (
         <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm flex items-center justify-center px-4" onClick={() => setShowRedemptionModal(null)}>
           <div className="bg-card rounded-2xl p-6 shadow-card-hover w-full max-w-sm animate-fade-up text-center" onClick={(e) => e.stopPropagation()}>
