@@ -855,6 +855,62 @@ export type Database = {
           },
         ]
       }
+      product_offers: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          merchant_id: string
+          product_name: string
+          sku: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          merchant_id: string
+          product_name: string
+          sku?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          merchant_id?: string
+          product_name?: string
+          sku?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_offers_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promotion_rules: {
         Row: {
           active: boolean
@@ -898,6 +954,50 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          item_name: string
+          quantity: number
+          sku: string | null
+          total_price: number
+          transaction_id: string
+          unit_price: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_name: string
+          quantity?: number
+          sku?: string | null
+          total_price: number
+          transaction_id: string
+          unit_price: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string
+          quantity?: number
+          sku?: string | null
+          total_price?: number
+          transaction_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_items_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
