@@ -31,6 +31,7 @@ const MerchantDashboard = React.lazy(() => import("./pages/MerchantDashboard.tsx
 const MerchantCustomers = React.lazy(() => import("./pages/MerchantCustomers.tsx"));
 const MerchantInsights = React.lazy(() => import("./pages/MerchantInsights.tsx"));
 const MerchantMarketing = React.lazy(() => import("./pages/MerchantMarketing.tsx"));
+const MerchantPoints = React.lazy(() => import("./pages/MerchantPoints.tsx"));
 const MerchantSettings = React.lazy(() => import("./pages/MerchantSettings.tsx"));
 const AdminPanel = React.lazy(() => import("./pages/AdminPanel.tsx"));
 
@@ -78,6 +79,7 @@ const App = () => (
               {/* Protected: Merchant — Consolidated */}
               <Route path="/merchant/dashboard" element={<ProtectedRoute requiredRole="merchant"><MerchantDashboard /></ProtectedRoute>} />
               <Route path="/merchant/customers" element={<ProtectedRoute requiredRole="merchant"><MerchantCustomers /></ProtectedRoute>} />
+              <Route path="/merchant/points" element={<ProtectedRoute requiredRole="merchant"><MerchantPoints /></ProtectedRoute>} />
               <Route path="/merchant/insights" element={<ProtectedRoute requiredRole="merchant"><MerchantInsights /></ProtectedRoute>} />
               <Route path="/merchant/marketing" element={<ProtectedRoute requiredRole="merchant"><MerchantMarketing /></ProtectedRoute>} />
               <Route path="/merchant/settings" element={<ProtectedRoute requiredRole="merchant"><MerchantSettings /></ProtectedRoute>} />
@@ -93,7 +95,7 @@ const App = () => (
               <Route path="/merchant/birthday-offers" element={<Navigate to="/merchant/marketing?tab=birthday" replace />} />
               <Route path="/merchant/monthly-offers" element={<Navigate to="/merchant/marketing?tab=monthly" replace />} />
               <Route path="/merchant/ai-suggestions" element={<Navigate to="/merchant/marketing?tab=ai" replace />} />
-              <Route path="/merchant/gamification" element={<Navigate to="/merchant/settings?tab=gamification" replace />} />
+              <Route path="/merchant/gamification" element={<Navigate to="/merchant/points?tab=stamps" replace />} />
               <Route path="/merchant/pos" element={<Navigate to="/merchant/settings?tab=pos" replace />} />
 
               {/* Protected: Admin */}

@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
-  LayoutDashboard, Users, BarChart3, Megaphone, Settings
+  LayoutDashboard, Users, BarChart3, Megaphone, Settings, Coins
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", route: "/merchant/dashboard", icon: LayoutDashboard },
   { label: "Customers", route: "/merchant/customers", icon: Users },
+  { label: "Points", route: "/merchant/points", icon: Coins },
   { label: "Insights", route: "/merchant/insights", icon: BarChart3 },
   { label: "Marketing", route: "/merchant/marketing", icon: Megaphone },
   { label: "Settings", route: "/merchant/settings", icon: Settings },
@@ -46,9 +47,9 @@ const MerchantNav = ({ merchantId }: MerchantNavProps) => {
         ))}
       </aside>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — compact for 6 items */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border/50 shadow-card">
-        <div className="flex justify-around px-2 py-1.5">
+        <div className="flex justify-around px-1 py-1">
           {NAV_ITEMS.map((item) => {
             const isActive = location.pathname === item.route || location.pathname.startsWith(item.route + "/");
             return (
@@ -56,14 +57,14 @@ const MerchantNav = ({ merchantId }: MerchantNavProps) => {
                 key={item.route}
                 to={item.route}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-[10px] font-medium transition-colors",
+                  "flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg text-[9px] font-medium transition-colors min-w-0",
                   isActive
                     ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <item.icon size={18} />
-                <span>{item.label}</span>
+                <item.icon size={16} />
+                <span className="truncate">{item.label}</span>
               </NavLink>
             );
           })}

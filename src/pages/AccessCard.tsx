@@ -9,7 +9,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2,
   Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft
+  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
@@ -76,7 +76,7 @@ const WriteReviewSection = ({ customerName }: { customerName: string }) => {
 };
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
-interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; }
+interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
 interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
 interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
@@ -114,7 +114,7 @@ const AccessCard = () => {
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
-  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "explore">("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "explore" | "review">("my-rewards");
 
   // Auto-play carousel
   useEffect(() => {
@@ -176,9 +176,11 @@ const AccessCard = () => {
 
     const { data: txData } = await supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false });
     setTransactions(txData || []);
-    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name, logo_url");
+    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name, logo_url, industry_type, address");
     const merchantMap = new Map((merchantsData || []).map(m => [m.id, m.store_name]));
     const merchantLogoMap = new Map((merchantsData || []).map(m => [m.id, m.logo_url]));
+    const merchantIndustryMap = new Map((merchantsData || []).map(m => [m.id, m.industry_type]));
+    const merchantAddressMap = new Map((merchantsData || []).map(m => [m.id, m.address]));
 
     // Build customer merchants list
     const cmList: CustomerMerchantData[] = (cmData || []).map(cm => ({
@@ -189,6 +191,8 @@ const AccessCard = () => {
       visit_count: cm.visit_count,
       last_visit_at: cm.last_visit_at,
       logo_url: merchantLogoMap.get(cm.merchant_id),
+      industry_type: merchantIndustryMap.get(cm.merchant_id),
+      address: merchantAddressMap.get(cm.merchant_id),
     }));
     setCustomerMerchants(cmList);
 
@@ -297,30 +301,29 @@ const AccessCard = () => {
 
         {/* ─── Main Tab Switcher ─── */}
         <div className="flex gap-1 bg-card rounded-xl p-1 border border-border/50 shadow-card">
-          <button
-            onClick={() => setActiveMainTab("my-rewards")}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeMainTab === "my-rewards"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            🎁 My Rewards
-          </button>
-          <button
-            onClick={() => setActiveMainTab("explore")}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeMainTab === "explore"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            🔍 Explore
-          </button>
+          {[
+            { key: "my-rewards" as const, label: "🎁 My Rewards" },
+            { key: "explore" as const, label: "🔍 Explore" },
+            { key: "review" as const, label: "✍️ Review" },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveMainTab(tab.key)}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeMainTab === tab.key
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {activeMainTab === "explore" ? (
           <ExploreTab customerMerchantIds={customerMerchants.map(cm => cm.merchant_id)} />
+        ) : activeMainTab === "review" ? (
+          <WriteReviewSection customerName={customer?.full_name || ""} />
         ) : (
         <>
         {/* ─── My Stores Section ─── */}
@@ -344,22 +347,32 @@ const AccessCard = () => {
                     <button
                       key={cm.merchant_id}
                       onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
-                      className={`min-w-[160px] snap-start flex-shrink-0 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                      className={`min-w-[180px] snap-start flex-shrink-0 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${
                         isSelected
                           ? 'border-primary bg-primary/5 shadow-[0_0_15px_-4px_hsl(var(--primary)/0.3)]'
                           : 'border-border/30 bg-muted/20 hover:shadow-card'
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center overflow-hidden">
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center overflow-hidden shrink-0">
                           {cm.logo_url ? (
                             <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
                           ) : (
-                            <Store size={14} className="text-secondary" />
+                            <Store size={16} className="text-secondary" />
                           )}
                         </div>
-                        <p className="font-semibold text-xs text-foreground truncate flex-1">{cm.store_name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-xs text-foreground truncate">{cm.store_name}</p>
+                          {cm.industry_type && (
+                            <span className="text-[9px] text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-full">{cm.industry_type}</span>
+                          )}
+                        </div>
                       </div>
+                      {cm.address && (
+                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mb-1.5 truncate">
+                          <MapPin size={8} /> {cm.address}
+                        </p>
+                      )}
                       <p className="text-lg font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-[10px] font-normal text-muted-foreground">pts</span></p>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
                         <span>{cm.visit_count} visits</span>
@@ -706,10 +719,7 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Write a Review ─── */}
-        <ScrollReveal delay={225}>
-          <WriteReviewSection customerName={customer?.full_name || ""} />
-        </ScrollReveal>
+        {/* Admin Panel */}
 
         {/* ─── Admin Panel ─── */}
         {isAdmin && (

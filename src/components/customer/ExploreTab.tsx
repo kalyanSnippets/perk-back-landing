@@ -103,6 +103,11 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
 
   const merchantMap = useMemo(() => new Map(merchants.map((m) => [m.id, m])), [merchants]);
 
+  const uniqueIndustries = useMemo(
+    () => [...new Set(merchants.map(m => m.industry_type).filter(Boolean) as string[])].sort(),
+    [merchants]
+  );
+
   const filteredMerchants = useMemo(
     () => industryFilter ? merchants.filter((m) => m.industry_type === industryFilter) : merchants,
     [merchants, industryFilter]
@@ -262,7 +267,7 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
             <Store size={16} className="text-secondary" /> Browse Merchants
           </h3>
-          <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} />
+          <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} industries={uniqueIndustries} />
           {filteredMerchants.length === 0 ? (
             <div className="text-center py-8">
               <Store size={28} className="mx-auto text-muted-foreground/30 mb-2" />
@@ -280,22 +285,31 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                   <button
                     key={m.id}
                     onClick={() => setPreviewMerchantId(m.id)}
-                    className="rounded-xl border border-border/30 bg-card p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card"
+                    className="rounded-xl border border-border/30 bg-card p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card overflow-hidden"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-9 h-9 rounded-lg bg-secondary/10 flex items-center justify-center overflow-hidden">
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div className="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center overflow-hidden shrink-0">
                         {m.logo_url ? (
                           <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
                         ) : (
-                          <Store size={16} className="text-secondary" />
+                          <Store size={18} className="text-secondary" />
                         )}
                       </div>
-                      {isMember && (
-                        <span className="text-[8px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">MEMBER</span>
-                      )}
+                      <div className="min-w-0 flex-1">
+                        {isMember && (
+                          <span className="text-[8px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">MEMBER</span>
+                        )}
+                      </div>
                     </div>
                     <p className="font-semibold text-xs text-foreground truncate">{m.store_name}</p>
-                    <p className="text-[10px] text-muted-foreground">{m.industry_type || "Business"}</p>
+                    {m.industry_type && (
+                      <span className="text-[9px] text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-full inline-block mt-1">{m.industry_type}</span>
+                    )}
+                    {m.address && (
+                      <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mt-1 truncate">
+                        <MapPin size={8} /> {m.address}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-1.5">
                       {rewardCount > 0 && (
                         <span className="text-[9px] text-accent">{rewardCount} reward{rewardCount > 1 ? "s" : ""}</span>
