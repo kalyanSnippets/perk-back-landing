@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
+import MerchantNav from "@/components/merchant/MerchantNav";
 import PlanBadge from "@/components/merchant/PlanBadge";
 import UpgradeBanner from "@/components/merchant/UpgradeBanner";
 import CustomerLimitBanner from "@/components/merchant/CustomerLimitBanner";
@@ -189,11 +190,10 @@ const MerchantDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Store Title + Plan Badge */}
+        <div className="flex gap-6">
+          <MerchantNav merchantId={merchant.id} />
+          <div className="flex-1 min-w-0 space-y-6">
           <ScrollReveal>
-            <div className="flex items-start justify-between">
-              <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-[0.15em]">Merchant Dashboard</p>
                 <h1 className="text-2xl font-bold text-foreground mt-1">{merchant.store_name}</h1>
               </div>

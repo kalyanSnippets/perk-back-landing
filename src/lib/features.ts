@@ -24,6 +24,7 @@ export const FEATURE_CATALOG: FeatureDefinition[] = [
   { key: "analytics", name: "Analytics", minimumPlan: "growth", upgradeDescription: "Gain deep insights into customer behaviour and spending patterns.", overrideKey: "allow_analytics" },
   { key: "ai_suggestions", name: "AI Suggestions", minimumPlan: "growth", upgradeDescription: "Let AI craft smarter campaign ideas based on your customer data.", overrideKey: "allow_ai_suggestions" },
   { key: "unlimited_customers", name: "Unlimited Customers", minimumPlan: "growth", upgradeDescription: "Remove the 50-customer cap and grow your loyalty base without limits." },
+  { key: "product_offers", name: "Product Offers", minimumPlan: "growth", upgradeDescription: "Create SKU-level product discounts and BOGO deals for your customers.", overrideKey: "allow_campaigns" },
   // Pro
   { key: "pos_integration", name: "POS Integration", minimumPlan: "pro", upgradeDescription: "Connect Square and other POS systems to auto-sync transactions.", overrideKey: "allow_pos_integration" },
   { key: "advanced_reports", name: "Advanced Reports", minimumPlan: "pro", upgradeDescription: "Export detailed reports and access advanced business analytics.", overrideKey: "allow_advanced_reports" },
