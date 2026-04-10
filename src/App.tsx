@@ -34,6 +34,7 @@ const MerchantMarketing = React.lazy(() => import("./pages/MerchantMarketing.tsx
 const MerchantPoints = React.lazy(() => import("./pages/MerchantPoints.tsx"));
 const MerchantSettings = React.lazy(() => import("./pages/MerchantSettings.tsx"));
 const AdminPanel = React.lazy(() => import("./pages/AdminPanel.tsx"));
+const ReviewPage = React.lazy(() => import("./pages/ReviewPage.tsx"));
 
 const LazyFallback = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/reviews" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
 
               {/* Role Chooser */}
               <Route path="/choose-role" element={<ProtectedRoute><ChooseRole /></ProtectedRoute>} />
