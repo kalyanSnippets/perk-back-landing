@@ -72,20 +72,21 @@ const NfcTapButton = ({ customerId, customerCardNumber }: NfcTapButtonProps) => 
   return (
     <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-card">
       <div className="flex items-center gap-2 mb-3">
-        <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-secondary/10 flex items-center justify-center">
           <Smartphone size={14} className="text-secondary" />
         </div>
-        <div className="flex items-center gap-1.5">
-          <p className="text-xs font-bold text-foreground">Tap to Earn</p>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button type="button" className="text-muted-foreground hover:text-foreground"><Info size={11} /></button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[220px] text-[10px]">
-              NFC works on Android Chrome only. Hold your phone near the merchant's NFC tag at the counter. For iOS, use the QR fallback instead.
-            </TooltipContent>
-          </Tooltip>
-        </div>
+        <div>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-bold text-foreground">Tap to Earn</p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="text-muted-foreground hover:text-foreground"><Info size={11} /></button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-[10px]">
+                NFC works on Android Chrome only. Hold your phone near the merchant's NFC tag at the counter. For iOS, use the QR fallback instead.
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <p className="text-[10px] text-muted-foreground">Collect stamps at the counter</p>
         </div>
       </div>
