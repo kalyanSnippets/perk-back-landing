@@ -9,8 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Briefcase, Upload, Wifi, CreditCard, Check,
-  Stamp, Flame, Trophy, Gamepad2
+  Phone, MapPin, Briefcase, Upload, CreditCard, Check,
+  Stamp, Flame, Trophy
 } from "lucide-react";
 import PosTab from "@/components/merchant/PosTab";
 import Header from "@/components/Header";

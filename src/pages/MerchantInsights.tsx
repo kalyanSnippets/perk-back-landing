@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,13 +8,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   Search, Receipt, Clock, User, CreditCard, Users, DollarSign, Star,
-  Repeat, BarChart3, FileBarChart, Download, CheckCircle, XCircle, Shield, Gift
+  Repeat, BarChart3, Download, CheckCircle, XCircle, Shield, Gift
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
 import LockedFeature from "@/components/merchant/LockedFeature";
-import ScrollReveal from "@/components/ScrollReveal";
+
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
 interface Transaction {
