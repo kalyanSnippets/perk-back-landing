@@ -114,7 +114,7 @@ const AccessCard = () => {
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
-  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "explore">("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "explore" | "review">("my-rewards");
 
   // Auto-play carousel
   useEffect(() => {
@@ -297,26 +297,23 @@ const AccessCard = () => {
 
         {/* ─── Main Tab Switcher ─── */}
         <div className="flex gap-1 bg-card rounded-xl p-1 border border-border/50 shadow-card">
-          <button
-            onClick={() => setActiveMainTab("my-rewards")}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeMainTab === "my-rewards"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            🎁 My Rewards
-          </button>
-          <button
-            onClick={() => setActiveMainTab("explore")}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeMainTab === "explore"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            🔍 Explore
-          </button>
+          {[
+            { key: "my-rewards" as const, label: "🎁 My Rewards" },
+            { key: "explore" as const, label: "🔍 Explore" },
+            { key: "review" as const, label: "✍️ Review" },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveMainTab(tab.key)}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeMainTab === tab.key
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {activeMainTab === "explore" ? (
