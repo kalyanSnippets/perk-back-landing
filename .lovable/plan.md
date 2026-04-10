@@ -1,114 +1,75 @@
 
 
-## Combined Plan: Dashboard Consolidation + Digital Receipts + Product Offers + Performance & Security
+## Plan: Dashboard UX Overhaul, Merchant Registration, Merchant Branding, and Navigation Fixes
 
-This plan merges two previously approved plans into a single implementation pass.
+This plan addresses all the issues raised: gamification placement, mobile navigation, merchant registration requirements, attractive merchant branding, review section relocation, and industry filter fixes.
 
 ---
 
-### Part 1: Merchant Dashboard Consolidation
+### 1. Move Gamification into a "Points & Stamps" Section
 
-Reduce 13+ nav items to **5 unified sections** with internal tabs.
-
-```text
-BEFORE (13 items)                  AFTER (5 items)
-──────────────────                 ─────────────────
-Dashboard                    →    Dashboard (KPIs + Add Points)
-Customers                    →    Customers
-Transactions                 →    Insights (Transactions | Analytics | Reports | Redemptions)
-Campaigns                    →    Marketing (Campaigns | Promotions | Rewards | Offers | Birthday | Monthly | AI | Product Offers)
-Rewards                      →    Settings (Business | Profile | Password | POS | NFC | Subscription | Gamification)
-Analytics / AI / Gamification
-Promotions / Birthday / Monthly
-POS / Reports / Redemptions
-Settings
-```
+Currently gamification settings live under Settings. Move stamp card configuration and the "Add Points" action into a new unified nav item called "Points" that replaces the current Dashboard "Add Points" modal approach.
 
 **Changes:**
-- `MerchantNav.tsx` — reduce to 5 items: Dashboard, Customers, Insights, Marketing, Settings
-- New `MerchantInsights.tsx` — tabs composing content extracted from Transactions, Analytics, Reports, Redemptions pages
-- New `MerchantMarketing.tsx` — tabs composing content from Campaigns, Promotions, Rewards, Birthday/Monthly Offers, AI Suggestions, plus new Product Offers tab
-- Update `MerchantSettings.tsx` — add Gamification and NFC tabs alongside existing Business/Profile/Password/POS/Subscription
-- Update `App.tsx` — add new consolidated routes, redirect old routes to new ones
-- Simplify `MerchantDashboard.tsx` — remove feature cards that now live under tabs
+- `MerchantNav.tsx` — Change nav from 5 to 6 items: Dashboard, Customers, **Points**, Insights, Marketing, Settings. The "Points" item links to `/merchant/points`
+- New `src/pages/MerchantPoints.tsx` — Consolidated page with tabs: **Add Points** (the existing add-points form), **Stamp Cards** (gamification stamp config moved from Settings), **QR Scanner** (stamp scanner)
+- `MerchantSettings.tsx` — Remove the Gamification tab
+- `MerchantDashboard.tsx` — Remove the Add Points feature card and modal (moved to Points page)
+- `App.tsx` — Add `/merchant/points` route
 
----
+### 2. Fix Mobile Bottom Navigation
 
-### Part 2: Digital Receipt Storage
+The 6 nav items need to fit on mobile. Use smaller icons and compact layout so all items are visible without scrolling.
 
-**Database:** New `receipt_items` table
+**Changes:**
+- `MerchantNav.tsx` — Adjust mobile bottom nav to use `text-[9px]`, smaller icon sizes (16px), tighter padding, and `justify-around` to fit 6 items evenly
 
-| Column | Type |
-|--------|------|
-| id | uuid PK |
-| transaction_id | uuid FK → transactions |
-| item_name | text |
-| quantity | integer (default 1) |
-| unit_price | numeric |
-| total_price | numeric |
-| sku | text (nullable) |
-| category | text (nullable) |
-| created_at | timestamptz |
+### 3. Mandatory Fields in Merchant Registration
 
-**RLS:** Customers SELECT via transaction ownership, merchants INSERT/SELECT own.
+Add required fields during signup: logo upload, address, phone number, industry type (dropdown).
 
-**UI:** New `ReceiptDetail.tsx` dialog — customers tap a transaction to see itemized receipt. Integrated into `AccessCard.tsx` transaction history.
+**Changes:**
+- `MerchantAuth.tsx` — Add fields for: **Logo** (file upload to `profile-images` bucket), **Address**, **Phone Number**, **Industry Type** (dropdown: Coffee Shop, Retail, Restaurant). All required during signup. After signup, insert merchant record with all fields populated and upload logo to storage.
 
----
+### 4. Attractive Merchant Dashboard Header with Logo & Banner
 
-### Part 3: Product/SKU-Level Offers
+Replace the plain text heading with a branded banner showing merchant logo, store name, industry badge, and a gradient banner background.
 
-**Database:** New `product_offers` table
+**Changes:**
+- `MerchantDashboard.tsx` — Replace the heading section with a banner card: gradient background, merchant logo (or placeholder), store name in large bold text, industry type badge, address snippet. Fetch `logo_url`, `industry_type`, `address`, `profile_image_url` from merchants table.
+- Update `MerchantData` interface to include `logo_url`, `industry_type`, `address`, `profile_image_url`
 
-| Column | Type |
-|--------|------|
-| id | uuid PK |
-| merchant_id | uuid |
-| product_name | text |
-| sku | text (nullable) |
-| category | text (nullable) |
-| discount_type | text ('percent', 'fixed', 'bogo') |
-| discount_value | numeric |
-| description | text (nullable) |
-| active | boolean (default true) |
-| valid_from | timestamptz (nullable) |
-| valid_to | timestamptz (nullable) |
-| created_at, updated_at | timestamptz |
+### 5. Attractive Merchant Cards in Customer Views
 
-**RLS:** Merchants ALL own, authenticated SELECT active.
+Make merchant displays in "My Stores" and "Browse Merchants" more visually appealing with merchant photos, industry badges, and richer detail.
 
-**UI:** New `ProductOffersTab.tsx` inside Marketing consolidated page. Customer Access Card shows product offers in promo carousel.
+**Changes:**
+- `AccessCard.tsx` (My Stores section) — Enlarge store cards, show a larger logo/photo, add industry type badge, address line. Use a card-style layout with gradient accent.
+- `ExploreTab.tsx` (Browse Merchants grid) — Enlarge merchant cards, show bigger logo, add industry type as a colored badge, show address, add a "banner" gradient strip behind logo. Make cards more visually attractive.
+- Fetch `profile_image_url`, `address`, `industry_type` alongside existing merchant queries
 
-**Feature catalog:** Add `product_offers` key at Growth tier.
+### 6. Move "Write a Review" into Customer Navigation
 
----
+Remove the review section from the bottom of AccessCard and add it as a tab in the main tab switcher (My Rewards | Explore | **Review**).
 
-### Part 4: Security Hardening
+**Changes:**
+- `AccessCard.tsx` — Remove `<WriteReviewSection>` from the bottom. Add a third tab "Review" to the main tab switcher. Show `WriteReviewSection` when that tab is active.
 
-1. **Merchants table SELECT policy** — Replace `USING (true)` with a security-definer function `safe_merchant_public_info()` that only exposes `id`, `store_name`, `logo_url`, `industry_type`, `latitude`, `longitude`. Owner policy unchanged.
+### 7. Fix Industry Filter in Browse Merchants
 
-2. **Storage bucket path enforcement** — Add `(storage.foldername(name))[1] = auth.uid()::text` to INSERT/UPDATE policies on `profile-images`. Add scoped DELETE policy.
+The filter doesn't work because DB values ("Coffee supplies", "Restaurent") don't match filter values ("Coffee Shop", "Restaurant"). Fix this by making the filter dynamic — fetch actual industry types from the database.
 
-3. **Realtime publication cleanup** — Remove `customers`, `transactions`, `redemptions`, `customer_stamps` from `supabase_realtime` publication (not actively used for realtime).
+**Changes:**
+- `IndustryFilter.tsx` — Accept `industries` prop (list of actual industry types from DB) instead of hardcoded values. Add icons based on keyword matching (coffee → Coffee icon, restaurant → UtensilsCrossed, retail → ShoppingBag).
+- `ExploreTab.tsx` — Extract unique industry types from fetched merchants and pass to `IndustryFilter`
+- **DB data fix** — Use insert tool to update the misspelled "Restaurent" → "Restaurant" in the merchants table. Standardize "Coffee supplies" to "Coffee Shop" if appropriate (will confirm with migration or data update).
 
-4. **Storage DELETE policy** — Add owner-scoped DELETE for `profile-images` bucket.
+### 8. Industry Type Dropdown in Settings
 
----
+Change the industry type input from free text to a dropdown to prevent future mismatches.
 
-### Part 5: Performance Optimization
-
-1. **Database indexes** — Add composite indexes:
-   - `transactions(merchant_id, transaction_date)`
-   - `transactions(customer_id)`
-   - `customer_merchants(customer_id)`
-   - `customer_stamps(customer_id, completed)`
-   - `redemptions(customer_id, status)`
-
-2. **Lazy-load routes** — Use `React.lazy()` + `Suspense` in `App.tsx` for merchant and admin pages to reduce initial bundle.
-
-3. **Parallelize queries** — Refactor `MerchantDashboard.tsx` and `AccessCard.tsx` to use `Promise.all` / React Query for parallel data fetching instead of sequential waterfalls.
-
-4. **Auth context cleanup** — Remove redundant `getUser()` calls in individual pages; standardize on `useAuth()` context.
+**Changes:**
+- `MerchantSettings.tsx` (Business tab) — Replace the Industry Type text input with a `<Select>` dropdown offering: Coffee Shop, Retail, Restaurant, plus an "Other" option with custom input.
 
 ---
 
@@ -116,24 +77,14 @@ Settings
 
 | File | Change |
 |------|--------|
-| **DB migration** | Create `receipt_items`, `product_offers` tables + RLS + indexes |
-| **DB migration** | Fix merchants SELECT policy, storage policies, remove Realtime tables |
-| **DB migration** | Create `safe_merchant_public_info` function |
-| `src/pages/MerchantInsights.tsx` | **New** — consolidated Transactions/Analytics/Reports/Redemptions |
-| `src/pages/MerchantMarketing.tsx` | **New** — consolidated Campaigns/Promotions/Rewards/Offers/Birthday/Monthly/AI/ProductOffers |
-| `src/components/merchant/ProductOffersTab.tsx` | **New** — product-level offers CRUD |
-| `src/components/customer/ReceiptDetail.tsx` | **New** — itemized receipt dialog |
-| `src/components/merchant/MerchantNav.tsx` | Reduce to 5 nav items |
-| `src/pages/MerchantSettings.tsx` | Add Gamification + NFC tabs |
-| `src/pages/MerchantDashboard.tsx` | Simplify cards, parallelize queries, remove redundant auth calls |
-| `src/pages/AccessCard.tsx` | Add receipt viewing, product offers, extract sub-components, parallelize queries |
-| `src/App.tsx` | Lazy-load routes, add consolidated routes, redirect old ones |
-| `src/lib/features.ts` | Add `product_offers` feature key |
-
-### What Stays the Same
-- All existing data, loyalty logic, and points system
-- Authentication flows and subscription gating
-- Customer stamp cards, NFC tap, QR scanning
-- POS integration logic
-- Admin panel
+| `src/components/merchant/MerchantNav.tsx` | Add "Points" nav item (6 total), fix mobile layout for 6 items |
+| `src/pages/MerchantPoints.tsx` | **New** — Add Points + Stamp Cards + QR Scanner tabs |
+| `src/pages/MerchantAuth.tsx` | Add logo upload, address, phone, industry dropdown as required fields |
+| `src/pages/MerchantDashboard.tsx` | Branded banner header with logo/industry, remove Add Points card |
+| `src/pages/MerchantSettings.tsx` | Remove Gamification tab, industry type → dropdown |
+| `src/pages/AccessCard.tsx` | Move review to tab, enhance My Stores cards |
+| `src/components/customer/ExploreTab.tsx` | Dynamic industry filter, richer merchant cards |
+| `src/components/customer/IndustryFilter.tsx` | Accept dynamic industries prop |
+| `src/App.tsx` | Add `/merchant/points` route |
+| **Data update** | Fix "Restaurent" → "Restaurant", "Coffee supplies" → "Coffee Shop" |
 
