@@ -255,6 +255,7 @@ const MerchantDashboard = () => {
               </div>
             </div>
           </ScrollReveal>
+          </div>
         </div>
       </div>
 
