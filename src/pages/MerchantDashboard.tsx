@@ -1,14 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import {
   Users, Receipt, Star, DollarSign,
-  Plus, CreditCard,
-  CheckCircle, X, BarChart3, Megaphone, Settings
+  BarChart3, Megaphone, Settings, Coins, Store, MapPin, Building2
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Header from "@/components/Header";
@@ -22,6 +17,10 @@ import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 interface MerchantData {
   id: string;
   store_name: string;
+  logo_url: string | null;
+  industry_type: string | null;
+  address: string | null;
+  profile_image_url: string | null;
 }
 
 interface KPIs {
@@ -36,10 +35,6 @@ const MerchantDashboard = () => {
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [kpis, setKpis] = useState<KPIs>({ totalCustomers: 0, transactionsToday: 0, totalPointsAwarded: 0, revenueToday: 0 });
   const [loading, setLoading] = useState(true);
-  const [showAddPoints, setShowAddPoints] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
-  const [purchaseAmount, setPurchaseAmount] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const { plan, status, canAccess, customerLimit, loading: subLoading } = useMerchantSubscription(merchant?.id);
 
@@ -49,7 +44,7 @@ const MerchantDashboard = () => {
 
     const { data: m } = await supabase
       .from("merchants")
-      .select("id, store_name")
+      .select("id, store_name, logo_url, industry_type, address, profile_image_url")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -105,43 +100,8 @@ const MerchantDashboard = () => {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchMerchant, fetchKPIs]);
-
-  const handleAddPoints = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!merchant) return;
-    setSubmitting(true);
-
-    try {
-      const { data, error } = await supabase.rpc("add_points_to_customer", {
-        _loyalty_card_number: cardNumber.trim(),
-        _purchase_amount: parseFloat(purchaseAmount),
-        _merchant_id: merchant.id,
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; error?: string; customer_name?: string; points_awarded?: number };
-
-      if (!result.success) {
-        toast.error(result.error || "Failed to add points");
-        return;
-      }
-
-      toast.success(`Awarded ${result.points_awarded} points to ${result.customer_name}`);
-      setCardNumber("");
-      setPurchaseAmount("");
-      setShowAddPoints(false);
-      await fetchKPIs(merchant.id);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to add points");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -165,10 +125,10 @@ const MerchantDashboard = () => {
 
   const featureCards = [
     { icon: Users, label: "Customers", description: "View and manage your loyalty customers.", route: "/merchant/customers", featureKey: "customers" },
-    { icon: Plus, label: "Add Points", description: "Award loyalty points to customers.", featureKey: "add_points", onClick: () => setShowAddPoints(true) },
-    { icon: Receipt, label: "Insights", description: "Transactions, analytics, reports & redemptions.", route: "/merchant/insights", featureKey: "transactions" },
-    { icon: Megaphone, label: "Marketing", description: "Campaigns, rewards, promotions & offers.", route: "/merchant/marketing", featureKey: "campaigns" },
-    { icon: Settings, label: "Settings", description: "Business profile, POS, gamification & plan.", route: "/merchant/settings", featureKey: "settings" },
+    { icon: Coins, label: "Points & Stamps", description: "Add points, manage stamp cards.", route: "/merchant/points", featureKey: "add_points" },
+    { icon: Receipt, label: "Insights", description: "Transactions, analytics & reports.", route: "/merchant/insights", featureKey: "transactions" },
+    { icon: Megaphone, label: "Marketing", description: "Campaigns, rewards & promotions.", route: "/merchant/marketing", featureKey: "campaigns" },
+    { icon: Settings, label: "Settings", description: "Business profile, POS & plan.", route: "/merchant/settings", featureKey: "settings" },
   ];
 
   return (
@@ -182,142 +142,95 @@ const MerchantDashboard = () => {
         <div className="flex gap-6">
           <MerchantNav merchantId={merchant.id} />
           <div className="flex-1 min-w-0 space-y-6">
-          <ScrollReveal>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-[0.15em]">Merchant Dashboard</p>
-                <h1 className="text-2xl font-bold text-foreground mt-1">{merchant.store_name}</h1>
-              </div>
-              {!subLoading && <PlanBadge plan={plan} status={status} />}
-            </div>
-          </ScrollReveal>
 
-          {/* Upgrade Banner */}
-          {!subLoading && (plan === "free" || plan === "growth") && (
-            <ScrollReveal delay={50}>
-              <UpgradeBanner currentPlan={plan} />
-            </ScrollReveal>
-          )}
-
-          {/* Customer Limit Banner */}
-          {!subLoading && plan === "free" && (
-            <CustomerLimitBanner currentCount={kpis.totalCustomers} limit={customerLimit} />
-          )}
-
-          {/* KPI Cards */}
-          <ScrollReveal delay={100}>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {kpiCards.map((kpi, i) => (
-                <div
-                  key={i}
-                  className="bg-card rounded-2xl p-5 shadow-card border border-border/50 hover:-translate-y-0.5 hover:shadow-card-hover transition-all duration-200"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center">
-                      <kpi.icon size={16} className={kpi.color} />
+            {/* Branded Banner */}
+            <ScrollReveal>
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-5 sm:p-6 shadow-card-hover">
+                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full border border-primary-foreground/10" />
+                <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full border border-primary-foreground/8" />
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-primary-foreground/20 shrink-0">
+                    {merchant.logo_url ? (
+                      <img src={merchant.logo_url} alt={merchant.store_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Store size={28} className="text-primary-foreground/60" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.15em]">Merchant Dashboard</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-primary-foreground truncate">{merchant.store_name}</h1>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      {merchant.industry_type && (
+                        <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Building2 size={9} /> {merchant.industry_type}
+                        </span>
+                      )}
+                      {merchant.address && (
+                        <span className="text-[10px] text-primary-foreground/60 flex items-center gap-1 truncate">
+                          <MapPin size={9} /> {merchant.address}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-foreground tabular-nums">{kpi.value}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{kpi.label}</p>
+                  {!subLoading && <PlanBadge plan={plan} status={status} />}
                 </div>
-              ))}
-            </div>
-          </ScrollReveal>
+              </div>
+            </ScrollReveal>
 
-          {/* Feature Cards Grid */}
-          <ScrollReveal delay={150}>
-            <div>
-              <h2 className="text-sm font-bold text-foreground mb-3">Features</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {featureCards.map((card) => (
-                  <DashboardFeatureCard
-                    key={card.featureKey}
-                    icon={card.icon}
-                    label={card.label}
-                    description={card.description}
-                    route={card.route}
-                    featureKey={card.featureKey}
-                    isLocked={!canAccess(card.featureKey)}
-                    onClick={card.onClick}
-                  />
+            {/* Upgrade Banner */}
+            {!subLoading && (plan === "free" || plan === "growth") && (
+              <ScrollReveal delay={50}>
+                <UpgradeBanner currentPlan={plan} />
+              </ScrollReveal>
+            )}
+
+            {/* Customer Limit Banner */}
+            {!subLoading && plan === "free" && (
+              <CustomerLimitBanner currentCount={kpis.totalCustomers} limit={customerLimit} />
+            )}
+
+            {/* KPI Cards */}
+            <ScrollReveal delay={100}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {kpiCards.map((kpi, i) => (
+                  <div
+                    key={i}
+                    className="bg-card rounded-2xl p-5 shadow-card border border-border/50 hover:-translate-y-0.5 hover:shadow-card-hover transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center">
+                        <kpi.icon size={16} className={kpi.color} />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground tabular-nums">{kpi.value}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{kpi.label}</p>
+                  </div>
                 ))}
               </div>
-            </div>
-          </ScrollReveal>
+            </ScrollReveal>
+
+            {/* Feature Cards Grid */}
+            <ScrollReveal delay={150}>
+              <div>
+                <h2 className="text-sm font-bold text-foreground mb-3">Features</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {featureCards.map((card) => (
+                    <DashboardFeatureCard
+                      key={card.featureKey}
+                      icon={card.icon}
+                      label={card.label}
+                      description={card.description}
+                      route={card.route}
+                      featureKey={card.featureKey}
+                      isLocked={!canAccess(card.featureKey)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </div>
-
-      {/* Add Points Modal */}
-      {showAddPoints && (
-        <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="bg-card rounded-2xl p-6 shadow-card-hover w-full max-w-md animate-fade-up">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Plus size={20} className="text-secondary" />
-                Add Points
-              </h2>
-              <button onClick={() => setShowAddPoints(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddPoints} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="cardNumber">Loyalty Card Number</Label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input
-                    id="cardNumber"
-                    placeholder="Enter 10-digit card number"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="purchaseAmount">Purchase Amount ($)</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input
-                    id="purchaseAmount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="0.00"
-                    value={purchaseAmount}
-                    onChange={(e) => setPurchaseAmount(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              {purchaseAmount && parseFloat(purchaseAmount) > 0 && (
-                <div className="bg-accent/10 rounded-xl p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Points to award</p>
-                  <p className="text-2xl font-bold text-accent-foreground">
-                    {Math.floor(parseFloat(purchaseAmount) / 2)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">1 point per $2 spent</p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowAddPoints(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" variant="hero" className="flex-1 gap-2" disabled={submitting}>
-                  <CheckCircle size={16} />
-                  {submitting ? "Processing..." : "Award Points"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
