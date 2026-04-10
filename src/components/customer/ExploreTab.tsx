@@ -103,6 +103,11 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
 
   const merchantMap = useMemo(() => new Map(merchants.map((m) => [m.id, m])), [merchants]);
 
+  const uniqueIndustries = useMemo(
+    () => [...new Set(merchants.map(m => m.industry_type).filter(Boolean) as string[])].sort(),
+    [merchants]
+  );
+
   const filteredMerchants = useMemo(
     () => industryFilter ? merchants.filter((m) => m.industry_type === industryFilter) : merchants,
     [merchants, industryFilter]
@@ -262,7 +267,7 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
             <Store size={16} className="text-secondary" /> Browse Merchants
           </h3>
-          <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} />
+          <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} industries={uniqueIndustries} />
           {filteredMerchants.length === 0 ? (
             <div className="text-center py-8">
               <Store size={28} className="mx-auto text-muted-foreground/30 mb-2" />
