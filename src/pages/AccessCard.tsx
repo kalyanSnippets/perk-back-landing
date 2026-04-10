@@ -318,6 +318,8 @@ const AccessCard = () => {
 
         {activeMainTab === "explore" ? (
           <ExploreTab customerMerchantIds={customerMerchants.map(cm => cm.merchant_id)} />
+        ) : activeMainTab === "review" ? (
+          <WriteReviewSection customerName={customer?.full_name || ""} />
         ) : (
         <>
         {/* ─── My Stores Section ─── */}
