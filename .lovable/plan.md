@@ -1,112 +1,122 @@
 
 
-## Plan: Settings Enhancements, Customer Dashboard Restructure, Search, Reviews Navigation, and UX Improvements
+## Plan: GoRewards-Inspired UI Overhaul
 
-This plan addresses all requested changes across merchant settings, customer dashboard, navigation, NFC explanation, and visual improvements.
+This plan transforms PerkBack's visual identity to match the vibrant, colorful, playful design language of GoRewards (gorewards.com.ph) -- the Philippine retail loyalty app by Robinsons Retail.
 
 ---
 
-### 1. Settings Plan Tab: Add "Change Plan" and "Delete Subscription" Buttons
+### GoRewards Design Language Analysis
 
-Currently the Plan tab only shows included/locked features. Add:
-- **Change Plan** button that navigates to the pricing page or triggers an upgrade request
-- **Delete Subscription** button with a confirmation dialog that downgrades to Free plan
+From the GoRewards website and app screenshots, the key design traits are:
+- **Bold primary red** (`#E53935`) with white and blue accents
+- **Playful floating shapes**: colorful circles, dots, hearts, abstract blobs scattered across sections
+- **Large rounded cards** with generous padding and soft shadows
+- **Bright, saturated section backgrounds** (red hero sections, white content areas)
+- **Friendly, warm typography** with bold headings
+- **Colorful iconography** using filled circular icon containers in red, blue, gold, green
+- **Carousel-based promos** with full-bleed gradient cards
+- **Clean white nav** with a bold accent-color login button
 
-**File:** `MerchantSettings.tsx` (subscription tab section, lines 234-262)
+### What Changes
 
-### 2. Profile Tab: Add "Delete Photo" and "Delete Logo" Buttons + Image Specs
+We will NOT change the app's blue/gold brand palette (PerkBack's identity should remain). Instead, we adopt GoRewards' **design patterns and visual energy**:
 
-Add delete buttons next to the upload buttons for both profile photo and business logo. Show recommended image specifications.
+---
 
-**Changes in `MerchantSettings.tsx`:**
-- Profile photo section: Add "Delete Photo" button that sets `profile_image_url` to null. Show spec: "Recommended: 400x400px, square, JPG/PNG, max 2MB"
-- Business logo section: Add "Delete Logo" button that sets `logo_url` to null. Show spec: "Recommended: 200x200px, square with transparent background, PNG, max 2MB. This appears on your dashboard banner and customer cards."
+### 1. Color & CSS Variable Updates
 
-### 3. Customer Search in Points & Stamps (Add Points, Stamp Cards, QR Scanner)
+**File: `src/index.css`**
+- Add vibrant decorative accent colors for shapes: coral-red, teal, amber, emerald
+- Add new CSS utility classes for floating shapes (`.floating-circle`, `.floating-dot`)
+- Add shimmer/glow keyframe animations for cards
+- Increase `--radius` to `1rem` for rounder cards everywhere
+- Add a `.gradient-blob` class for colorful background blobs
 
-Add a phone/mobile number search field to find customer loyalty card numbers. When the merchant types a phone number, search the `customers` table for matching records and display the loyalty card number.
+### 2. Hero Section Overhaul
 
-**File:** `MerchantPoints.tsx`
-- Add a shared "Find Customer" search component at the top of Add Points and QR Scanner tabs
-- Search by phone number against `customers.phone` column
-- Display matching customer name and loyalty card number
-- Auto-fill the card number field when a customer is selected
+**File: `src/components/HeroSection.tsx`**
+- Add floating decorative shapes (colored circles, rings, dots) like GoRewards' hero
+- Larger, bolder headline with playful line breaks
+- More saturated gradient background (from soft blue to deeper blue/purple)
+- Bigger CTA buttons with rounded-full shape (pill buttons)
+- Add a floating phone mockup or card illustration alongside the text (reuse existing loyalty card image)
 
-**New component:** `src/components/merchant/CustomerSearch.tsx`
-- Input field for phone number
-- Searches `customers` table via a security-definer function (since merchants can't directly query customers table)
-- Shows results with name + card number
+### 3. How It Works Section
 
-**Database:** New RPC function `search_customer_by_phone` (security definer) that takes merchant_id and phone, returns matching customer id, name, and loyalty_card_number only if the customer has a relationship with that merchant (via `customer_merchants` table).
+**File: `src/components/HowItWorks.tsx`**
+- Circular icon containers (filled, saturated colors: red, blue, gold) instead of gradient squares
+- Numbered step badges with brighter colors
+- Add subtle floating shapes in the background
 
-### 4. Streaks & Customer Levels Explanation
+### 4. Rewards Showcase
 
-This is an informational answer (no code change):
+**File: `src/components/RewardsShowcase.tsx`**
+- Larger cards with colored left borders or top accent strips
+- Progress bars with gradient fills matching GoRewards' colorful style
+- Stamp card visualization with filled/empty circles (like GoRewards' visual stamps)
 
-**Visit Streaks:** When a merchant enables streaks with threshold of 5, customers who visit 5 consecutive times (e.g., 5 days in a row or 5 visits without a long gap) earn the configured bonus reward (e.g., bonus points). The merchant sets this up; customers see their streak progress on their dashboard. Currently, streak tracking logic is **not yet fully implemented** in the backend -- the `gamification_settings` table stores the config, but there's no `customer_streaks` table or trigger to track consecutive visits. This would need a future implementation.
+### 5. Benefits Section
 
-**Customer Levels (Bronze/Silver/Gold/VIP):** These are tier labels based on cumulative points at a merchant. When a merchant enables levels, customers are categorized into tiers (Bronze 0+, Silver 500+, Gold 1500+, VIP 5000+). Currently, levels are **display-only configuration** -- the tiers show in settings but aren't surfaced on the customer dashboard yet. Future implementation would show the customer their current tier and perks.
+**File: `src/components/BenefitsSection.tsx`**
+- Two-column layout with colored icon circles (not gradient squares)
+- Add playful floating shapes in background
 
-### 5. Plan Badge Visibility on Merchant Dashboard Banner
+### 6. Header & Footer
 
-The `PlanBadge` component uses `bg-muted text-muted-foreground` for the Free plan, which blends into the dark gradient banner. Fix by adding a banner-specific variant.
+**File: `src/components/Header.tsx`**
+- Cleaner white background (remove blur/transparency for crispness)
+- Bold accent-colored CTA button (pill shape)
 
-**File:** `MerchantDashboard.tsx` (line 175)
-- Wrap `PlanBadge` with a white/light background pill so it's visible against the gradient: `bg-white/20 backdrop-blur-sm` container, or override PlanBadge styles for banner context with light text colors.
+**File: `src/components/Footer.tsx`**
+- Warmer dark blue footer with brighter accent links
 
-**File:** `PlanBadge.tsx`
-- Add an optional `variant="banner"` prop that uses light/white text styles for dark backgrounds.
+### 7. Customer Access Card (Dashboard)
 
-### 6. Move "Reviews" to Header Navigation (Below Contact Us)
+**File: `src/pages/AccessCard.tsx`**
+- Tab switcher redesigned as pill-shaped segmented control with bold active color
+- My Stores cards: larger with colored left accent strip + merchant logo prominent
+- Points balance: bigger number, animated counter feel, colorful star icon
+- Rewards cards: vibrant gradient backgrounds per reward type, bigger CTAs
+- Promo carousel: bolder gradients, larger text, floating decorative shapes
 
-Currently "Review" is a tab inside AccessCard. Move it to the main site navigation as a standalone page.
+### 8. Merchant Dashboard
 
-**Changes:**
-- `Header.tsx` — Add "Reviews" nav link after "Contact Us" in the `navLinks` array
-- `AccessCard.tsx` — Remove "Review" from the 3-tab switcher, make it 2 tabs (My Rewards | Explore)
-- New `src/pages/ReviewPage.tsx` — Standalone page with the `WriteReviewSection` component, accessible to logged-in customers
-- `App.tsx` — Add `/reviews` route
+**File: `src/pages/MerchantDashboard.tsx`**
+- KPI stat cards with colored icon circles (red, blue, gold, green) instead of muted icons
+- Feature cards with colored left borders and brighter hover states
+- Banner: add floating shapes, more vibrant gradient
 
-### 7. Separate "Card" Tab in Customer Access Card
+### 9. Merchant Nav (Mobile Bottom Bar)
 
-Move the loyalty card display (barcode, card details, copy/share actions, wallet buttons) into a dedicated "Card" tab.
+**File: `src/components/merchant/MerchantNav.tsx`**
+- Colored active icon (not just text change), add a subtle pill background behind active item
+- Slightly larger icons for better tap targets
 
-**File:** `AccessCard.tsx`
-- Change tab switcher to 3 tabs: **My Rewards** | **My Card** | **Explore**
-- "My Card" tab shows: loyalty card with barcode, card details (CRN, card number, issued date), copy/share actions, wallet buttons
-- "My Rewards" tab becomes more focused: My Stores, Points Balance, Promotions carousel, Available Rewards (redesigned), Stamp Cards, NFC Tap, Monthly Offers, Redemption History
+### 10. Dashboard Feature Cards
 
-### 8. Customer Dashboard: Focus on Offers, Rewards, Stamps
+**File: `src/components/merchant/DashboardFeatureCard.tsx`**
+- Add colored left accent strip based on feature category
+- Brighter icon containers with saturated fills
 
-Restructure the "My Rewards" tab to prioritize promotional content:
+### 11. Button Variants
 
-**File:** `AccessCard.tsx` (My Rewards tab restructure)
-- Order: My Stores → Points Balance → **Promo Carousel** (campaigns + monthly offers) → **Available Rewards** (redesigned, see below) → **Stamp Card & NFC** → Points History (collapsed) → Redemption History
-- Remove loyalty card from this tab (moved to "My Card")
+**File: `src/components/ui/button.tsx`**
+- Update `hero` variant: more rounded (rounded-full), bolder shadow
+- Add `pill` size variant for fully rounded buttons
 
-### 9. Available Rewards: Make More Attractive
+### 12. Card Component
 
-Redesign the rewards cards with modern trends:
+**File: `src/components/ui/card.tsx`**
+- Increase default border-radius to `rounded-2xl`
+- Add subtle hover scale transition
 
-**File:** `AccessCard.tsx` (rewards section, lines 547-604)
-- Use larger cards with gradient backgrounds per reward type
-- Add a shimmer effect on "Ready to redeem" cards
-- Show merchant logo alongside store name
-- Add a prominent CTA button on each card ("Claim" or "X pts to go")
-- Use glassmorphism-style card borders
-- If reward has no image, show a colorful gradient placeholder with the reward type icon
+### 13. Tailwind Config
 
-### 10. NFC Explanation and Status
-
-**How NFC works in PerkBack:** The Web NFC API is used on Android Chrome. When a customer taps "Tap NFC Tag," their phone starts scanning. The merchant has a physical NFC tag at the counter programmed with a unique token. When the customer's phone reads the token, it calls the `process-nfc-tap` edge function which validates the token against `nfc_tap_tokens` table and awards a stamp.
-
-**Current limitations and fixes needed:**
-- NFC only works on Android Chrome (Web NFC API). iOS does not support Web NFC.
-- For iOS, the QR fallback exists (shows card number for merchant to manually enter)
-- The NFC tag must be programmed with the merchant's token (generated in the NFC settings tab)
-- No code fixes needed -- the implementation is functional. The main gap is documentation/onboarding for merchants on how to program NFC tags.
-
-No code changes for NFC, but I'll add a small info tooltip in the `NfcTapButton` component explaining how it works.
+**File: `tailwind.config.ts`**
+- Add decorative colors: `coral`, `teal`, `emerald-accent`, `warm-amber`
+- Add `float-slow` and `float-fast` animation variants
+- Increase default radius
 
 ---
 
@@ -114,15 +124,24 @@ No code changes for NFC, but I'll add a small info tooltip in the `NfcTapButton`
 
 | File | Change |
 |------|--------|
-| `MerchantSettings.tsx` | Add Change Plan + Delete Subscription buttons, Delete Photo/Logo buttons with image specs |
-| `MerchantPoints.tsx` | Integrate customer phone search in Add Points and Scanner tabs |
-| `src/components/merchant/CustomerSearch.tsx` | **New** — Phone-based customer lookup component |
-| `PlanBadge.tsx` | Add `variant="banner"` prop for light-on-dark styling |
-| `MerchantDashboard.tsx` | Use banner variant for PlanBadge |
-| `Header.tsx` | Add "Reviews" nav link after Contact Us |
-| `AccessCard.tsx` | Restructure to 3 tabs (My Rewards / My Card / Explore), redesign rewards, remove Review tab |
-| `src/pages/ReviewPage.tsx` | **New** — Standalone review page |
-| `App.tsx` | Add `/reviews` route |
-| `NfcTapButton.tsx` | Add info tooltip explaining how NFC works |
-| **DB migration** | New `search_customer_by_phone` RPC function |
+| `src/index.css` | New decorative shape classes, animations, updated radius, floating blobs |
+| `tailwind.config.ts` | Decorative colors, new animations |
+| `src/components/HeroSection.tsx` | Floating shapes, bolder text, pill CTAs, vibrant gradient bg |
+| `src/components/HowItWorks.tsx` | Circular colored icons, floating shapes |
+| `src/components/RewardsShowcase.tsx` | Larger colorful cards, accent strips |
+| `src/components/BenefitsSection.tsx` | Colored icon circles, floating shapes |
+| `src/components/Header.tsx` | Cleaner white bg, pill-shaped CTA |
+| `src/components/Footer.tsx` | Warmer dark footer |
+| `src/pages/AccessCard.tsx` | Pill tab switcher, vibrant rewards cards, colorful points display |
+| `src/pages/MerchantDashboard.tsx` | Colored KPI icons, vibrant banner, floating shapes |
+| `src/components/merchant/MerchantNav.tsx` | Colored active state with pill bg |
+| `src/components/merchant/DashboardFeatureCard.tsx` | Colored left accent strip |
+| `src/components/ui/button.tsx` | Rounder hero variant, pill size |
+| `src/components/ui/card.tsx` | Rounder, hover scale |
+
+### What Stays the Same
+- All business logic, data fetching, authentication
+- PerkBack's blue/gold brand colors (primary identity preserved)
+- Database schema, API calls, routing
+- Component structure and file organization
 
