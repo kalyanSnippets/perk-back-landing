@@ -252,8 +252,8 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Main Tab Switcher ─── */}
-        <div className="flex gap-1 bg-card rounded-xl p-1 border border-border/50 shadow-card">
+        {/* ─── Main Tab Switcher — Pill Segmented Control ─── */}
+        <div className="flex gap-1 bg-card rounded-full p-1 border border-border/50 shadow-card">
           {[
             { key: "my-rewards" as const, label: "🎁 My Rewards" },
             { key: "my-card" as const, label: "💳 My Card" },
@@ -262,10 +262,10 @@ const AccessCard = () => {
             <button
               key={tab.key}
               onClick={() => setActiveMainTab(tab.key)}
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 py-2.5 rounded-full text-xs font-semibold transition-all duration-300 ${
                 activeMainTab === tab.key
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-button"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
               {tab.label}
