@@ -423,20 +423,24 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        {/* Points Balance */}
+        {/* Points Balance — Vibrant */}
         <ScrollReveal delay={25}>
-          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3">
+          <div className="relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
+            {/* Decorative floating shapes */}
+            <div className="floating-dot w-6 h-6 bg-accent/15 -top-1 right-[15%]" style={{ animationDelay: "0s" }} />
+            <div className="floating-dot w-4 h-4 bg-coral/10 bottom-2 left-[10%]" style={{ animationDelay: "1.5s" }} />
+            
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3 relative z-10">
               {selectedMerchant ? `${selectedMerchant.store_name} Points` : "Total Points Balance"}
             </p>
-            <div className={`flex items-center justify-center gap-3 transition-all duration-700 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-accent/15 flex items-center justify-center">
-                <Star className="text-accent fill-accent" size={22} />
+            <div className={`flex items-center justify-center gap-3 transition-all duration-700 relative z-10 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center">
+                <Star className="text-accent fill-accent" size={24} />
               </div>
-              <span className="text-4xl sm:text-5xl font-bold text-foreground tabular-nums">{displayPoints}</span>
+              <span className="text-5xl sm:text-6xl font-bold text-foreground tabular-nums">{displayPoints}</span>
             </div>
             {nearestReward && nearestReward.points_required > displayPoints ? (
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-2 relative z-10">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>Next: <span className="font-semibold text-foreground">{nearestReward.title}</span></span>
                   <span>{nearestReward.points_required - displayPoints} pts to go</span>
@@ -444,9 +448,9 @@ const AccessCard = () => {
                 <Progress value={nearestProgress} className="h-2" />
               </div>
             ) : (
-              <p className="text-muted-foreground text-xs mt-3">Keep earning to unlock exclusive rewards!</p>
+              <p className="text-muted-foreground text-xs mt-3 relative z-10">Keep earning to unlock exclusive rewards!</p>
             )}
-            <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors">
+            <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors relative z-10">
               <Info size={10} /> How to earn points
             </button>
           </div>
