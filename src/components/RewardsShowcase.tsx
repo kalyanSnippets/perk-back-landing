@@ -9,6 +9,9 @@ const rewards = [
     progress: 72,
     progressLabel: "720 / 1,000 pts",
     color: "from-secondary to-primary",
+    accentBorder: "border-l-secondary",
+    iconBg: "bg-secondary/15",
+    iconColor: "text-secondary",
   },
   {
     icon: Coffee,
@@ -18,6 +21,9 @@ const rewards = [
     progressLabel: "5 / 10 stamps",
     stamps: true,
     color: "from-accent to-gold",
+    accentBorder: "border-l-accent",
+    iconBg: "bg-accent/20",
+    iconColor: "text-accent-foreground",
   },
   {
     icon: Tag,
@@ -25,13 +31,20 @@ const rewards = [
     description: "Unlock exclusive deals and limited-time offers from your favorite local stores.",
     progress: 30,
     progressLabel: "3 offers redeemed",
-    color: "from-primary to-secondary",
+    color: "from-coral to-warm-amber",
+    accentBorder: "border-l-coral",
+    iconBg: "bg-coral/15",
+    iconColor: "text-coral",
   },
 ];
 
 const RewardsShowcase = () => {
   return (
-    <section id="rewards" className="py-20 md:py-28">
+    <section id="rewards" className="relative py-20 md:py-28 overflow-hidden">
+      {/* Floating shapes */}
+      <div className="floating-circle w-10 h-10 bg-secondary/10 top-[12%] left-[4%]" style={{ animationDelay: "0.5s" }} />
+      <div className="floating-dot w-4 h-4 bg-accent/20 bottom-[18%] right-[6%]" style={{ animationDelay: "2s" }} />
+
       <div className="container mx-auto px-4 lg:px-8">
         <ScrollReveal>
           <div className="text-center max-w-2xl mx-auto mb-16">
@@ -48,9 +61,9 @@ const RewardsShowcase = () => {
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {rewards.map((reward, i) => (
             <ScrollReveal key={reward.title} delay={i * 150}>
-              <div className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:scale-[1.02] transition-all duration-300 group h-full flex flex-col">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${reward.color} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
-                  <reward.icon className="text-primary-foreground" size={24} />
+              <div className={`bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:scale-[1.02] transition-all duration-300 group h-full flex flex-col border-l-4 ${reward.accentBorder}`}>
+                <div className={`w-14 h-14 rounded-full ${reward.iconBg} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
+                  <reward.icon className={reward.iconColor} size={26} />
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-2">{reward.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-6 flex-1">{reward.description}</p>

@@ -30,6 +30,13 @@ interface KPIs {
   revenueToday: number;
 }
 
+const KPI_STYLES = [
+  { iconBg: "bg-secondary/15", iconColor: "text-secondary" },
+  { iconBg: "bg-coral/15", iconColor: "text-coral" },
+  { iconBg: "bg-accent/20", iconColor: "text-accent-foreground" },
+  { iconBg: "bg-emerald-accent/15", iconColor: "text-emerald-accent" },
+];
+
 const MerchantDashboard = () => {
   const navigate = useNavigate();
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
@@ -117,10 +124,10 @@ const MerchantDashboard = () => {
   if (!merchant) return null;
 
   const kpiCards = [
-    { label: "Total Customers", value: kpis.totalCustomers, icon: Users, color: "text-secondary" },
-    { label: "Transactions Today", value: kpis.transactionsToday, icon: Receipt, color: "text-secondary" },
-    { label: "Total Points Awarded", value: kpis.totalPointsAwarded, icon: Star, color: "text-accent-foreground" },
-    { label: "Revenue Today", value: `$${kpis.revenueToday.toFixed(2)}`, icon: DollarSign, color: "text-secondary" },
+    { label: "Total Customers", value: kpis.totalCustomers, icon: Users },
+    { label: "Transactions Today", value: kpis.transactionsToday, icon: Receipt },
+    { label: "Total Points Awarded", value: kpis.totalPointsAwarded, icon: Star },
+    { label: "Revenue Today", value: `$${kpis.revenueToday.toFixed(2)}`, icon: DollarSign },
   ];
 
   const featureCards = [
@@ -146,8 +153,11 @@ const MerchantDashboard = () => {
             {/* Branded Banner */}
             <ScrollReveal>
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-5 sm:p-6 shadow-card-hover">
-                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full border border-primary-foreground/10" />
-                <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full border border-primary-foreground/8" />
+                {/* Floating decorative shapes */}
+                <div className="floating-circle w-20 h-20 border border-primary-foreground/10 -top-6 -right-6" style={{ animationDelay: "0s" }} />
+                <div className="floating-circle w-14 h-14 border border-primary-foreground/8 -bottom-4 -left-4" style={{ animationDelay: "1s" }} />
+                <div className="floating-dot w-4 h-4 bg-accent/30 top-4 right-[30%]" style={{ animationDelay: "2s" }} />
+
                 <div className="relative z-10 flex items-center gap-4">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-primary-foreground/20 shrink-0">
                     {merchant.logo_url ? (
@@ -198,8 +208,8 @@ const MerchantDashboard = () => {
                     className="bg-card rounded-2xl p-5 shadow-card border border-border/50 hover:-translate-y-0.5 hover:shadow-card-hover transition-all duration-200"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center">
-                        <kpi.icon size={16} className={kpi.color} />
+                      <div className={`w-10 h-10 rounded-full ${KPI_STYLES[i].iconBg} flex items-center justify-center`}>
+                        <kpi.icon size={18} className={KPI_STYLES[i].iconColor} />
                       </div>
                     </div>
                     <p className="text-2xl font-bold text-foreground tabular-nums">{kpi.value}</p>

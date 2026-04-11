@@ -47,9 +47,9 @@ const MerchantNav = ({ merchantId }: MerchantNavProps) => {
         ))}
       </aside>
 
-      {/* Mobile bottom nav — compact for 6 items */}
+      {/* Mobile bottom nav — with pill active state */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border/50 shadow-card">
-        <div className="flex justify-around px-1 py-1">
+        <div className="flex justify-around px-1 py-1.5">
           {NAV_ITEMS.map((item) => {
             const isActive = location.pathname === item.route || location.pathname.startsWith(item.route + "/");
             return (
@@ -57,13 +57,13 @@ const MerchantNav = ({ merchantId }: MerchantNavProps) => {
                 key={item.route}
                 to={item.route}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg text-[9px] font-medium transition-colors min-w-0",
+                  "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[9px] font-medium transition-all min-w-0",
                   isActive
                     ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <item.icon size={16} />
+                <item.icon size={18} className={isActive ? "text-primary" : ""} />
                 <span className="truncate">{item.label}</span>
               </NavLink>
             );

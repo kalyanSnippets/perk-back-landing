@@ -3,7 +3,7 @@ import perkbackLogo from "@/assets/perkback-logo.webp";
 
 const Footer = () => {
   return (
-    <footer id="contact" className="bg-primary text-primary-foreground py-12 sm:py-16">
+    <footer id="contact" className="bg-gradient-to-br from-primary via-primary to-navy text-primary-foreground py-12 sm:py-16">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10">
           {/* Brand */}
@@ -18,27 +18,27 @@ const Footer = () => {
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-primary-foreground/50">Product</h4>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-accent">Product</h4>
             <ul className="space-y-2.5 text-sm text-primary-foreground/70">
-              <li><Link to="/pricing" className="hover:text-primary-foreground transition-colors">Pricing</Link></li>
-              <li><Link to="/blog" className="hover:text-primary-foreground transition-colors">Blog</Link></li>
-              <li><Link to="/testimonials" className="hover:text-primary-foreground transition-colors">Testimonials</Link></li>
+              <li><Link to="/pricing" className="hover:text-accent transition-colors">Pricing</Link></li>
+              <li><Link to="/blog" className="hover:text-accent transition-colors">Blog</Link></li>
+              <li><Link to="/testimonials" className="hover:text-accent transition-colors">Testimonials</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-primary-foreground/50">Company</h4>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-accent">Company</h4>
             <ul className="space-y-2.5 text-sm text-primary-foreground/70">
-              <li><Link to="/about" className="hover:text-primary-foreground transition-colors">About Us</Link></li>
-              <li><Link to="/contact" className="hover:text-primary-foreground transition-colors">Contact Us</Link></li>
-              <li><Link to="/privacy" className="hover:text-primary-foreground transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/about" className="hover:text-accent transition-colors">About Us</Link></li>
+              <li><Link to="/contact" className="hover:text-accent transition-colors">Contact Us</Link></li>
+              <li><Link to="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-primary-foreground/50">Connect</h4>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-accent">Connect</h4>
             <ul className="space-y-2.5 text-sm text-primary-foreground/70">
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">Twitter</a></li>
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">Instagram</a></li>
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">LinkedIn</a></li>
+              <li><a href="#" className="hover:text-accent transition-colors">Twitter</a></li>
+              <li><a href="#" className="hover:text-accent transition-colors">Instagram</a></li>
+              <li><a href="#" className="hover:text-accent transition-colors">LinkedIn</a></li>
             </ul>
           </div>
         </div>

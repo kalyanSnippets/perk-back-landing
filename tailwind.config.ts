@@ -54,6 +54,10 @@ export default {
         "soft-blue": "hsl(var(--soft-blue))",
         gold: "hsl(var(--gold))",
         "light-blue": "hsl(var(--light-blue))",
+        coral: "hsl(var(--coral))",
+        teal: "hsl(var(--teal))",
+        "emerald-accent": "hsl(var(--emerald-accent))",
+        "warm-amber": "hsl(var(--warm-amber))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -85,10 +89,20 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "float-slow": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "50%": { transform: "translateY(-20px) rotate(5deg)" },
+        },
+        "float-fast": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "50%": { transform: "translateY(-12px) rotate(-3deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "float-slow": "float-slow 6s ease-in-out infinite",
+        "float-fast": "float-fast 4s ease-in-out infinite",
       },
     },
   },

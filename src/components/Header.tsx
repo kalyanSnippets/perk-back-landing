@@ -22,7 +22,6 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide Pricing & Testimonials for customer-facing pages
   const isCustomerPage = location.pathname.startsWith("/customer/");
   const filteredNavLinks = isCustomerPage
     ? navLinks.filter(l => l.label !== "Pricing")
@@ -36,7 +35,7 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border/30 shadow-sm">
       <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 px-4 lg:px-8">
         {/* Logo */}
         <Link to="/" className="shrink-0">
@@ -88,7 +87,7 @@ const Header = () => {
               </Button>
             </>
           ) : (
-            <Button variant="hero" size="lg" asChild>
+            <Button variant="hero" size="pill" asChild>
               <Link to="/get-started">Sign Up / Sign In</Link>
             </Button>
           )}
