@@ -10,10 +10,18 @@ const HeroSection = () => {
   return (
     <>
       <section id="home" className="relative pt-20 pb-12 sm:pt-28 sm:pb-20 md:pt-36 md:pb-28 overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-light-blue via-background to-background -z-10" />
-        <div className="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-secondary/5 blur-3xl -z-10" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-accent/10 blur-3xl -z-10" />
+        {/* Background gradient — deeper & more saturated */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-light-blue to-background -z-10" />
+        <div className="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-secondary/8 blur-3xl -z-10" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-accent/12 blur-3xl -z-10" />
+
+        {/* GoRewards-style floating decorative shapes */}
+        <div className="floating-circle w-16 h-16 bg-coral/20 top-[15%] left-[5%]" style={{ animationDelay: "0s" }} />
+        <div className="floating-circle w-10 h-10 bg-teal/25 top-[25%] right-[8%]" style={{ animationDelay: "1s" }} />
+        <div className="floating-dot w-5 h-5 bg-accent/30 top-[60%] left-[10%]" style={{ animationDelay: "0.5s" }} />
+        <div className="floating-dot w-4 h-4 bg-secondary/25 bottom-[20%] right-[15%]" style={{ animationDelay: "2s" }} />
+        <div className="floating-circle w-8 h-8 border-2 border-coral/20 top-[40%] right-[4%]" style={{ animationDelay: "1.5s" }} />
+        <div className="floating-dot w-3 h-3 bg-emerald-accent/30 top-[10%] right-[30%]" style={{ animationDelay: "3s" }} />
 
         {/* Sparkle particles */}
         <div className="hero-particles" />
@@ -72,13 +80,13 @@ const HeroSection = () => {
                   className="w-full max-w-md animate-float drop-shadow-2xl"
                 />
                 {/* Floating badges */}
-                <div className="absolute -top-4 -left-4 bg-card rounded-xl px-4 py-2 shadow-card animate-float" style={{ animationDelay: "0.5s" }}>
+                <div className="absolute -top-4 -left-4 bg-card rounded-2xl px-4 py-2 shadow-card animate-float" style={{ animationDelay: "0.5s" }}>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-accent" />
+                    <div className="w-3 h-3 rounded-full bg-emerald-accent" />
                     <span className="text-sm font-semibold text-foreground">+50 Points</span>
                   </div>
                 </div>
-                <div className="absolute -bottom-2 -right-2 bg-card rounded-xl px-4 py-2 shadow-card animate-float" style={{ animationDelay: "1s" }}>
+                <div className="absolute -bottom-2 -right-2 bg-card rounded-2xl px-4 py-2 shadow-card animate-float" style={{ animationDelay: "1s" }}>
                   <div className="flex items-center gap-2">
                     <span className="text-lg">☕</span>
                     <span className="text-sm font-semibold text-foreground">5/10 Stamps</span>

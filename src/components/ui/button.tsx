@@ -4,19 +4,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 transition-all duration-200 ease-in-out",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 transition-all duration-200 ease-in-out",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-button hover:shadow-button-hover hover:-translate-y-0.5",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-button hover:shadow-button-hover hover:-translate-y-0.5",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        default: "bg-primary text-primary-foreground shadow-button hover:shadow-button-hover hover:-translate-y-0.5 rounded-xl",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-xl",
+        secondary: "bg-secondary text-secondary-foreground shadow-button hover:shadow-button-hover hover:-translate-y-0.5 rounded-xl",
+        ghost: "hover:bg-accent hover:text-accent-foreground rounded-xl",
         link: "text-primary underline-offset-4 hover:underline",
-        hero: "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-button hover:shadow-button-hover hover:-translate-y-[3px] rounded-xl",
-        "hero-outline": "border-2 border-primary text-primary bg-background hover:bg-primary hover:text-primary-foreground rounded-xl",
-        gold: "bg-accent text-accent-foreground font-bold shadow-button hover:shadow-button-hover hover:-translate-y-0.5",
+        hero: "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-button hover:shadow-button-hover hover:-translate-y-[3px] rounded-full",
+        "hero-outline": "border-2 border-primary text-primary bg-background hover:bg-primary hover:text-primary-foreground rounded-full",
+        gold: "bg-accent text-accent-foreground font-bold shadow-button hover:shadow-button-hover hover:-translate-y-0.5 rounded-xl",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -24,6 +24,7 @@ const buttonVariants = cva(
         lg: "h-12 px-8 text-base",
         xl: "h-14 px-10 text-lg",
         icon: "h-10 w-10",
+        pill: "h-11 px-8 rounded-full text-sm",
       },
     },
     defaultVariants: {

@@ -6,22 +6,33 @@ const steps = [
     icon: UserPlus,
     title: "Sign up & get your card",
     description: "Create your free account and receive your digital loyalty card instantly.",
+    iconBg: "bg-coral/15",
+    iconColor: "text-coral",
   },
   {
     icon: ScanBarcode,
     title: "Show barcode at checkout",
     description: "Present your barcode or loyalty number when you pay at any partner store.",
+    iconBg: "bg-secondary/15",
+    iconColor: "text-secondary",
   },
   {
     icon: Gift,
     title: "Earn rewards instantly",
     description: "Collect points, stamps, and exclusive perks — automatically added to your wallet.",
+    iconBg: "bg-accent/20",
+    iconColor: "text-accent-foreground",
   },
 ];
 
 const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-20 md:py-28 bg-muted/50">
+    <section id="how-it-works" className="relative py-20 md:py-28 bg-muted/50 overflow-hidden">
+      {/* Floating decorative shapes */}
+      <div className="floating-circle w-12 h-12 bg-teal/10 top-[10%] right-[5%]" style={{ animationDelay: "0s" }} />
+      <div className="floating-dot w-6 h-6 bg-coral/15 bottom-[15%] left-[8%]" style={{ animationDelay: "1s" }} />
+      <div className="floating-circle w-8 h-8 border-2 border-accent/15 top-[50%] left-[3%]" style={{ animationDelay: "2s" }} />
+
       <div className="container mx-auto px-4 lg:px-8">
         <ScrollReveal>
           <div className="text-center max-w-2xl mx-auto mb-16">
@@ -42,8 +53,8 @@ const HowItWorks = () => {
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-accent text-accent-foreground font-bold text-sm flex items-center justify-center shadow-sm">
                   {i + 1}
                 </div>
-                <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <step.icon className="text-primary-foreground" size={28} />
+                <div className={`w-16 h-16 mx-auto mb-5 rounded-full ${step.iconBg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                  <step.icon className={step.iconColor} size={28} />
                 </div>
                 <h3 className="text-lg font-bold text-foreground mb-2">{step.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
