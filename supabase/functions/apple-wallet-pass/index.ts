@@ -3,16 +3,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { encode as base64Encode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
-
-// Apple .pkpass is a ZIP file containing pass.json, manifest.json, signature, and optional images.
-// We build it manually using Deno's crypto APIs.
 
 interface PassData {
   customerName: string;
   cardNumber: string;
   crn: string;
   pointsBalance: number;
+  memberSince: string;
 }
 
 function buildPassJson(data: PassData): string {
@@ -58,9 +55,16 @@ function buildPassJson(data: PassData): string {
       ],
       secondaryFields: [
         { key: "card", label: "CARD NUMBER", value: data.cardNumber },
+        { key: "crn", label: "CRN", value: data.crn },
       ],
       auxiliaryFields: [
-        { key: "crn", label: "CRN", value: data.crn },
+        { key: "since", label: "MEMBER SINCE", value: data.memberSince },
+        { key: "program", label: "PROGRAM", value: "PerkBack Loyalty" },
+      ],
+      backFields: [
+        { key: "terms", label: "Terms & Conditions", value: "Points are earned at participating PerkBack merchants. Visit perkback.com.au for full terms." },
+        { key: "website", label: "Website", value: "https://perk-back-landing.lovable.app" },
+        { key: "support", label: "Support", value: "Contact us at perkback.com.au/contact-us" },
       ],
     },
   };
@@ -76,31 +80,26 @@ function createZip(files: Map<string, Uint8Array>): Uint8Array {
 
   for (const [name, data] of files) {
     const nameBytes = new TextEncoder().encode(name);
-    // CRC32 calculation
     const crc = crc32(data);
-
-    // Local file header
     const header = new Uint8Array(30 + nameBytes.length);
     const view = new DataView(header.buffer);
-    view.setUint32(0, 0x04034b50, true); // signature
-    view.setUint16(4, 20, true); // version needed
-    view.setUint16(6, 0, true); // flags
-    view.setUint16(8, 0, true); // compression (store)
-    view.setUint16(10, 0, true); // mod time
-    view.setUint16(12, 0, true); // mod date
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(6, 0, true);
+    view.setUint16(8, 0, true);
+    view.setUint16(10, 0, true);
+    view.setUint16(12, 0, true);
     view.setUint32(14, crc, true);
-    view.setUint32(18, data.length, true); // compressed size
-    view.setUint32(22, data.length, true); // uncompressed size
+    view.setUint32(18, data.length, true);
+    view.setUint32(22, data.length, true);
     view.setUint16(26, nameBytes.length, true);
-    view.setUint16(28, 0, true); // extra length
+    view.setUint16(28, 0, true);
     header.set(nameBytes, 30);
-
     entries.push({ name: nameBytes, data, offset });
     parts.push(header, data);
     offset += header.length + data.length;
   }
 
-  // Central directory
   const cdParts: Uint8Array[] = [];
   const cdStart = offset;
 
@@ -130,9 +129,6 @@ function createZip(files: Map<string, Uint8Array>): Uint8Array {
   }
 
   const cdData = concatUint8Arrays(cdParts);
-  const cdSize = cdData.length;
-
-  // End of central directory
   const eocd = new Uint8Array(22);
   const eocdView = new DataView(eocd.buffer);
   eocdView.setUint32(0, 0x06054b50, true);
@@ -140,7 +136,7 @@ function createZip(files: Map<string, Uint8Array>): Uint8Array {
   eocdView.setUint16(6, 0, true);
   eocdView.setUint16(8, entries.length, true);
   eocdView.setUint16(10, entries.length, true);
-  eocdView.setUint32(12, cdSize, true);
+  eocdView.setUint32(12, cdData.length, true);
   eocdView.setUint32(16, cdStart, true);
   eocdView.setUint16(20, 0, true);
 
@@ -210,7 +206,7 @@ Deno.serve(async (req) => {
 
     const { data: customer, error: custError } = await supabase
       .from("customers")
-      .select("id, full_name, loyalty_card_number, points_balance, crn")
+      .select("id, full_name, loyalty_card_number, points_balance, crn, created_at")
       .eq("user_id", user.id)
       .single();
 
@@ -220,35 +216,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build pass.json
+    const memberSince = new Date(customer.created_at).toLocaleDateString("en-AU", {
+      month: "short",
+      year: "numeric",
+    });
+
     const passJson = buildPassJson({
       customerName: customer.full_name || "PerkBack Member",
       cardNumber: customer.loyalty_card_number || "",
       crn: customer.crn || "",
       pointsBalance: customer.points_balance,
+      memberSince,
     });
 
     const passJsonBytes = new TextEncoder().encode(passJson);
-
-    // Build manifest.json (SHA-1 hashes of all files)
     const manifest: Record<string, string> = {
       "pass.json": await sha1Hex(passJsonBytes),
     };
     const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest));
 
-    // Note: In production, you would sign the manifest with the Apple certificate.
-    // This requires PKCS#7/CMS signing which needs the actual certificate and key.
-    // For now, we create the pass structure. Full signing requires the certificates to be configured.
-    
-    // Build the .pkpass ZIP
     const files = new Map<string, Uint8Array>();
     files.set("pass.json", passJsonBytes);
     files.set("manifest.json", manifestBytes);
-    // signature file would go here with proper PKCS#7 signing
 
     const pkpassData = createZip(files);
 
-    // Track wallet pass
     await supabase.from("wallet_passes").upsert({
       customer_id: customer.id,
       wallet_type: "apple",
