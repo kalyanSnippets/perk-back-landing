@@ -60,24 +60,26 @@ const GetStarted = () => {
     setShowPassword(false);
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleOAuthSignIn = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
+      const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        toast.error(result.error.message || "Google sign-in failed");
+        toast.error(result.error.message || `${provider} sign-in failed`);
         return;
       }
       if (result.redirected) return;
-      // Session set — auth listener will handle redirect
     } catch (error: any) {
-      toast.error(error.message || "Google sign-in failed");
+      toast.error(error.message || `${provider} sign-in failed`);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleGoogleSignIn = () => handleOAuthSignIn("google");
+  const handleAppleSignIn = () => handleOAuthSignIn("apple");
 
   const handleForgotPassword = async () => {
     const emailResult = emailSchema.safeParse(email);
