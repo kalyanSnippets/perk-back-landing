@@ -101,10 +101,106 @@ const CustomerConfirmation = () => {
     }
   };
 
+  const handleAddToGoogleWallet = async () => {
+    setWalletLoading("google");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke("google-wallet-pass", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.saveUrl) {
+        window.open(data.saveUrl, "_blank");
+        toast.success("Opening Google Wallet...");
+      } else if (data?.error) {
+        toast.info(data.error === "Google Wallet not configured" ? "Google Wallet is being set up." : data.error);
+      }
+    } catch (err: any) { toast.error(err.message || "Failed"); }
+    finally { setWalletLoading(null); }
+  };
+
+  const handleAddToAppleWallet = async () => {
+    setWalletLoading("apple");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke("apple-wallet-pass", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.info(data.error === "Apple Wallet not configured" ? "Apple Wallet is being set up." : data.error);
+        return;
+      }
+      const blob = new Blob([data], { type: "application/vnd.apple.pkpass" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "perkback-loyalty.pkpass";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Downloading your pass...");
+    } catch (err: any) { toast.error(err.message || "Failed"); }
+    finally { setWalletLoading(null); }
+  };
+
   if (checking) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (cardGenerated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="absolute inset-0 bg-gradient-to-br from-light-blue via-background to-background -z-10" />
+        <div className="max-w-lg w-full text-center space-y-6">
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-accent to-gold flex items-center justify-center animate-fade-up">
+            <Sparkles className="text-accent-foreground" size={40} />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            Your card is ready! 🎉
+          </h1>
+          <p className="text-muted-foreground">
+            Add your loyalty card to your phone's wallet for quick access, or go straight to your card.
+          </p>
+
+          <div className="space-y-3">
+            {(deviceType === "ios" || deviceType === "desktop") && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full gap-2 bg-black text-white hover:bg-black/90 hover:text-white border-0"
+                onClick={handleAddToAppleWallet}
+                disabled={walletLoading === "apple"}
+              >
+                🍎 {walletLoading === "apple" ? "Adding..." : "Add to Apple Wallet"}
+              </Button>
+            )}
+            {(deviceType === "android" || deviceType === "desktop") && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full gap-2"
+                onClick={handleAddToGoogleWallet}
+                disabled={walletLoading === "google"}
+              >
+                <Smartphone size={18} /> {walletLoading === "google" ? "Adding..." : "Add to Google Wallet"}
+              </Button>
+            )}
+          </div>
+
+          <Button
+            variant="hero"
+            size="xl"
+            onClick={() => navigate("/customer/access-card")}
+            className="gap-3 w-full"
+          >
+            <CreditCard size={22} /> View My Card
+          </Button>
+        </div>
       </div>
     );
   }
