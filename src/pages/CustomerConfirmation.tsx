@@ -3,13 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Sparkles, CreditCard } from "lucide-react";
+import { Sparkles, CreditCard, Smartphone } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
+import { getDeviceType } from "@/lib/deviceDetection";
 
 const CustomerConfirmation = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [cardGenerated, setCardGenerated] = useState(false);
+  const [walletLoading, setWalletLoading] = useState<string | null>(null);
+  const deviceType = getDeviceType();
 
   useEffect(() => {
     checkAuth();
