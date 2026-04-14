@@ -380,8 +380,9 @@ const AccessCard = () => {
                       <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
                     </div>
                   </div>
-                  <div className="bg-primary-foreground rounded-2xl p-3 flex justify-center overflow-hidden">
+                  <div className="bg-primary-foreground rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-center gap-3 overflow-hidden">
                     <Barcode value={customer.loyalty_card_number || ""} height={55} />
+                    <QRCodeDisplay value={customer.loyalty_card_number || ""} size={80} />
                   </div>
                 </div>
               </div>
@@ -389,16 +390,37 @@ const AccessCard = () => {
 
             {/* Card Actions */}
             <ScrollReveal delay={50}>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
                   <Copy size={13} /> Copy
                 </Button>
                 <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={handleShare}>
                   <Share2 size={13} /> Share
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Apple Wallet")} title="Apple Wallet">🍎</Button>
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Google Wallet")} title="Google Wallet">📱</Button>
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Samsung Pay")} title="Samsung Pay">💳</Button>
+              </div>
+              <div className="flex gap-2 mt-2">
+                {(deviceType === "ios" || deviceType === "desktop") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1.5 text-xs h-10 border-border/50 bg-black text-white hover:bg-black/90 hover:text-white"
+                    onClick={handleAddToAppleWallet}
+                    disabled={walletLoading === "apple"}
+                  >
+                    🍎 {walletLoading === "apple" ? "Adding..." : "Add to Apple Wallet"}
+                  </Button>
+                )}
+                {(deviceType === "android" || deviceType === "desktop") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1.5 text-xs h-10 border-border/50"
+                    onClick={handleAddToGoogleWallet}
+                    disabled={walletLoading === "google"}
+                  >
+                    📱 {walletLoading === "google" ? "Adding..." : "Add to Google Wallet"}
+                  </Button>
+                )}
               </div>
             </ScrollReveal>
 
