@@ -141,6 +141,10 @@ Deno.serve(async (req) => {
       });
     }
 
+    console.log("Raw secret length:", serviceAccountJson.length);
+    console.log("Raw secret first 200 chars:", serviceAccountJson.substring(0, 200));
+    console.log("Raw secret type:", typeof serviceAccountJson);
+    
     let parsedJson: any;
     try {
       parsedJson = JSON.parse(serviceAccountJson);
