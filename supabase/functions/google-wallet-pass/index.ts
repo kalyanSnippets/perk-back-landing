@@ -141,7 +141,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    const serviceAccount: ServiceAccountKey = JSON.parse(serviceAccountJson);
+    let parsedJson: any;
+    try {
+      parsedJson = JSON.parse(serviceAccountJson);
+    } catch (e) {
+      console.error("Failed to parse GOOGLE_WALLET_SERVICE_ACCOUNT JSON:", e.message);
+      console.error("First 100 chars:", serviceAccountJson.substring(0, 100));
+      return new Response(JSON.stringify({ error: "Invalid service account JSON configuration" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const availableKeys = Object.keys(parsedJson);
+    console.log("Service account JSON keys:", availableKeys.join(", "));
+
+    if (!parsedJson.private_key) {
+      console.error("private_key is missing from service account JSON. Available keys:", availableKeys);
+      return new Response(JSON.stringify({ error: "Service account missing private_key field", availableKeys }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const serviceAccount: ServiceAccountKey = parsedJson;
     const accessToken = await getAccessToken(serviceAccount);
 
     // Get issuer ID from service account project
