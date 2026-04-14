@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
+import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
 import StampCardProgress from "@/components/customer/StampCardProgress";
@@ -20,6 +21,7 @@ import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import { getDeviceType } from "@/lib/deviceDetection";
 import {
   Carousel, CarouselContent, CarouselItem, type CarouselApi,
 } from "@/components/ui/carousel";
@@ -191,7 +193,72 @@ const AccessCard = () => {
     else { navigator.clipboard.writeText(shareData.text || ""); toast.success("Card details copied to clipboard"); }
   };
 
-  const handleAddToWallet = (walletType: string) => { toast.info(`${walletType} integration coming soon! We're working on it.`); };
+  const [walletLoading, setWalletLoading] = useState<string | null>(null);
+  const deviceType = getDeviceType();
+
+  const handleAddToGoogleWallet = async () => {
+    setWalletLoading("google");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); return; }
+      const { data, error } = await supabase.functions.invoke("google-wallet-pass", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        if (data.error === "Google Wallet not configured") {
+          toast.info("Google Wallet integration is being set up. Please try again later.");
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+      if (data?.saveUrl) {
+        window.open(data.saveUrl, "_blank");
+        toast.success("Opening Google Wallet...");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add to Google Wallet");
+    } finally {
+      setWalletLoading(null);
+    }
+  };
+
+  const handleAddToAppleWallet = async () => {
+    setWalletLoading("apple");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); return; }
+      const { data, error } = await supabase.functions.invoke("apple-wallet-pass", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        if (data.error === "Apple Wallet not configured") {
+          toast.info("Apple Wallet integration is being set up. Please try again later.");
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+      // data is the .pkpass binary - trigger download
+      const blob = new Blob([data], { type: "application/vnd.apple.pkpass" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "perkback-loyalty.pkpass";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Downloading your Apple Wallet pass...");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add to Apple Wallet");
+    } finally {
+      setWalletLoading(null);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -313,8 +380,9 @@ const AccessCard = () => {
                       <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
                     </div>
                   </div>
-                  <div className="bg-primary-foreground rounded-2xl p-3 flex justify-center overflow-hidden">
+                  <div className="bg-primary-foreground rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-center gap-3 overflow-hidden">
                     <Barcode value={customer.loyalty_card_number || ""} height={55} />
+                    <QRCodeDisplay value={customer.loyalty_card_number || ""} size={80} />
                   </div>
                 </div>
               </div>
@@ -322,16 +390,37 @@ const AccessCard = () => {
 
             {/* Card Actions */}
             <ScrollReveal delay={50}>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
                   <Copy size={13} /> Copy
                 </Button>
                 <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={handleShare}>
                   <Share2 size={13} /> Share
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Apple Wallet")} title="Apple Wallet">🍎</Button>
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Google Wallet")} title="Google Wallet">📱</Button>
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-9 border-border/50 px-3" onClick={() => handleAddToWallet("Samsung Pay")} title="Samsung Pay">💳</Button>
+              </div>
+              <div className="flex gap-2 mt-2">
+                {(deviceType === "ios" || deviceType === "desktop") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1.5 text-xs h-10 border-border/50 bg-black text-white hover:bg-black/90 hover:text-white"
+                    onClick={handleAddToAppleWallet}
+                    disabled={walletLoading === "apple"}
+                  >
+                    🍎 {walletLoading === "apple" ? "Adding..." : "Add to Apple Wallet"}
+                  </Button>
+                )}
+                {(deviceType === "android" || deviceType === "desktop") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1.5 text-xs h-10 border-border/50"
+                    onClick={handleAddToGoogleWallet}
+                    disabled={walletLoading === "google"}
+                  >
+                    📱 {walletLoading === "google" ? "Adding..." : "Add to Google Wallet"}
+                  </Button>
+                )}
               </div>
             </ScrollReveal>
 

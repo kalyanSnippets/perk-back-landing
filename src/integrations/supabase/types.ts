@@ -1304,6 +1304,47 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_passes: {
+        Row: {
+          created_at: string
+          customer_id: string
+          device_token: string | null
+          id: string
+          pass_id: string | null
+          push_token: string | null
+          updated_at: string
+          wallet_type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          device_token?: string | null
+          id?: string
+          pass_id?: string | null
+          push_token?: string | null
+          updated_at?: string
+          wallet_type: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          device_token?: string | null
+          id?: string
+          pass_id?: string | null
+          push_token?: string | null
+          updated_at?: string
+          wallet_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_passes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
