@@ -1,18 +1,18 @@
 
 
-## Generate 1024x1024 PerkBack Logo for Google Wallet Console
-
-### What to Do
-Use AI image generation to create a clean, square 1024×1024 px version of the PerkBack logo, then upload it to the `email-assets` storage bucket.
+## Configure Google Wallet Secrets
 
 ### Steps
-1. Use the existing logo (`https://bhczknuriaxvgmvbtzzo.supabase.co/storage/v1/object/public/email-assets/perkback-logo.png`) as a reference
-2. Generate a 1024×1024 square logo using AI image editing — clean icon + "PerkBack" text on white/transparent background, brand navy `#0a1f5c`
-3. Upload to `email-assets` bucket as `perkback-logo-1024.png`
-4. Provide the final public URL
+1. **Store `GOOGLE_WALLET_SERVICE_ACCOUNT`** — Save the uploaded JSON key content as a backend secret using the `add_secret` tool
+2. **Store `GOOGLE_WALLET_ISSUER_ID`** — Request your Issuer ID (the numeric string from the Google Pay & Wallet Console) and save it as a secret
+3. **Deploy edge functions** — Redeploy `google-wallet-pass` and `update-wallet-pass` so they pick up the new secrets
+4. **Test** — Call the `google-wallet-pass` edge function to verify it works
 
-### Deliverable
-| Asset | URL |
-|-------|-----|
-| Google Wallet Logo (1024×1024) | `.../email-assets/perkback-logo-1024.png` |
+### What I Need From You
+- Your **Issuer ID** from the Google Pay & Wallet Console (numeric string at the top of the page, e.g. `3388000000012345678`)
+
+### Technical Details
+- The JSON key will be stored as `GOOGLE_WALLET_SERVICE_ACCOUNT` (the entire file contents as a single string)
+- The Issuer ID will be stored as `GOOGLE_WALLET_ISSUER_ID`
+- Both are used by the `google-wallet-pass` and `update-wallet-pass` edge functions to sign and manage loyalty passes
 
