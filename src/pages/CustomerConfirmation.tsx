@@ -93,7 +93,7 @@ const CustomerConfirmation = () => {
       }
 
       toast.success("Your loyalty card has been generated!");
-      navigate("/customer/access-card");
+      setCardGenerated(true);
     } catch (error: any) {
       toast.error(error.message || "Failed to generate card");
     } finally {
