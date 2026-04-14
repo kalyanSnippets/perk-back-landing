@@ -193,7 +193,72 @@ const AccessCard = () => {
     else { navigator.clipboard.writeText(shareData.text || ""); toast.success("Card details copied to clipboard"); }
   };
 
-  const handleAddToWallet = (walletType: string) => { toast.info(`${walletType} integration coming soon! We're working on it.`); };
+  const [walletLoading, setWalletLoading] = useState<string | null>(null);
+  const deviceType = getDeviceType();
+
+  const handleAddToGoogleWallet = async () => {
+    setWalletLoading("google");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); return; }
+      const { data, error } = await supabase.functions.invoke("google-wallet-pass", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        if (data.error === "Google Wallet not configured") {
+          toast.info("Google Wallet integration is being set up. Please try again later.");
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+      if (data?.saveUrl) {
+        window.open(data.saveUrl, "_blank");
+        toast.success("Opening Google Wallet...");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add to Google Wallet");
+    } finally {
+      setWalletLoading(null);
+    }
+  };
+
+  const handleAddToAppleWallet = async () => {
+    setWalletLoading("apple");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); return; }
+      const { data, error } = await supabase.functions.invoke("apple-wallet-pass", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        if (data.error === "Apple Wallet not configured") {
+          toast.info("Apple Wallet integration is being set up. Please try again later.");
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+      // data is the .pkpass binary - trigger download
+      const blob = new Blob([data], { type: "application/vnd.apple.pkpass" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "perkback-loyalty.pkpass";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Downloading your Apple Wallet pass...");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add to Apple Wallet");
+    } finally {
+      setWalletLoading(null);
+    }
+  };
+
 
   if (loading) {
     return (
