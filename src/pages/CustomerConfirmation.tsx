@@ -110,11 +110,13 @@ const CustomerConfirmation = () => {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
+      if (data?.ok === false) {
+        toast.error(data.error === "Google Wallet not configured" ? "Google Wallet is being set up." : data.error);
+        return;
+      }
       if (data?.saveUrl) {
         window.open(data.saveUrl, "_blank");
         toast.success("Opening Google Wallet...");
-      } else if (data?.error) {
-        toast.info(data.error === "Google Wallet not configured" ? "Google Wallet is being set up." : data.error);
       }
     } catch (err: any) { toast.error(err.message || "Failed"); }
     finally { setWalletLoading(null); }
