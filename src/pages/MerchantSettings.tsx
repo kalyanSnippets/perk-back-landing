@@ -117,7 +117,9 @@ const MerchantSettings = () => {
     if (file.size > 2 * 1024 * 1024) { toast.error("Image must be under 2MB"); return; }
     setUploading(true);
     const ext = file.name.split(".").pop();
-    const path = `${merchant.id}.${ext}`;
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) { setUploading(false); toast.error("Not authenticated"); return; }
+    const path = `${userId}/profile.${ext}`;
     const { error: uploadError } = await supabase.storage.from("profile-images").upload(path, file, { upsert: true });
     if (uploadError) { setUploading(false); toast.error("Upload failed"); return; }
     const { data: urlData } = supabase.storage.from("profile-images").getPublicUrl(path);
@@ -258,7 +260,10 @@ const MerchantSettings = () => {
                           <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                             const file = e.target.files?.[0]; if (!file || !merchant) return;
                             if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2MB"); return; }
-                            setUploading(true); const ext = file.name.split(".").pop(); const path = `${merchant.id}-logo.${ext}`;
+                            setUploading(true); const ext = file.name.split(".").pop();
+                            const userId = (await supabase.auth.getUser()).data.user?.id;
+                            if (!userId) { setUploading(false); toast.error("Not authenticated"); return; }
+                            const path = `${userId}/logo.${ext}`;
                             const { error: upErr } = await supabase.storage.from("profile-images").upload(path, file, { upsert: true });
                             if (upErr) { setUploading(false); toast.error("Upload failed"); return; }
                             const { data: urlData } = supabase.storage.from("profile-images").getPublicUrl(path);

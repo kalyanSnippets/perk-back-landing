@@ -61,7 +61,7 @@ const MerchantAuth = () => {
         if (authData.user) {
           // Upload logo
           const ext = logoFile.name.split(".").pop();
-          const logoPath = `${authData.user.id}-logo.${ext}`;
+          const logoPath = `${authData.user.id}/logo.${ext}`;
           const { error: uploadError } = await supabase.storage
             .from("profile-images")
             .upload(logoPath, logoFile, { upsert: true });
