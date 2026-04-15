@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const GOOGLE_WALLET_API = "https://walletobjects.googleapis.com/walletobjects/v1";
 
 const HERO_IMAGE_URL = "https://bhczknuriaxvgmvbtzzo.supabase.co/storage/v1/object/public/email-assets/wallet-hero-banner.jpg";
-const LOGO_URL = "https://bhczknuriaxvgmvbtzzo.supabase.co/storage/v1/object/public/email-assets/perkback-logo.webp";
+const LOGO_URL = "https://bhczknuriaxvgmvbtzzo.supabase.co/storage/v1/object/public/email-assets/perkback-logo.png";
 const APP_URL = "https://perk-back-landing.lovable.app";
 
 interface ServiceAccountKey {
