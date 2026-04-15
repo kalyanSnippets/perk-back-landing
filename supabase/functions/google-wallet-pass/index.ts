@@ -16,6 +16,13 @@ interface ServiceAccountKey {
   token_uri: string;
 }
 
+function jsonResponse(body: Record<string, unknown>): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 async function signJwt(serviceAccount: ServiceAccountKey, payload: Record<string, unknown>): Promise<string> {
   const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }))
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -162,9 +169,7 @@ Deno.serve(async (req) => {
   try {
     const serviceAccountJson = Deno.env.get("GOOGLE_WALLET_SERVICE_ACCOUNT");
     if (!serviceAccountJson) {
-      return new Response(JSON.stringify({ error: "Google Wallet not configured" }), {
-        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: false, error: "Google Wallet not configured" });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -173,16 +178,12 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: false, error: "Unauthorized — no token provided" });
     }
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: false, error: "Unauthorized — invalid token" });
     }
 
     const { data: customer, error: custError } = await supabase
@@ -192,24 +193,18 @@ Deno.serve(async (req) => {
       .single();
 
     if (custError || !customer) {
-      return new Response(JSON.stringify({ error: "Customer not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: false, error: "Customer not found" });
     }
 
     let parsedJson: ServiceAccountKey;
     try {
       parsedJson = JSON.parse(serviceAccountJson);
     } catch {
-      return new Response(JSON.stringify({ error: "Invalid service account JSON" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: false, error: "Invalid service account JSON" });
     }
 
     if (!parsedJson.private_key) {
-      return new Response(JSON.stringify({ error: "Service account missing private_key" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: false, error: "Service account missing private_key" });
     }
 
     const accessToken = await getAccessToken(parsedJson);
@@ -266,13 +261,9 @@ Deno.serve(async (req) => {
       pass_id: objectId,
     }, { onConflict: "customer_id,wallet_type" });
 
-    return new Response(JSON.stringify({ saveUrl }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ ok: true, saveUrl });
   } catch (error) {
     console.error("Google Wallet error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ ok: false, error: error.message || "Internal error" });
   }
 });

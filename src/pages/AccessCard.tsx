@@ -205,12 +205,10 @@ const AccessCard = () => {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      if (data?.error) {
-        if (data.error === "Google Wallet not configured") {
-          toast.info("Google Wallet integration is being set up. Please try again later.");
-        } else {
-          toast.error(data.error);
-        }
+      if (data?.ok === false) {
+        toast.error(data.error === "Google Wallet not configured"
+          ? "Google Wallet integration is being set up. Please try again later."
+          : data.error);
         return;
       }
       if (data?.saveUrl) {
