@@ -1347,7 +1347,56 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      safe_pos_connections: {
+        Row: {
+          connected_at: string | null
+          connection_status: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          location_id: string | null
+          merchant_id: string | null
+          provider: string | null
+          provider_account_id: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          connected_at?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          location_id?: string | null
+          merchant_id?: string | null
+          provider?: string | null
+          provider_account_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          connected_at?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          location_id?: string | null
+          merchant_id?: string | null
+          provider?: string | null
+          provider_account_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_connections_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_points_to_customer: {
