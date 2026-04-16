@@ -288,8 +288,8 @@ const AccessCard = () => {
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
-    ...filteredCampaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null })),
-    ...filteredOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null })),
+    ...filteredCampaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null, image_url: c.image_url, merchant_id: c.merchant_id })),
+    ...filteredOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null, image_url: null as string | null, merchant_id: o.merchant_id })),
   ];
   const nearestReward = filteredRewards.length > 0
     ? filteredRewards.reduce((closest, r) => {
@@ -568,28 +568,47 @@ const AccessCard = () => {
               <CarouselContent>
                 {carouselSlides.map((slide, i) => (
                   <CarouselItem key={`${slide.type}-${i}`}>
-                    <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${CAROUSEL_GRADIENTS[i % CAROUSEL_GRADIENTS.length]} p-5 sm:p-6 min-h-[140px] flex flex-col justify-between`}>
-                      <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
-                      <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full border border-primary-foreground/8" />
-                      <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-2">
-                          {slide.type === "campaign" ? <Megaphone size={14} className="text-primary-foreground/70" /> : <CalendarDays size={14} className="text-primary-foreground/70" />}
-                          <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">{slide.store}</span>
-                        </div>
-                        <h3 className="text-primary-foreground font-bold text-base sm:text-lg leading-tight">{slide.title}</h3>
-                        {slide.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{slide.description}</p>}
-                      </div>
-                      <div className="relative z-10 flex items-center justify-between mt-3">
-                        <span className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
-                          {slide.type === "campaign" ? "Campaign" : "Monthly Offer"}
-                        </span>
-                        {slide.endsIn !== null && (
-                          <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Clock size={9} /> Ends in {slide.endsIn} days
-                          </span>
+                    <button
+                      onClick={() => {
+                        const cm = customerMerchants.find(c => c.merchant_id === slide.merchant_id);
+                        if (cm) setSelectedMerchantId(slide.merchant_id);
+                      }}
+                      className="w-full text-left"
+                    >
+                      <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${CAROUSEL_GRADIENTS[i % CAROUSEL_GRADIENTS.length]} p-5 sm:p-6 min-h-[160px] flex flex-col justify-between`}>
+                        {slide.image_url && (
+                          <div className="absolute inset-0">
+                            <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+                          </div>
                         )}
+                        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
+                        <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full border border-primary-foreground/8" />
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-2 mb-2">
+                            {slide.type === "campaign" ? <Megaphone size={14} className="text-primary-foreground/70" /> : <CalendarDays size={14} className="text-primary-foreground/70" />}
+                            <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">{slide.store}</span>
+                          </div>
+                          <h3 className="text-primary-foreground font-bold text-lg sm:text-xl leading-tight">{slide.title}</h3>
+                          {slide.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{slide.description}</p>}
+                        </div>
+                        <div className="relative z-10 flex items-center justify-between mt-3">
+                          <span className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
+                            {slide.type === "campaign" ? "Campaign" : "Monthly Offer"}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {slide.endsIn !== null && (
+                              <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Clock size={9} /> {slide.endsIn}d left
+                              </span>
+                            )}
+                            <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                              View Details <ArrowRight size={9} />
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   </CarouselItem>
                 ))}
               </CarouselContent>
