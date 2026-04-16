@@ -499,15 +499,18 @@ const AccessCard = () => {
                           : 'border border-border/30 hover:shadow-card'
                       }`}
                     >
-                      {/* Gradient header with optional logo background */}
-                      <div className={`relative bg-gradient-to-br ${colors.bg} p-4 pb-3 min-h-[80px]`}>
-                        {cm.logo_url && (
-                          <div className="absolute inset-0 opacity-10">
-                            <img src={cm.logo_url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        )}
-                        <div className="relative z-10 flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                      {/* Industry-themed image header */}
+                      <div className="relative min-h-[100px] overflow-hidden">
+                        <img
+                          src={getIndustryImage(cm.industry_type)}
+                          alt={cm.industry_type || "Store"}
+                          loading="lazy"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} mix-blend-multiply opacity-80`} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-card/95 via-card/30 to-transparent" />
+                        <div className="relative z-10 p-4 pb-3 flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-background/90 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 shadow-md ring-2 ring-background/50">
                             {cm.logo_url ? (
                               <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
                             ) : (
@@ -515,9 +518,9 @@ const AccessCard = () => {
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm text-foreground truncate">{cm.store_name}</p>
+                            <p className="font-bold text-sm text-foreground truncate drop-shadow-sm">{cm.store_name}</p>
                             {cm.industry_type && (
-                              <span className={`text-[9px] font-semibold ${colors.text} bg-background/50 backdrop-blur-sm px-2 py-0.5 rounded-full`}>{cm.industry_type}</span>
+                              <span className={`text-[9px] font-semibold ${colors.text} bg-background/80 backdrop-blur-sm px-2 py-0.5 rounded-full`}>{cm.industry_type}</span>
                             )}
                           </div>
                         </div>
