@@ -2,16 +2,20 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Store, Gift, Megaphone, CalendarDays, MapPin, Sparkles, Clock, TrendingUp,
+  Store, Gift, Megaphone, CalendarDays, MapPin, Sparkles, Clock, TrendingUp, Loader2, CheckCircle, Copy,
 } from "lucide-react";
 import { useUserLocation, haversineDistance, formatDistance } from "@/lib/geo";
 import IndustryFilter from "./IndustryFilter";
 import NearbyMerchants from "./NearbyMerchants";
 import MerchantPreview from "./MerchantPreview";
 import ScrollReveal from "@/components/ScrollReveal";
+import { Button } from "@/components/ui/button";
 import {
   Carousel, CarouselContent, CarouselItem, type CarouselApi,
 } from "@/components/ui/carousel";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
 interface MerchantRow {
   id: string;
