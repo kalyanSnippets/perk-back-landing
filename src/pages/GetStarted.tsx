@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Mail, Lock, User, Store, ArrowLeft, ShieldCheck, Phone, Calendar, MapPin, Briefcase, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { lovable } from "@/integrations/lovable/index";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import { z } from "zod";
@@ -39,6 +40,7 @@ const GetStarted = () => {
   const [address, setAddress] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [industryType, setIndustryType] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const { user, loading: authLoading, isMerchant, isCustomer } = useAuth();
 
@@ -57,7 +59,7 @@ const GetStarted = () => {
   const resetForm = () => {
     setEmail(""); setPassword(""); setFullName(""); setPhone(""); setDob("");
     setStoreName(""); setAddress(""); setContactNumber(""); setIndustryType("");
-    setShowPassword(false);
+    setShowPassword(false); setAgreedToTerms(false);
   };
 
   const handleOAuthSignIn = async (provider: "google" | "apple") => {
@@ -103,12 +105,18 @@ const GetStarted = () => {
     if (!passResult.success) { toast.error(passResult.error.errors[0].message); return; }
 
     if (authMode === "signup") {
+      if (!agreedToTerms) { toast.error("Please agree to the Terms & Conditions"); return; }
       if (role === "customer") {
         const nameResult = nameSchema.safeParse(fullName);
         if (!nameResult.success) { toast.error(nameResult.error.errors[0].message); return; }
+        if (!phone.trim()) { toast.error("Phone number is required"); return; }
+        if (!dob) { toast.error("Date of birth is required"); return; }
       } else {
         const nameResult = nameSchema.safeParse(storeName);
         if (!nameResult.success) { toast.error("Store name is required"); return; }
+        if (!address.trim()) { toast.error("Address is required"); return; }
+        if (!contactNumber.trim()) { toast.error("Contact number is required"); return; }
+        if (!industryType.trim()) { toast.error("Industry type is required"); return; }
       }
     }
 
@@ -299,12 +307,12 @@ const GetStarted = () => {
                     <FormField id="s-name" label="Full Name" icon={<User size={16} />} value={fullName} onChange={setFullName} placeholder="John Doe" required />
                     <FormField id="s-email" label="Email" icon={<Mail size={16} />} value={email} onChange={setEmail} placeholder="you@example.com" type="email" required />
                     <PasswordField id="s-pass" label="Password" value={password} onChange={setPassword} showPassword={showPassword} toggleShowPassword={() => setShowPassword(!showPassword)} />
-                    <FormField id="s-phone" label="Phone (optional)" icon={<Phone size={16} />} value={phone} onChange={setPhone} placeholder="+1 234 567 8900" />
+                    <FormField id="s-phone" label="Phone" icon={<Phone size={16} />} value={phone} onChange={setPhone} placeholder="+1 234 567 8900" required />
                     <div className="space-y-1.5">
-                      <Label htmlFor="s-dob">Date of Birth (optional)</Label>
+                      <Label htmlFor="s-dob">Date of Birth <span className="text-destructive">*</span></Label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                        <Input id="s-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="pl-10" />
+                        <Input id="s-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="pl-10" required />
                       </div>
                     </div>
                   </>
@@ -313,13 +321,20 @@ const GetStarted = () => {
                     <FormField id="s-store" label="Store Name" icon={<Store size={16} />} value={storeName} onChange={setStoreName} placeholder="My Coffee Shop" required />
                     <FormField id="s-email" label="Email" icon={<Mail size={16} />} value={email} onChange={setEmail} placeholder="merchant@example.com" type="email" required />
                     <PasswordField id="s-pass" label="Password" value={password} onChange={setPassword} showPassword={showPassword} toggleShowPassword={() => setShowPassword(!showPassword)} />
-                    <FormField id="s-address" label="Address (optional)" icon={<MapPin size={16} />} value={address} onChange={setAddress} placeholder="123 Main St" />
-                    <FormField id="s-contact" label="Contact Number (optional)" icon={<Phone size={16} />} value={contactNumber} onChange={setContactNumber} placeholder="+1 234 567 8900" />
-                    <FormField id="s-industry" label="Industry Type (optional)" icon={<Briefcase size={16} />} value={industryType} onChange={setIndustryType} placeholder="Café, Retail, Restaurant..." />
+                    <FormField id="s-address" label="Address" icon={<MapPin size={16} />} value={address} onChange={setAddress} placeholder="123 Main St" required />
+                    <FormField id="s-contact" label="Contact Number" icon={<Phone size={16} />} value={contactNumber} onChange={setContactNumber} placeholder="+1 234 567 8900" required />
+                    <FormField id="s-industry" label="Industry Type" icon={<Briefcase size={16} />} value={industryType} onChange={setIndustryType} placeholder="Café, Retail, Restaurant..." required />
                   </>
                 )}
 
-                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(v) => setAgreedToTerms(v === true)} className="mt-0.5" />
+                  <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer">
+                    I agree to the <Link to="/privacy" className="text-primary hover:underline" target="_blank">Terms & Conditions</Link> and <Link to="/privacy" className="text-primary hover:underline" target="_blank">Privacy Policy</Link>
+                  </label>
+                </div>
+
+                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || !agreedToTerms}>
                   {loading ? "Please wait..." : role === "customer" ? "Create Customer Account" : "Register Store"}
                 </Button>
 
