@@ -100,15 +100,15 @@ const GetStarted = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) { toast.error(emailResult.error.errors[0].message); return; }
+    if (!emailResult.success) { toast.error(emailResult.error.issues[0].message); return; }
     const passResult = passwordSchema.safeParse(password);
-    if (!passResult.success) { toast.error(passResult.error.errors[0].message); return; }
+    if (!passResult.success) { toast.error(passResult.error.issues[0].message); return; }
 
     if (authMode === "signup") {
       if (!agreedToTerms) { toast.error("Please agree to the Terms & Conditions"); return; }
       if (role === "customer") {
         const nameResult = nameSchema.safeParse(fullName);
-        if (!nameResult.success) { toast.error(nameResult.error.errors[0].message); return; }
+        if (!nameResult.success) { toast.error(nameResult.error.issues[0].message); return; }
         if (!phone.trim()) { toast.error("Phone number is required"); return; }
         if (!dob) { toast.error("Date of birth is required"); return; }
       } else {
