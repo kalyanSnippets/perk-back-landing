@@ -5,6 +5,7 @@ import {
   Store, Gift, Megaphone, CalendarDays, MapPin, Sparkles, Clock, TrendingUp, Loader2, CheckCircle, Copy,
 } from "lucide-react";
 import { useUserLocation, haversineDistance, formatDistance } from "@/lib/geo";
+import { getIndustryImage } from "@/lib/industryImages";
 import IndustryFilter from "./IndustryFilter";
 import NearbyMerchants from "./NearbyMerchants";
 import MerchantPreview from "./MerchantPreview";
@@ -73,6 +74,9 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
   const [hotApi, setHotApi] = useState<CarouselApi>();
   const [hotSlide, setHotSlide] = useState(0);
   const [hotCount, setHotCount] = useState(0);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [redemptionResult, setRedemptionResult] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
 
   const userLocation = useUserLocation();
 
@@ -120,6 +124,11 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
   }, [userLocation.loading, merchants.length, rewards.length]);
 
   const fetchExploreData = async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      const { data: customerData } = await supabase.from("customers").select("id").eq("user_id", authUser.id).maybeSingle();
+      if (customerData) setCustomerId(customerData.id);
+    }
     const [merchantsRes, rewardsRes, campaignsRes, offersRes] = await Promise.all([
       supabase.from("merchants").select("id, store_name, industry_type, logo_url, address, latitude, longitude"),
       supabase.from("rewards").select("id, title, description, points_required, reward_type, merchant_id, image_url").eq("active", true),
@@ -131,6 +140,38 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
     setCampaigns((campaignsRes.data as CampaignRow[]) || []);
     setOffers((offersRes.data as OfferRow[]) || []);
     setLoading(false);
+  };
+
+  const handleRedeem = async (e: React.MouseEvent, rewardId: string) => {
+    e.stopPropagation();
+    if (!customerId) {
+      toast.error("Please sign in to redeem rewards");
+      return;
+    }
+    setRedeeming(rewardId);
+    try {
+      const { data, error } = await supabase.rpc("redeem_reward", { _customer_id: customerId, _reward_id: rewardId });
+      if (error) throw error;
+      const result = data as any;
+      if (!result.success) {
+        toast.error(result.error || "Redemption failed");
+        return;
+      }
+      setRedemptionResult({
+        code: result.redemption_code,
+        title: result.reward_title,
+        points: result.points_spent,
+        expires: result.expires_at,
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Redemption failed");
+    } finally {
+      setRedeeming(null);
+    }
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => toast.success("Code copied!")).catch(() => toast.error("Failed to copy"));
   };
 
   const merchantMap = useMemo(() => new Map(merchants.map((m) => [m.id, m])), [merchants]);
@@ -251,12 +292,14 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                   const colorSet = HOT_REWARD_COLORS[idx % HOT_REWARD_COLORS.length];
                   return (
                     <CarouselItem key={r.id} className="basis-full">
-                      <button
-                        onClick={() => setPreviewMerchantId(r.merchant_id)}
-                        className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden text-left transition-all duration-300 ${colorSet.glow}`}
+                      <div
+                        className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden transition-all duration-300 ${colorSet.glow}`}
                       >
-                        {/* Image or gradient header */}
-                        <div className="relative h-[180px] overflow-hidden">
+                        {/* Image or gradient header — clickable for merchant preview */}
+                        <button
+                          onClick={() => setPreviewMerchantId(r.merchant_id)}
+                          className="relative h-[180px] overflow-hidden block w-full text-left"
+                        >
                           {r.image_url ? (
                             <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
                           ) : (
@@ -264,15 +307,13 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                               <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/10 border border-background/20" />
                             </div>
                           )}
-                          {/* Merchant logo on image */}
                           {merchant?.logo_url && (
                             <div className="absolute top-3 right-3 w-10 h-10 rounded-xl overflow-hidden bg-background/30 backdrop-blur-sm border border-white/20">
                               <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
                             </div>
                           )}
-                          {/* Bottom fade */}
                           <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent" />
-                        </div>
+                        </button>
 
                         {/* Content on solid background */}
                         <div className={`p-4 bg-gradient-to-br ${colorSet.bg}`}>
@@ -288,12 +329,30 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                           </div>
                           <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
                           {r.description && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{r.description}</p>}
-                          <div className="flex items-center justify-between mt-2.5">
+                          <div className="flex items-center justify-between mt-2.5 mb-3">
                             <span className="text-xs font-bold text-primary">{r.points_required} pts</span>
-                            <span className="text-[10px] text-accent font-semibold">Earn & redeem →</span>
+                            <button
+                              onClick={() => setPreviewMerchantId(r.merchant_id)}
+                              className="text-[10px] text-secondary font-semibold hover:underline"
+                            >
+                              View store →
+                            </button>
                           </div>
+                          <Button
+                            onClick={(e) => handleRedeem(e, r.id)}
+                            disabled={redeeming === r.id}
+                            variant="hero"
+                            size="sm"
+                            className="w-full gap-1.5 text-xs"
+                          >
+                            {redeeming === r.id ? (
+                              <><Loader2 size={12} className="animate-spin" /> Redeeming…</>
+                            ) : (
+                              <><Gift size={12} /> Redeem Reward</>
+                            )}
+                          </Button>
                         </div>
-                      </button>
+                      </div>
                     </CarouselItem>
                   );
                 })}
@@ -377,37 +436,47 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                   <button
                     key={m.id}
                     onClick={() => setPreviewMerchantId(m.id)}
-                    className={`rounded-2xl border border-border/30 bg-gradient-to-br ${cardGradients[idx % cardGradients.length]} overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+                    className="rounded-2xl border border-border/30 bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group"
                   >
-                    {/* Accent strip */}
-                    <div className={`h-1.5 bg-gradient-to-r ${colors.accent}`} />
-                    <div className="p-3.5">
-                      <div className="flex items-center gap-3 mb-2.5">
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors.accent} p-0.5 flex items-center justify-center overflow-hidden shrink-0`}>
-                          <div className="w-full h-full rounded-[10px] bg-background flex items-center justify-center overflow-hidden">
-                            {m.logo_url ? (
-                              <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Store size={18} className="text-secondary" />
-                            )}
-                          </div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          {isMember && (
-                            <span className="text-[8px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">MEMBER</span>
-                          )}
-                        </div>
+                    {/* Industry-themed image header */}
+                    <div className="relative h-28 overflow-hidden">
+                      <img
+                        src={getIndustryImage(m.industry_type)}
+                        alt={m.industry_type || "Store"}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      {/* Logo overlay */}
+                      <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-xl bg-background border-2 border-background shadow-lg flex items-center justify-center overflow-hidden">
+                        {m.logo_url ? (
+                          <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Store size={18} className="text-secondary" />
+                        )}
                       </div>
-                      <p className="font-bold text-sm text-foreground truncate">{m.store_name}</p>
-                      {m.industry_type && (
-                        <span className={`text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full inline-block mt-1`}>{m.industry_type}</span>
+                      {/* Member badge */}
+                      {isMember && (
+                        <span className="absolute top-2 right-2 text-[8px] font-bold text-accent-foreground bg-accent px-2 py-0.5 rounded-full shadow-md">MEMBER</span>
                       )}
+                      {/* Industry badge */}
+                      {m.industry_type && (
+                        <span className={`absolute top-2 left-2 text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm`}>
+                          {m.industry_type}
+                        </span>
+                      )}
+                    </div>
+                    {/* Accent strip */}
+                    <div className={`h-1 bg-gradient-to-r ${colors.accent}`} />
+                    {/* Content */}
+                    <div className="p-3 pt-5">
+                      <p className="font-bold text-sm text-foreground truncate">{m.store_name}</p>
                       {m.address && (
-                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mt-1.5 truncate">
+                        <p className="text-[9px] text-muted-foreground/70 flex items-center gap-0.5 mt-1 truncate">
                           <MapPin size={8} /> {m.address}
                         </p>
                       )}
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {rewardCount > 0 && (
                           <span className="text-[9px] text-accent font-semibold">{rewardCount} reward{rewardCount > 1 ? "s" : ""}</span>
                         )}
@@ -441,6 +510,38 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
             : null
         }
       />
+
+      {/* Redemption Code Dialog */}
+      <Dialog open={!!redemptionResult} onOpenChange={(open) => !open && setRedemptionResult(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="text-accent" size={20} /> Reward Redeemed!
+            </DialogTitle>
+            <DialogDescription>{redemptionResult?.title}</DialogDescription>
+          </DialogHeader>
+          {redemptionResult && (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-accent/10 to-primary/5 rounded-2xl p-5 text-center border border-accent/20">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Show this code to the merchant</p>
+                <p className="font-mono text-2xl font-bold text-foreground tracking-[0.3em]">{redemptionResult.code}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopyCode(redemptionResult.code)}
+                  className="mt-2 gap-1.5 text-xs"
+                >
+                  <Copy size={12} /> Copy code
+                </Button>
+              </div>
+              <div className="text-center text-xs text-muted-foreground space-y-1">
+                <p>{redemptionResult.points} points spent</p>
+                <p className="text-[11px]">Expires {new Date(redemptionResult.expires).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
+import { getIndustryImage } from "@/lib/industryImages";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -28,6 +29,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -497,15 +499,18 @@ const AccessCard = () => {
                           : 'border border-border/30 hover:shadow-card'
                       }`}
                     >
-                      {/* Gradient header with optional logo background */}
-                      <div className={`relative bg-gradient-to-br ${colors.bg} p-4 pb-3 min-h-[80px]`}>
-                        {cm.logo_url && (
-                          <div className="absolute inset-0 opacity-10">
-                            <img src={cm.logo_url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        )}
-                        <div className="relative z-10 flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                      {/* Industry-themed image header */}
+                      <div className="relative min-h-[100px] overflow-hidden">
+                        <img
+                          src={getIndustryImage(cm.industry_type)}
+                          alt={cm.industry_type || "Store"}
+                          loading="lazy"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} mix-blend-multiply opacity-80`} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-card/95 via-card/30 to-transparent" />
+                        <div className="relative z-10 p-4 pb-3 flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-background/90 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 shadow-md ring-2 ring-background/50">
                             {cm.logo_url ? (
                               <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
                             ) : (
@@ -513,9 +518,9 @@ const AccessCard = () => {
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm text-foreground truncate">{cm.store_name}</p>
+                            <p className="font-bold text-sm text-foreground truncate drop-shadow-sm">{cm.store_name}</p>
                             {cm.industry_type && (
-                              <span className={`text-[9px] font-semibold ${colors.text} bg-background/50 backdrop-blur-sm px-2 py-0.5 rounded-full`}>{cm.industry_type}</span>
+                              <span className={`text-[9px] font-semibold ${colors.text} bg-background/80 backdrop-blur-sm px-2 py-0.5 rounded-full`}>{cm.industry_type}</span>
                             )}
                           </div>
                         </div>
@@ -832,47 +837,55 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* Redemption History */}
+        {/* Redemption History — Collapsible */}
         {filteredRedemptions.length > 0 && (
           <ScrollReveal delay={175}>
-            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                <Ticket size={16} className="text-secondary" /> My Redemptions
-              </h3>
-              <div className="space-y-2">
-                {filteredRedemptions.map((r) => {
-                  const isExpired = r.status === 'expired' || (r.status === 'pending' && new Date(r.expires_at) < new Date());
-                  const isVerified = r.status === 'verified';
-                  const isPending = r.status === 'pending' && !isExpired;
-                  return (
-                    <div key={r.id} className={`p-3 rounded-xl border ${isPending ? 'border-accent/30 bg-accent/5' : 'border-border/30 bg-muted/30'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-xs text-foreground">{r.reward_title}</p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-0.5">{r.store_name}</p>
+            <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
+              <Collapsible>
+                <CollapsibleTrigger className="w-full flex items-center justify-between p-5 sm:p-6 text-left hover:bg-muted/20 transition-colors group">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Ticket size={16} className="text-secondary" /> My Redemptions
+                    <span className="text-xs font-normal text-muted-foreground">({filteredRedemptions.length})</span>
+                  </h3>
+                  <ChevronRight size={16} className="text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-2">
+                    {filteredRedemptions.map((r) => {
+                      const isExpired = r.status === 'expired' || (r.status === 'pending' && new Date(r.expires_at) < new Date());
+                      const isVerified = r.status === 'verified';
+                      const isPending = r.status === 'pending' && !isExpired;
+                      return (
+                        <div key={r.id} className={`p-3 rounded-xl border ${isPending ? 'border-accent/30 bg-accent/5' : 'border-border/30 bg-muted/30'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-xs text-foreground">{r.reward_title}</p>
+                              <p className="text-[10px] text-muted-foreground/70 mt-0.5">{r.store_name}</p>
+                            </div>
+                            <div className="pl-2">
+                              {isVerified && <span className="text-[10px] bg-accent/15 text-accent-foreground px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10} /> Used</span>}
+                              {isPending && <span className="text-[10px] bg-accent/15 text-accent-foreground px-2 py-0.5 rounded-full flex items-center gap-1"><Clock size={10} /> Pending</span>}
+                              {isExpired && <span className="text-[10px] bg-destructive/15 text-destructive px-2 py-0.5 rounded-full flex items-center gap-1"><XCircle size={10} /> Expired</span>}
+                            </div>
+                          </div>
+                          {isPending && (
+                            <div className="mt-2 bg-card rounded-lg p-2 border border-border/30 text-center">
+                              <p className="text-[10px] text-muted-foreground mb-1">Show this code to merchant</p>
+                              <p className="font-mono text-lg font-bold text-foreground tracking-[0.3em]">{r.redemption_code}</p>
+                              <p className="text-[9px] text-muted-foreground/60 mt-1">Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                            <span>{r.points_spent} pts</span>
+                            <span className="text-muted-foreground/30">·</span>
+                            <span>{new Date(r.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
+                          </div>
                         </div>
-                        <div className="pl-2">
-                          {isVerified && <span className="text-[10px] bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10} /> Used</span>}
-                          {isPending && <span className="text-[10px] bg-accent/15 text-accent-foreground px-2 py-0.5 rounded-full flex items-center gap-1"><Clock size={10} /> Pending</span>}
-                          {isExpired && <span className="text-[10px] bg-destructive/15 text-destructive px-2 py-0.5 rounded-full flex items-center gap-1"><XCircle size={10} /> Expired</span>}
-                        </div>
-                      </div>
-                      {isPending && (
-                        <div className="mt-2 bg-card rounded-lg p-2 border border-border/30 text-center">
-                          <p className="text-[10px] text-muted-foreground mb-1">Show this code to merchant</p>
-                          <p className="font-mono text-lg font-bold text-foreground tracking-[0.3em]">{r.redemption_code}</p>
-                          <p className="text-[9px] text-muted-foreground/60 mt-1">Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
-                        <span>{r.points_spent} pts</span>
-                        <span className="text-muted-foreground/30">·</span>
-                        <span>{new Date(r.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </ScrollReveal>
         )}
