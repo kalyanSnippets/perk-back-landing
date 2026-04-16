@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -15,6 +16,7 @@ const CustomerAuth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +24,7 @@ const CustomerAuth = () => {
 
     try {
       if (isSignUp) {
+        if (!agreedToTerms) { toast.error("Please agree to the Terms & Conditions"); setLoading(false); return; }
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -128,7 +131,16 @@ const CustomerAuth = () => {
             </div>
           </div>
 
-          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
+          {isSignUp && (
+            <div className="flex items-start gap-2">
+              <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(v) => setAgreedToTerms(v === true)} className="mt-0.5" />
+              <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer">
+                I agree to the <Link to="/privacy" className="text-primary hover:underline" target="_blank">Terms & Conditions</Link> and <Link to="/privacy" className="text-primary hover:underline" target="_blank">Privacy Policy</Link>
+              </label>
+            </div>
+          )}
+
+          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || (isSignUp && !agreedToTerms)}>
             {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
 
