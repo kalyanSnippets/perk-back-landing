@@ -124,6 +124,11 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
   }, [userLocation.loading, merchants.length, rewards.length]);
 
   const fetchExploreData = async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      const { data: customerData } = await supabase.from("customers").select("id").eq("user_id", authUser.id).maybeSingle();
+      if (customerData) setCustomerId(customerData.id);
+    }
     const [merchantsRes, rewardsRes, campaignsRes, offersRes] = await Promise.all([
       supabase.from("merchants").select("id, store_name, industry_type, logo_url, address, latitude, longitude"),
       supabase.from("rewards").select("id, title, description, points_required, reward_type, merchant_id, image_url").eq("active", true),
@@ -135,6 +140,38 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
     setCampaigns((campaignsRes.data as CampaignRow[]) || []);
     setOffers((offersRes.data as OfferRow[]) || []);
     setLoading(false);
+  };
+
+  const handleRedeem = async (e: React.MouseEvent, rewardId: string) => {
+    e.stopPropagation();
+    if (!customerId) {
+      toast.error("Please sign in to redeem rewards");
+      return;
+    }
+    setRedeeming(rewardId);
+    try {
+      const { data, error } = await supabase.rpc("redeem_reward", { _customer_id: customerId, _reward_id: rewardId });
+      if (error) throw error;
+      const result = data as any;
+      if (!result.success) {
+        toast.error(result.error || "Redemption failed");
+        return;
+      }
+      setRedemptionResult({
+        code: result.redemption_code,
+        title: result.reward_title,
+        points: result.points_spent,
+        expires: result.expires_at,
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Redemption failed");
+    } finally {
+      setRedeeming(null);
+    }
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => toast.success("Code copied!")).catch(() => toast.error("Failed to copy"));
   };
 
   const merchantMap = useMemo(() => new Map(merchants.map((m) => [m.id, m])), [merchants]);
