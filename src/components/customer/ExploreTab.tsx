@@ -5,6 +5,7 @@ import {
   Store, Gift, Megaphone, CalendarDays, MapPin, Sparkles, Clock, TrendingUp, Loader2, CheckCircle, Copy,
 } from "lucide-react";
 import { useUserLocation, haversineDistance, formatDistance } from "@/lib/geo";
+import { getIndustryImage } from "@/lib/industryImages";
 import IndustryFilter from "./IndustryFilter";
 import NearbyMerchants from "./NearbyMerchants";
 import MerchantPreview from "./MerchantPreview";
