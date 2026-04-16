@@ -436,37 +436,47 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                   <button
                     key={m.id}
                     onClick={() => setPreviewMerchantId(m.id)}
-                    className={`rounded-2xl border border-border/30 bg-gradient-to-br ${cardGradients[idx % cardGradients.length]} overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+                    className="rounded-2xl border border-border/30 bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group"
                   >
-                    {/* Accent strip */}
-                    <div className={`h-1.5 bg-gradient-to-r ${colors.accent}`} />
-                    <div className="p-3.5">
-                      <div className="flex items-center gap-3 mb-2.5">
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors.accent} p-0.5 flex items-center justify-center overflow-hidden shrink-0`}>
-                          <div className="w-full h-full rounded-[10px] bg-background flex items-center justify-center overflow-hidden">
-                            {m.logo_url ? (
-                              <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Store size={18} className="text-secondary" />
-                            )}
-                          </div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          {isMember && (
-                            <span className="text-[8px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">MEMBER</span>
-                          )}
-                        </div>
+                    {/* Industry-themed image header */}
+                    <div className="relative h-28 overflow-hidden">
+                      <img
+                        src={getIndustryImage(m.industry_type)}
+                        alt={m.industry_type || "Store"}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      {/* Logo overlay */}
+                      <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-xl bg-background border-2 border-background shadow-lg flex items-center justify-center overflow-hidden">
+                        {m.logo_url ? (
+                          <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Store size={18} className="text-secondary" />
+                        )}
                       </div>
-                      <p className="font-bold text-sm text-foreground truncate">{m.store_name}</p>
-                      {m.industry_type && (
-                        <span className={`text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full inline-block mt-1`}>{m.industry_type}</span>
+                      {/* Member badge */}
+                      {isMember && (
+                        <span className="absolute top-2 right-2 text-[8px] font-bold text-accent-foreground bg-accent px-2 py-0.5 rounded-full shadow-md">MEMBER</span>
                       )}
+                      {/* Industry badge */}
+                      {m.industry_type && (
+                        <span className={`absolute top-2 left-2 text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm`}>
+                          {m.industry_type}
+                        </span>
+                      )}
+                    </div>
+                    {/* Accent strip */}
+                    <div className={`h-1 bg-gradient-to-r ${colors.accent}`} />
+                    {/* Content */}
+                    <div className="p-3 pt-5">
+                      <p className="font-bold text-sm text-foreground truncate">{m.store_name}</p>
                       {m.address && (
-                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mt-1.5 truncate">
+                        <p className="text-[9px] text-muted-foreground/70 flex items-center gap-0.5 mt-1 truncate">
                           <MapPin size={8} /> {m.address}
                         </p>
                       )}
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {rewardCount > 0 && (
                           <span className="text-[9px] text-accent font-semibold">{rewardCount} reward{rewardCount > 1 ? "s" : ""}</span>
                         )}
