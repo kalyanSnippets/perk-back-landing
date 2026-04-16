@@ -682,6 +682,7 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          points_per_dollar: number
           profile_image_url: string | null
           store_name: string
           updated_at: string
@@ -696,6 +697,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          points_per_dollar?: number
           profile_image_url?: string | null
           store_name: string
           updated_at?: string
@@ -710,6 +712,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          points_per_dollar?: number
           profile_image_url?: string | null
           store_name?: string
           updated_at?: string
@@ -1195,6 +1198,8 @@ export type Database = {
           merchant_name: string
           points_awarded: number
           purchase_amount: number
+          refunded_at: string | null
+          refunded_by: string | null
           source: string | null
           transaction_date: string
         }
@@ -1207,6 +1212,8 @@ export type Database = {
           merchant_name: string
           points_awarded?: number
           purchase_amount: number
+          refunded_at?: string | null
+          refunded_by?: string | null
           source?: string | null
           transaction_date?: string
         }
@@ -1219,6 +1226,8 @@ export type Database = {
           merchant_name?: string
           points_awarded?: number
           purchase_amount?: number
+          refunded_at?: string | null
+          refunded_by?: string | null
           source?: string | null
           transaction_date?: string
         }
@@ -1486,12 +1495,25 @@ export type Database = {
         Args: { _customer_id: string; _reward_id: string }
         Returns: Json
       }
+      refund_transaction: { Args: { _tx_id: string }; Returns: Json }
       search_customer_by_phone: {
         Args: { _merchant_id: string; _phone: string }
         Returns: {
           customer_id: string
           full_name: string
           loyalty_card_number: string
+        }[]
+      }
+      search_customer_universal: {
+        Args: { _merchant_id: string; _query: string }
+        Returns: {
+          crn: string
+          customer_id: string
+          email: string
+          full_name: string
+          is_linked: boolean
+          loyalty_card_number: string
+          phone: string
         }[]
       }
       verify_redemption: {
