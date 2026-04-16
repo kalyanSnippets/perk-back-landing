@@ -9,13 +9,15 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   CreditCard, DollarSign, CheckCircle, Save,
-  Stamp, Flame, Trophy, Coins
+  Stamp, Flame, Trophy, Coins, Receipt, Gift, Settings as SettingsIcon
 } from "lucide-react";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
 import StampQrScanner from "@/components/merchant/StampQrScanner";
 import CustomerSearch from "@/components/merchant/CustomerSearch";
 import LockedFeature from "@/components/merchant/LockedFeature";
+import RefundableTransactions from "@/components/merchant/RefundableTransactions";
+import MerchantRedemptions from "@/pages/MerchantRedemptions";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
 const MerchantPoints = () => {
@@ -25,6 +27,8 @@ const MerchantPoints = () => {
 
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pointsPerDollar, setPointsPerDollar] = useState<number>(0.5);
+  const [savingPpd, setSavingPpd] = useState(false);
 
   const [cardNumber, setCardNumber] = useState("");
   const [purchaseAmount, setPurchaseAmount] = useState("");
@@ -45,14 +49,15 @@ const MerchantPoints = () => {
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/get-started"); return; }
-    const { data: m } = await supabase.from("merchants").select("id").eq("user_id", user.id).maybeSingle();
+    const { data: m } = await supabase.from("merchants").select("id, points_per_dollar" as any).eq("user_id", user.id).maybeSingle();
     if (!m) { navigate("/get-started"); return; }
-    setMerchantId(m.id);
+    setMerchantId((m as any).id);
+    setPointsPerDollar(Number((m as any).points_per_dollar ?? 0.5));
 
     const [gamRes, activeRes, completedRes] = await Promise.all([
-      supabase.from("gamification_settings").select("*").eq("merchant_id", m.id).maybeSingle(),
-      supabase.from("customer_stamps").select("id", { count: "exact" }).eq("merchant_id", m.id).eq("completed", false),
-      supabase.from("customer_stamps").select("id", { count: "exact" }).eq("merchant_id", m.id).eq("completed", true),
+      supabase.from("gamification_settings").select("*").eq("merchant_id", (m as any).id).maybeSingle(),
+      supabase.from("customer_stamps").select("id", { count: "exact" }).eq("merchant_id", (m as any).id).eq("completed", false),
+      supabase.from("customer_stamps").select("id", { count: "exact" }).eq("merchant_id", (m as any).id).eq("completed", true),
     ]);
 
     if (gamRes.data) {
@@ -74,11 +79,14 @@ const MerchantPoints = () => {
   const handleAddPoints = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!merchantId) return;
+    if (!cardNumber.trim()) { toast.error("Card number is required"); return; }
+    const amt = parseFloat(purchaseAmount);
+    if (!amt || amt <= 0) { toast.error("Enter a valid purchase amount"); return; }
     setSubmitting(true);
     try {
       const { data, error } = await supabase.rpc("add_points_to_customer", {
         _loyalty_card_number: cardNumber.trim(),
-        _purchase_amount: parseFloat(purchaseAmount),
+        _purchase_amount: amt,
         _merchant_id: merchantId,
       });
       if (error) throw error;
@@ -89,6 +97,16 @@ const MerchantPoints = () => {
     } catch (error: any) {
       toast.error(error.message || "Failed to add points");
     } finally { setSubmitting(false); }
+  };
+
+  const savePointsPerDollar = async () => {
+    if (!merchantId) return;
+    if (pointsPerDollar < 0 || pointsPerDollar > 100) { toast.error("Must be between 0 and 100"); return; }
+    setSavingPpd(true);
+    const { error } = await supabase.from("merchants").update({ points_per_dollar: pointsPerDollar } as any).eq("id", merchantId);
+    setSavingPpd(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Points rate saved");
   };
 
   const saveGamification = async () => {
@@ -119,6 +137,10 @@ const MerchantPoints = () => {
     { name: "VIP", points: "5,000+", color: "bg-purple-500/20 text-purple-600" },
   ];
 
+  const previewPoints = purchaseAmount && parseFloat(purchaseAmount) > 0
+    ? Math.floor(parseFloat(purchaseAmount) * pointsPerDollar)
+    : 0;
+
   return (
     <div className="min-h-screen bg-muted/20">
       <Header />
@@ -131,19 +153,27 @@ const MerchantPoints = () => {
             </h1>
 
             <Tabs value={defaultTab} onValueChange={handleTabChange}>
-              <TabsList className="w-full justify-start">
+              <TabsList className="w-full justify-start overflow-x-auto flex-wrap">
                 <TabsTrigger value="add-points">Add Points</TabsTrigger>
+                <TabsTrigger value="transactions">Transactions</TabsTrigger>
+                <TabsTrigger value="redemptions">Redemptions</TabsTrigger>
                 <TabsTrigger value="stamps">Stamp Cards</TabsTrigger>
                 <TabsTrigger value="scanner">QR Scanner</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
 
               {/* Add Points */}
               <TabsContent value="add-points">
                 <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 space-y-5">
-                  <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <CreditCard size={18} className="text-secondary" /> Award Loyalty Points
-                  </h2>
-                  
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                      <CreditCard size={18} className="text-secondary" /> Award Loyalty Points
+                    </h2>
+                    <span className="text-[11px] bg-secondary/10 text-secondary px-2 py-1 rounded-full font-semibold">
+                      {pointsPerDollar} pts per $1
+                    </span>
+                  </div>
+
                   {/* Customer Search */}
                   <CustomerSearch merchantId={merchantId} onSelect={(num) => setCardNumber(num)} />
 
@@ -162,17 +192,39 @@ const MerchantPoints = () => {
                         <Input id="purchaseAmount" type="number" step="0.01" min="0.01" placeholder="0.00" value={purchaseAmount} onChange={(e) => setPurchaseAmount(e.target.value)} className="pl-10" required />
                       </div>
                     </div>
-                    {purchaseAmount && parseFloat(purchaseAmount) > 0 && (
+                    {previewPoints > 0 && (
                       <div className="bg-accent/10 rounded-xl p-3 text-center">
                         <p className="text-xs text-muted-foreground">Points to award</p>
-                        <p className="text-2xl font-bold text-accent-foreground">{Math.floor(parseFloat(purchaseAmount) / 2)}</p>
-                        <p className="text-[10px] text-muted-foreground">1 point per $2 spent</p>
+                        <p className="text-2xl font-bold text-accent-foreground">{previewPoints}</p>
+                        <p className="text-[10px] text-muted-foreground">{pointsPerDollar} point{pointsPerDollar !== 1 ? "s" : ""} per $1 spent</p>
                       </div>
                     )}
                     <Button type="submit" variant="hero" className="w-full gap-2" disabled={submitting}>
                       <CheckCircle size={16} /> {submitting ? "Processing..." : "Award Points"}
                     </Button>
                   </form>
+                </div>
+              </TabsContent>
+
+              {/* Transactions (with refund) */}
+              <TabsContent value="transactions" className="space-y-4">
+                <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-4">
+                  <div>
+                    <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                      <Receipt size={18} className="text-secondary" /> Recent Transactions
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Refund a transaction to reverse its points and stamps.</p>
+                  </div>
+                  <RefundableTransactions merchantId={merchantId} />
+                </div>
+              </TabsContent>
+
+              {/* Redemptions (embedded) */}
+              <TabsContent value="redemptions" className="space-y-4">
+                <div className="bg-card rounded-2xl p-2 shadow-card border border-border/50">
+                  <div className="-mt-20 sm:-mt-24 -mx-2 -mb-2 [&>div>div]:p-0 [&_header]:hidden">
+                    <MerchantRedemptions />
+                  </div>
                 </div>
               </TabsContent>
 
@@ -265,6 +317,37 @@ const MerchantPoints = () => {
               <TabsContent value="scanner" className="space-y-4">
                 <CustomerSearch merchantId={merchantId} onSelect={() => {}} />
                 <StampQrScanner merchantId={merchantId} />
+              </TabsContent>
+
+              {/* Settings: Points-per-dollar */}
+              <TabsContent value="settings" className="space-y-4">
+                <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-4">
+                  <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <SettingsIcon size={18} className="text-secondary" /> Points Earning Rate
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Customers will earn this many points for every $1 they spend at your store.
+                    Defaults to 0.5 (1 point per $2). Common values: 1 = 1 pt/$1, 2 = 2 pts/$1, 0.1 = 1 pt/$10.
+                  </p>
+                  <div className="space-y-2 max-w-xs">
+                    <Label htmlFor="ppd">Points per $1</Label>
+                    <Input
+                      id="ppd"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={pointsPerDollar}
+                      onChange={(e) => setPointsPerDollar(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="bg-accent/10 rounded-xl p-3 text-sm">
+                    Example: $20 purchase → <strong>{Math.floor(20 * pointsPerDollar)} points</strong>
+                  </div>
+                  <Button variant="hero" size="sm" className="gap-1.5" onClick={savePointsPerDollar} disabled={savingPpd}>
+                    <Save size={14} /> {savingPpd ? "Saving..." : "Save Rate"}
+                  </Button>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
