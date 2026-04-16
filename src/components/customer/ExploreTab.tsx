@@ -66,6 +66,9 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
+  const [hotApi, setHotApi] = useState<CarouselApi>();
+  const [hotSlide, setHotSlide] = useState(0);
+  const [hotCount, setHotCount] = useState(0);
 
   const userLocation = useUserLocation();
 
@@ -81,6 +84,17 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
     const interval = setInterval(() => carouselApi.scrollNext(), 5000);
     return () => clearInterval(interval);
   }, [carouselApi]);
+
+  useEffect(() => {
+    if (!hotApi) return;
+    setHotCount(hotApi.scrollSnapList().length);
+    setHotSlide(hotApi.selectedScrollSnap());
+    hotApi.on("select", () => setHotSlide(hotApi.selectedScrollSnap()));
+    hotApi.on("reInit", () => {
+      setHotCount(hotApi.scrollSnapList().length);
+      setHotSlide(hotApi.selectedScrollSnap());
+    });
+  }, [hotApi]);
 
   // Proximity suggestion
   useEffect(() => {
