@@ -12,6 +12,7 @@ import {
   CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
+import { getIndustryImage } from "@/lib/industryImages";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
