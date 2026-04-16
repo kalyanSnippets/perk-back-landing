@@ -50,6 +50,12 @@ const REWARD_GRADIENTS = [
   "from-purple-500/20 via-purple-400/10 to-primary/10",
 ];
 
+const INDUSTRY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  "Coffee Shop": { bg: "from-amber-500/20 via-orange-400/10 to-yellow-300/10", border: "border-amber-400/40", text: "text-amber-600" },
+  "Retail": { bg: "from-blue-500/20 via-indigo-400/10 to-cyan-300/10", border: "border-blue-400/40", text: "text-blue-600" },
+  "Restaurant": { bg: "from-emerald-500/20 via-teal-400/10 to-green-300/10", border: "border-emerald-400/40", text: "text-emerald-600" },
+};
+
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
 const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
@@ -466,41 +472,53 @@ const AccessCard = () => {
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
                 {customerMerchants.map(cm => {
                   const isSelected = selectedMerchantId === cm.merchant_id;
+                  const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
                   return (
                     <button
                       key={cm.merchant_id}
                       onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
-                      className={`min-w-[180px] snap-start flex-shrink-0 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                      className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
                         isSelected
-                          ? 'border-primary bg-primary/5 shadow-[0_0_15px_-4px_hsl(var(--primary)/0.3)]'
-                          : 'border-border/30 bg-muted/20 hover:shadow-card'
+                          ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
+                          : 'border border-border/30 hover:shadow-card'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center overflow-hidden shrink-0">
-                          {cm.logo_url ? (
-                            <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <Store size={16} className="text-secondary" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-xs text-foreground truncate">{cm.store_name}</p>
-                          {cm.industry_type && (
-                            <span className="text-[9px] text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-full">{cm.industry_type}</span>
-                          )}
+                      {/* Gradient header with optional logo background */}
+                      <div className={`relative bg-gradient-to-br ${colors.bg} p-4 pb-3 min-h-[80px]`}>
+                        {cm.logo_url && (
+                          <div className="absolute inset-0 opacity-10">
+                            <img src={cm.logo_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="relative z-10 flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                            {cm.logo_url ? (
+                              <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Store size={20} className={colors.text} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-sm text-foreground truncate">{cm.store_name}</p>
+                            {cm.industry_type && (
+                              <span className={`text-[9px] font-semibold ${colors.text} bg-background/50 backdrop-blur-sm px-2 py-0.5 rounded-full`}>{cm.industry_type}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      {cm.address && (
-                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mb-1.5 truncate">
-                          <MapPin size={8} /> {cm.address}
-                        </p>
-                      )}
-                      <p className="text-lg font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-[10px] font-normal text-muted-foreground">pts</span></p>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                        <span>{cm.visit_count} visits</span>
-                        <span className="text-muted-foreground/30">·</span>
-                        <span>${cm.total_spend.toFixed(0)} spent</span>
+                      {/* Content */}
+                      <div className="bg-card p-3.5 space-y-1.5">
+                        {cm.address && (
+                          <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 truncate">
+                            <MapPin size={8} /> {cm.address}
+                          </p>
+                        )}
+                        <p className="text-2xl font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-xs font-normal text-muted-foreground">pts</span></p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span>{cm.visit_count} visits</span>
+                          <span className="text-muted-foreground/30">·</span>
+                          <span>${cm.total_spend.toFixed(0)} spent</span>
+                        </div>
                       </div>
                     </button>
                   );
