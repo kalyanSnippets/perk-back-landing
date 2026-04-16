@@ -76,6 +76,9 @@ const AccessCard = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
+  const [rewardsApi, setRewardsApi] = useState<CarouselApi>();
+  const [rewardsSlide, setRewardsSlide] = useState(0);
+  const [rewardsCount, setRewardsCount] = useState(0);
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
@@ -91,6 +94,17 @@ const AccessCard = () => {
     const interval = setInterval(() => carouselApi.scrollNext(), 4000);
     return () => clearInterval(interval);
   }, [carouselApi]);
+
+  useEffect(() => {
+    if (!rewardsApi) return;
+    setRewardsCount(rewardsApi.scrollSnapList().length);
+    setRewardsSlide(rewardsApi.selectedScrollSnap());
+    rewardsApi.on("select", () => setRewardsSlide(rewardsApi.selectedScrollSnap()));
+    rewardsApi.on("reInit", () => {
+      setRewardsCount(rewardsApi.scrollSnapList().length);
+      setRewardsSlide(rewardsApi.selectedScrollSnap());
+    });
+  }, [rewardsApi]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -639,77 +653,92 @@ const AccessCard = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredRewards.map((r, idx) => {
-                  const merchantCm = customerMerchants.find(cm => cm.merchant_id === r.merchant_id);
-                  const pointsForThisMerchant = merchantCm ? merchantCm.points_balance : 0;
-                  const progress = Math.min((pointsForThisMerchant / r.points_required) * 100, 100);
-                  const readyToRedeem = progress >= 100;
-                  const almostThere = progress >= 80 && progress < 100;
-                  const IconComp = rewardTypeIcon(r.reward_type);
-                  const gradient = REWARD_GRADIENTS[idx % REWARD_GRADIENTS.length];
-                  return (
-                    <div key={r.id} onClick={() => setSelectedReward(r)}
-                      className={`w-full rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer border ${
-                        readyToRedeem
-                          ? 'border-accent/40 shadow-[0_0_25px_-4px_hsl(var(--accent)/0.4)]'
-                          : 'border-border/20 shadow-card'
-                      }`}
-                    >
-                      {/* Image or gradient header */}
-                      <div className="relative h-[180px] overflow-hidden">
-                        {r.image_url ? (
-                          <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className={`w-full h-full bg-gradient-to-br ${gradient}`}>
-                            <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-background/10 border border-background/20" />
-                            <div className="absolute bottom-12 left-4 w-8 h-8 rounded-full bg-background/10 border border-background/20" />
-                          </div>
-                        )}
-                        {/* Bottom fade */}
-                        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
-                        {/* Badges on image */}
-                        <div className="absolute top-3 right-3 flex items-center gap-2">
-                          {readyToRedeem && (
-                            <span className="bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse">✨ Ready!</span>
-                          )}
-                          <span className="text-[9px] uppercase tracking-wider font-semibold bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full text-white/90">{r.reward_type}</span>
-                        </div>
-                        <div className="absolute top-3 left-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-black/30'}`}>
-                            <IconComp size={18} className="text-white" />
-                          </div>
-                        </div>
-                      </div>
+                <Carousel setApi={setRewardsApi} opts={{ loop: false, align: "start" }} className="w-full">
+                  <CarouselContent>
+                    {filteredRewards.map((r, idx) => {
+                      const merchantCm = customerMerchants.find(cm => cm.merchant_id === r.merchant_id);
+                      const pointsForThisMerchant = merchantCm ? merchantCm.points_balance : 0;
+                      const progress = Math.min((pointsForThisMerchant / r.points_required) * 100, 100);
+                      const readyToRedeem = progress >= 100;
+                      const almostThere = progress >= 80 && progress < 100;
+                      const IconComp = rewardTypeIcon(r.reward_type);
+                      const gradient = REWARD_GRADIENTS[idx % REWARD_GRADIENTS.length];
+                      return (
+                        <CarouselItem key={r.id} className="basis-full">
+                          <div onClick={() => setSelectedReward(r)}
+                            className={`w-full rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer border ${
+                              readyToRedeem
+                                ? 'border-accent/40 shadow-[0_0_25px_-4px_hsl(var(--accent)/0.4)]'
+                                : 'border-border/20 shadow-card'
+                            }`}
+                          >
+                            {/* Image or gradient header */}
+                            <div className="relative h-[180px] overflow-hidden">
+                              {r.image_url ? (
+                                <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className={`w-full h-full bg-gradient-to-br ${gradient}`}>
+                                  <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-background/10 border border-background/20" />
+                                  <div className="absolute bottom-12 left-4 w-8 h-8 rounded-full bg-background/10 border border-background/20" />
+                                </div>
+                              )}
+                              {/* Bottom fade */}
+                              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
+                              {/* Badges on image */}
+                              <div className="absolute top-3 right-3 flex items-center gap-2">
+                                {readyToRedeem && (
+                                  <span className="bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse">✨ Ready!</span>
+                                )}
+                                <span className="text-[9px] uppercase tracking-wider font-semibold bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full text-white/90">{r.reward_type}</span>
+                              </div>
+                              <div className="absolute top-3 left-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-black/30'}`}>
+                                  <IconComp size={18} className="text-white" />
+                                </div>
+                              </div>
+                            </div>
 
-                      {/* Content on solid background */}
-                      <div className="bg-card p-4 space-y-2">
-                        <p className="font-bold text-base text-foreground leading-tight">{r.title}</p>
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Store size={10} /> {r.store_name}</p>
-                        {r.description && <p className="text-[10px] text-muted-foreground/80 line-clamp-2">{r.description}</p>}
-                        <div className="pt-1">
-                          <div className="flex items-center justify-between text-[10px] mb-1">
-                            <span className="text-muted-foreground">{pointsForThisMerchant}/{r.points_required} pts</span>
-                            {readyToRedeem && <span className="text-accent font-bold">✨ Ready!</span>}
-                            {almostThere && <span className="text-secondary font-semibold">Almost there!</span>}
+                            {/* Content on solid background */}
+                            <div className="bg-card p-4 space-y-2">
+                              <p className="font-bold text-base text-foreground leading-tight">{r.title}</p>
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Store size={10} /> {r.store_name}</p>
+                              {r.description && <p className="text-[10px] text-muted-foreground/80 line-clamp-2">{r.description}</p>}
+                              <div className="pt-1">
+                                <div className="flex items-center justify-between text-[10px] mb-1">
+                                  <span className="text-muted-foreground">{pointsForThisMerchant}/{r.points_required} pts</span>
+                                  {readyToRedeem && <span className="text-accent font-bold">✨ Ready!</span>}
+                                  {almostThere && <span className="text-secondary font-semibold">Almost there!</span>}
+                                </div>
+                                <Progress value={progress} className="h-1.5" />
+                              </div>
+                              {readyToRedeem ? (
+                                <Button variant="hero" size="sm" className="w-full gap-1.5 text-xs mt-1">
+                                  <Ticket size={12} /> Claim Reward
+                                </Button>
+                              ) : (
+                                <p className="text-[10px] text-center text-muted-foreground mt-1">
+                                  {r.points_required - pointsForThisMerchant} pts to go
+                                </p>
+                              )}
+                              {r.is_limited_time && r.expires_at && (
+                                <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
+                              )}
+                            </div>
                           </div>
-                          <Progress value={progress} className="h-1.5" />
-                        </div>
-                        {readyToRedeem ? (
-                          <Button variant="hero" size="sm" className="w-full gap-1.5 text-xs mt-1">
-                            <Ticket size={12} /> Claim Reward
-                          </Button>
-                        ) : (
-                          <p className="text-[10px] text-center text-muted-foreground mt-1">
-                            {r.points_required - pointsForThisMerchant} pts to go
-                          </p>
-                        )}
-                        {r.is_limited_time && r.expires_at && (
-                          <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                        </CarouselItem>
+                      );
+                    })}
+                  </CarouselContent>
+                </Carousel>
+                {rewardsCount > 1 && (
+                  <div className="flex justify-center gap-1.5">
+                    {Array.from({ length: rewardsCount }).map((_, i) => (
+                      <button key={i} onClick={() => rewardsApi?.scrollTo(i)}
+                        className={`h-2 rounded-full transition-all duration-300 ${i === rewardsSlide ? 'bg-accent w-5' : 'bg-border w-2'}`} aria-label={`Go to reward ${i + 1}`} />
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-center text-muted-foreground">Swipe to see more rewards →</p>
               </div>
             )}
           </div>

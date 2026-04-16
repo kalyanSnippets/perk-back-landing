@@ -66,6 +66,9 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
+  const [hotApi, setHotApi] = useState<CarouselApi>();
+  const [hotSlide, setHotSlide] = useState(0);
+  const [hotCount, setHotCount] = useState(0);
 
   const userLocation = useUserLocation();
 
@@ -81,6 +84,17 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
     const interval = setInterval(() => carouselApi.scrollNext(), 5000);
     return () => clearInterval(interval);
   }, [carouselApi]);
+
+  useEffect(() => {
+    if (!hotApi) return;
+    setHotCount(hotApi.scrollSnapList().length);
+    setHotSlide(hotApi.selectedScrollSnap());
+    hotApi.on("select", () => setHotSlide(hotApi.selectedScrollSnap()));
+    hotApi.on("reInit", () => {
+      setHotCount(hotApi.scrollSnapList().length);
+      setHotSlide(hotApi.selectedScrollSnap());
+    });
+  }, [hotApi]);
 
   // Proximity suggestion
   useEffect(() => {
@@ -226,58 +240,70 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Gift size={16} className="text-accent" /> Hot Rewards
             </h3>
-            <div className="space-y-3">
-              {rewards.slice(0, 10).map((r, idx) => {
-                const merchant = merchantMap.get(r.merchant_id);
-                const colorSet = HOT_REWARD_COLORS[idx % HOT_REWARD_COLORS.length];
-                return (
-                  <button
-                    key={r.id}
-                    onClick={() => setPreviewMerchantId(r.merchant_id)}
-                    className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 ${colorSet.glow}`}
-                  >
-                    {/* Image or gradient header */}
-                    <div className="relative h-[160px] overflow-hidden">
-                      {r.image_url ? (
-                        <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className={`w-full h-full bg-gradient-to-br ${colorSet.bg}`}>
-                          <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/10 border border-background/20" />
+            <Carousel setApi={setHotApi} opts={{ loop: false, align: "start" }} className="w-full">
+              <CarouselContent>
+                {rewards.slice(0, 10).map((r, idx) => {
+                  const merchant = merchantMap.get(r.merchant_id);
+                  const colorSet = HOT_REWARD_COLORS[idx % HOT_REWARD_COLORS.length];
+                  return (
+                    <CarouselItem key={r.id} className="basis-full">
+                      <button
+                        onClick={() => setPreviewMerchantId(r.merchant_id)}
+                        className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden text-left transition-all duration-300 ${colorSet.glow}`}
+                      >
+                        {/* Image or gradient header */}
+                        <div className="relative h-[180px] overflow-hidden">
+                          {r.image_url ? (
+                            <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className={`w-full h-full bg-gradient-to-br ${colorSet.bg}`}>
+                              <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/10 border border-background/20" />
+                            </div>
+                          )}
+                          {/* Merchant logo on image */}
+                          {merchant?.logo_url && (
+                            <div className="absolute top-3 right-3 w-10 h-10 rounded-xl overflow-hidden bg-background/30 backdrop-blur-sm border border-white/20">
+                              <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          {/* Bottom fade */}
+                          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent" />
                         </div>
-                      )}
-                      {/* Merchant logo on image */}
-                      {merchant?.logo_url && (
-                        <div className="absolute top-3 right-3 w-10 h-10 rounded-xl overflow-hidden bg-background/30 backdrop-blur-sm border border-white/20">
-                          <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                      {/* Bottom fade */}
-                      <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent" />
-                    </div>
 
-                    {/* Content on solid background */}
-                    <div className={`p-3.5 bg-gradient-to-br ${colorSet.bg}`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        {merchant?.logo_url ? (
-                          <img src={merchant.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-border/30" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                            <Gift size={14} className="text-accent" />
+                        {/* Content on solid background */}
+                        <div className={`p-4 bg-gradient-to-br ${colorSet.bg}`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            {merchant?.logo_url ? (
+                              <img src={merchant.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-border/30" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                                <Gift size={14} className="text-accent" />
+                              </div>
+                            )}
+                            <span className="text-[10px] text-muted-foreground truncate flex-1 font-medium">{merchant?.store_name || "Store"}</span>
                           </div>
-                        )}
-                        <span className="text-[10px] text-muted-foreground truncate flex-1 font-medium">{merchant?.store_name || "Store"}</span>
-                      </div>
-                      <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
-                      {r.description && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{r.description}</p>}
-                      <div className="flex items-center justify-between mt-2.5">
-                        <span className="text-xs font-bold text-primary">{r.points_required} pts</span>
-                        <span className="text-[10px] text-accent font-semibold">Earn & redeem →</span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                          <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
+                          {r.description && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{r.description}</p>}
+                          <div className="flex items-center justify-between mt-2.5">
+                            <span className="text-xs font-bold text-primary">{r.points_required} pts</span>
+                            <span className="text-[10px] text-accent font-semibold">Earn & redeem →</span>
+                          </div>
+                        </div>
+                      </button>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+            </Carousel>
+            {hotCount > 1 && (
+              <div className="flex justify-center gap-1.5 mt-3">
+                {Array.from({ length: hotCount }).map((_, i) => (
+                  <button key={i} onClick={() => hotApi?.scrollTo(i)}
+                    className={`h-2 rounded-full transition-all duration-300 ${i === hotSlide ? 'bg-accent w-5' : 'bg-border w-2'}`} aria-label={`Go to reward ${i + 1}`} />
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-center text-muted-foreground mt-2">Swipe to explore more →</p>
           </div>
         </ScrollReveal>
       )}
