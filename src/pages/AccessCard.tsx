@@ -649,61 +649,62 @@ const AccessCard = () => {
                   const gradient = REWARD_GRADIENTS[idx % REWARD_GRADIENTS.length];
                   return (
                     <div key={r.id} onClick={() => setSelectedReward(r)}
-                      className={`w-full rounded-2xl overflow-hidden relative min-h-[200px] flex flex-col justify-end transition-all duration-300 hover:shadow-lg cursor-pointer border ${
+                      className={`w-full rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer border ${
                         readyToRedeem
                           ? 'border-accent/40 shadow-[0_0_25px_-4px_hsl(var(--accent)/0.4)]'
                           : 'border-border/20 shadow-card'
                       }`}
                     >
-                      {/* Full background: image or gradient */}
-                      {r.image_url ? (
-                        <img src={r.image_url} alt={r.title} className="absolute inset-0 w-full h-full object-cover" />
-                      ) : (
-                        <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`}>
-                          <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-background/10 border border-background/20" />
-                          <div className="absolute bottom-12 left-4 w-8 h-8 rounded-full bg-background/10 border border-background/20" />
-                        </div>
-                      )}
-                      {/* Dark overlay for readability */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
-
-                      {/* Top badges */}
-                      <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
-                        {readyToRedeem && (
-                          <span className="bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse">✨ Ready!</span>
+                      {/* Image or gradient header */}
+                      <div className="relative h-[180px] overflow-hidden">
+                        {r.image_url ? (
+                          <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className={`w-full h-full bg-gradient-to-br ${gradient}`}>
+                            <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-background/10 border border-background/20" />
+                            <div className="absolute bottom-12 left-4 w-8 h-8 rounded-full bg-background/10 border border-background/20" />
+                          </div>
                         )}
-                        <span className="text-[9px] uppercase tracking-wider font-semibold bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full text-white/80">{r.reward_type}</span>
-                      </div>
-                      <div className="absolute top-3 left-3 z-10">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-white/20'}`}>
-                          <IconComp size={18} className="text-white" />
+                        {/* Bottom fade */}
+                        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
+                        {/* Badges on image */}
+                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                          {readyToRedeem && (
+                            <span className="bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse">✨ Ready!</span>
+                          )}
+                          <span className="text-[9px] uppercase tracking-wider font-semibold bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full text-white/90">{r.reward_type}</span>
+                        </div>
+                        <div className="absolute top-3 left-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-black/30'}`}>
+                            <IconComp size={18} className="text-white" />
+                          </div>
                         </div>
                       </div>
 
-                      {/* Content overlay */}
-                      <div className="relative z-10 p-4 space-y-2">
-                        <p className="font-bold text-base text-white leading-tight">{r.title}</p>
-                        <p className="text-[11px] text-white/70 flex items-center gap-1"><Store size={10} /> {r.store_name}</p>
-                        {r.description && <p className="text-[10px] text-white/60 line-clamp-2">{r.description}</p>}
+                      {/* Content on solid background */}
+                      <div className="bg-card p-4 space-y-2">
+                        <p className="font-bold text-base text-foreground leading-tight">{r.title}</p>
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Store size={10} /> {r.store_name}</p>
+                        {r.description && <p className="text-[10px] text-muted-foreground/80 line-clamp-2">{r.description}</p>}
                         <div className="pt-1">
                           <div className="flex items-center justify-between text-[10px] mb-1">
-                            <span className="text-white/70">{pointsForThisMerchant}/{r.points_required} pts</span>
+                            <span className="text-muted-foreground">{pointsForThisMerchant}/{r.points_required} pts</span>
                             {readyToRedeem && <span className="text-accent font-bold">✨ Ready!</span>}
                             {almostThere && <span className="text-secondary font-semibold">Almost there!</span>}
                           </div>
-                          <Progress value={progress} className="h-1.5 bg-white/20" />
+                          <Progress value={progress} className="h-1.5" />
                         </div>
                         {readyToRedeem ? (
                           <Button variant="hero" size="sm" className="w-full gap-1.5 text-xs mt-1">
                             <Ticket size={12} /> Claim Reward
                           </Button>
                         ) : (
-                          <p className="text-[10px] text-center text-white/60 mt-1">
+                          <p className="text-[10px] text-center text-muted-foreground mt-1">
                             {r.points_required - pointsForThisMerchant} pts to go
                           </p>
                         )}
                         {r.is_limited_time && r.expires_at && (
-                          <p className="text-[9px] text-white/50 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
+                          <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(r.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
                         )}
                       </div>
                     </div>

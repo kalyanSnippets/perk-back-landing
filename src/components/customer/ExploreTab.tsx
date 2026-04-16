@@ -226,7 +226,7 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Gift size={16} className="text-accent" /> Hot Rewards
             </h3>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
+            <div className="space-y-3">
               {rewards.slice(0, 10).map((r, idx) => {
                 const merchant = merchantMap.get(r.merchant_id);
                 const colorSet = HOT_REWARD_COLORS[idx % HOT_REWARD_COLORS.length];
@@ -234,14 +234,29 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                   <button
                     key={r.id}
                     onClick={() => setPreviewMerchantId(r.merchant_id)}
-                    className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl ${colorSet.border} border bg-gradient-to-br ${colorSet.bg} overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 ${colorSet.glow}`}
+                    className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 ${colorSet.glow}`}
                   >
-                    {r.image_url ? (
-                      <div className="h-24 overflow-hidden">
+                    {/* Image or gradient header */}
+                    <div className="relative h-[160px] overflow-hidden">
+                      {r.image_url ? (
                         <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
-                      </div>
-                    ) : null}
-                    <div className="p-3.5">
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-br ${colorSet.bg}`}>
+                          <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/10 border border-background/20" />
+                        </div>
+                      )}
+                      {/* Merchant logo on image */}
+                      {merchant?.logo_url && (
+                        <div className="absolute top-3 right-3 w-10 h-10 rounded-xl overflow-hidden bg-background/30 backdrop-blur-sm border border-white/20">
+                          <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      {/* Bottom fade */}
+                      <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent" />
+                    </div>
+
+                    {/* Content on solid background */}
+                    <div className={`p-3.5 bg-gradient-to-br ${colorSet.bg}`}>
                       <div className="flex items-center gap-2 mb-2">
                         {merchant?.logo_url ? (
                           <img src={merchant.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-border/30" />
@@ -252,7 +267,8 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                         )}
                         <span className="text-[10px] text-muted-foreground truncate flex-1 font-medium">{merchant?.store_name || "Store"}</span>
                       </div>
-                      <p className="text-xs font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
+                      <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
+                      {r.description && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{r.description}</p>}
                       <div className="flex items-center justify-between mt-2.5">
                         <span className="text-xs font-bold text-primary">{r.points_required} pts</span>
                         <span className="text-[10px] text-accent font-semibold">Earn & redeem →</span>
