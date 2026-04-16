@@ -510,6 +510,38 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
             : null
         }
       />
+
+      {/* Redemption Code Dialog */}
+      <Dialog open={!!redemptionResult} onOpenChange={(open) => !open && setRedemptionResult(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="text-accent" size={20} /> Reward Redeemed!
+            </DialogTitle>
+            <DialogDescription>{redemptionResult?.title}</DialogDescription>
+          </DialogHeader>
+          {redemptionResult && (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-accent/10 to-primary/5 rounded-2xl p-5 text-center border border-accent/20">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Show this code to the merchant</p>
+                <p className="font-mono text-2xl font-bold text-foreground tracking-[0.3em]">{redemptionResult.code}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopyCode(redemptionResult.code)}
+                  className="mt-2 gap-1.5 text-xs"
+                >
+                  <Copy size={12} /> Copy code
+                </Button>
+              </div>
+              <div className="text-center text-xs text-muted-foreground space-y-1">
+                <p>{redemptionResult.points} points spent</p>
+                <p className="text-[11px]">Expires {new Date(redemptionResult.expires).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
