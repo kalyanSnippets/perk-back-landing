@@ -655,18 +655,33 @@ const AccessCard = () => {
                           : 'border-border/20 shadow-card'
                       }`}
                     >
-                      {/* Gradient header */}
-                      <div className={`relative bg-gradient-to-br ${gradient} p-4 pb-3`}>
-                        {readyToRedeem && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent animate-pulse" />
-                        )}
-                        <div className="relative z-10 flex items-center justify-between">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-background/40'}`}>
-                            <IconComp size={18} className={readyToRedeem ? 'text-accent-foreground' : 'text-foreground/70'} />
+                      {/* Image or Gradient header */}
+                      {r.image_url ? (
+                        <div className="relative h-28 overflow-hidden">
+                          <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
+                          <div className={`absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent`} />
+                          {readyToRedeem && (
+                            <div className="absolute top-2 right-2 bg-accent text-accent-foreground text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse">✨ Ready!</div>
+                          )}
+                          <div className="absolute bottom-2 left-2">
+                            <span className="text-[9px] uppercase tracking-wider font-semibold bg-background/60 backdrop-blur-sm px-2 py-0.5 rounded-full text-foreground/70">{r.reward_type}</span>
                           </div>
-                          <span className="text-[9px] uppercase tracking-wider font-semibold bg-background/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-foreground/70">{r.reward_type}</span>
                         </div>
-                      </div>
+                      ) : (
+                        <div className={`relative bg-gradient-to-br ${gradient} p-4 pb-3`}>
+                          {readyToRedeem && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent animate-pulse" />
+                          )}
+                          <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-background/10 border border-background/20" />
+                          <div className="absolute bottom-1 left-3 w-6 h-6 rounded-full bg-background/10 border border-background/20" />
+                          <div className="relative z-10 flex items-center justify-between">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-background/40'}`}>
+                              <IconComp size={18} className={readyToRedeem ? 'text-accent-foreground' : 'text-foreground/70'} />
+                            </div>
+                            <span className="text-[9px] uppercase tracking-wider font-semibold bg-background/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-foreground/70">{r.reward_type}</span>
+                          </div>
+                        </div>
+                      )}
                       {/* Content */}
                       <div className="bg-card p-4 space-y-2">
                         <p className="font-bold text-sm text-foreground leading-tight">{r.title}</p>
