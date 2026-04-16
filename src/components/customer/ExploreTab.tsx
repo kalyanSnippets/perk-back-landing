@@ -74,6 +74,9 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
   const [hotApi, setHotApi] = useState<CarouselApi>();
   const [hotSlide, setHotSlide] = useState(0);
   const [hotCount, setHotCount] = useState(0);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [redemptionResult, setRedemptionResult] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
 
   const userLocation = useUserLocation();
 
