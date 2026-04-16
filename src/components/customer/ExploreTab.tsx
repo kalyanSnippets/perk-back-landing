@@ -292,12 +292,14 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                   const colorSet = HOT_REWARD_COLORS[idx % HOT_REWARD_COLORS.length];
                   return (
                     <CarouselItem key={r.id} className="basis-full">
-                      <button
-                        onClick={() => setPreviewMerchantId(r.merchant_id)}
-                        className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden text-left transition-all duration-300 ${colorSet.glow}`}
+                      <div
+                        className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden transition-all duration-300 ${colorSet.glow}`}
                       >
-                        {/* Image or gradient header */}
-                        <div className="relative h-[180px] overflow-hidden">
+                        {/* Image or gradient header — clickable for merchant preview */}
+                        <button
+                          onClick={() => setPreviewMerchantId(r.merchant_id)}
+                          className="relative h-[180px] overflow-hidden block w-full text-left"
+                        >
                           {r.image_url ? (
                             <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
                           ) : (
@@ -305,15 +307,13 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                               <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/10 border border-background/20" />
                             </div>
                           )}
-                          {/* Merchant logo on image */}
                           {merchant?.logo_url && (
                             <div className="absolute top-3 right-3 w-10 h-10 rounded-xl overflow-hidden bg-background/30 backdrop-blur-sm border border-white/20">
                               <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
                             </div>
                           )}
-                          {/* Bottom fade */}
                           <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent" />
-                        </div>
+                        </button>
 
                         {/* Content on solid background */}
                         <div className={`p-4 bg-gradient-to-br ${colorSet.bg}`}>
@@ -329,12 +329,30 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                           </div>
                           <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
                           {r.description && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{r.description}</p>}
-                          <div className="flex items-center justify-between mt-2.5">
+                          <div className="flex items-center justify-between mt-2.5 mb-3">
                             <span className="text-xs font-bold text-primary">{r.points_required} pts</span>
-                            <span className="text-[10px] text-accent font-semibold">Earn & redeem →</span>
+                            <button
+                              onClick={() => setPreviewMerchantId(r.merchant_id)}
+                              className="text-[10px] text-secondary font-semibold hover:underline"
+                            >
+                              View store →
+                            </button>
                           </div>
+                          <Button
+                            onClick={(e) => handleRedeem(e, r.id)}
+                            disabled={redeeming === r.id}
+                            variant="hero"
+                            size="sm"
+                            className="w-full gap-1.5 text-xs"
+                          >
+                            {redeeming === r.id ? (
+                              <><Loader2 size={12} className="animate-spin" /> Redeeming…</>
+                            ) : (
+                              <><Gift size={12} /> Redeem Reward</>
+                            )}
+                          </Button>
                         </div>
-                      </button>
+                      </div>
                     </CarouselItem>
                   );
                 })}
