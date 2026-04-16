@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Mail, Lock, Store, ArrowLeft, MapPin, Phone, Upload, Briefcase } from "lucide-react";
 
@@ -22,6 +23,7 @@ const MerchantAuth = () => {
   const [industryType, setIndustryType] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,6 +39,7 @@ const MerchantAuth = () => {
 
     try {
       if (isSignUp) {
+        if (!agreedToTerms) { toast.error("Please agree to the Terms & Conditions"); setLoading(false); return; }
         if (!logoFile) { toast.error("Please upload your store logo"); setLoading(false); return; }
         if (!address.trim()) { toast.error("Please enter your store address"); setLoading(false); return; }
         if (!phone.trim()) { toast.error("Please enter your phone number"); setLoading(false); return; }
@@ -214,7 +217,16 @@ const MerchantAuth = () => {
             </div>
           </div>
 
-          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
+          {isSignUp && (
+            <div className="flex items-start gap-2">
+              <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(v) => setAgreedToTerms(v === true)} className="mt-0.5" />
+              <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer">
+                I agree to the <Link to="/privacy" className="text-primary hover:underline" target="_blank">Terms & Conditions</Link> and <Link to="/privacy" className="text-primary hover:underline" target="_blank">Privacy Policy</Link>
+              </label>
+            </div>
+          )}
+
+          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || (isSignUp && !agreedToTerms)}>
             {loading ? "Please wait..." : isSignUp ? "Register Store" : "Sign In"}
           </Button>
 

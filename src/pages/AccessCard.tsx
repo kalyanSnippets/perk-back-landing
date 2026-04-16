@@ -50,6 +50,12 @@ const REWARD_GRADIENTS = [
   "from-purple-500/20 via-purple-400/10 to-primary/10",
 ];
 
+const INDUSTRY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  "Coffee Shop": { bg: "from-amber-500/20 via-orange-400/10 to-yellow-300/10", border: "border-amber-400/40", text: "text-amber-600" },
+  "Retail": { bg: "from-blue-500/20 via-indigo-400/10 to-cyan-300/10", border: "border-blue-400/40", text: "text-blue-600" },
+  "Restaurant": { bg: "from-emerald-500/20 via-teal-400/10 to-green-300/10", border: "border-emerald-400/40", text: "text-emerald-600" },
+};
+
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
 const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
@@ -282,8 +288,8 @@ const AccessCard = () => {
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
-    ...filteredCampaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null })),
-    ...filteredOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null })),
+    ...filteredCampaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null, image_url: c.image_url, merchant_id: c.merchant_id })),
+    ...filteredOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null, image_url: null as string | null, merchant_id: o.merchant_id })),
   ];
   const nearestReward = filteredRewards.length > 0
     ? filteredRewards.reduce((closest, r) => {
@@ -466,41 +472,53 @@ const AccessCard = () => {
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
                 {customerMerchants.map(cm => {
                   const isSelected = selectedMerchantId === cm.merchant_id;
+                  const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
                   return (
                     <button
                       key={cm.merchant_id}
                       onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
-                      className={`min-w-[180px] snap-start flex-shrink-0 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                      className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
                         isSelected
-                          ? 'border-primary bg-primary/5 shadow-[0_0_15px_-4px_hsl(var(--primary)/0.3)]'
-                          : 'border-border/30 bg-muted/20 hover:shadow-card'
+                          ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
+                          : 'border border-border/30 hover:shadow-card'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center overflow-hidden shrink-0">
-                          {cm.logo_url ? (
-                            <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <Store size={16} className="text-secondary" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-xs text-foreground truncate">{cm.store_name}</p>
-                          {cm.industry_type && (
-                            <span className="text-[9px] text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-full">{cm.industry_type}</span>
-                          )}
+                      {/* Gradient header with optional logo background */}
+                      <div className={`relative bg-gradient-to-br ${colors.bg} p-4 pb-3 min-h-[80px]`}>
+                        {cm.logo_url && (
+                          <div className="absolute inset-0 opacity-10">
+                            <img src={cm.logo_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="relative z-10 flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                            {cm.logo_url ? (
+                              <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Store size={20} className={colors.text} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-sm text-foreground truncate">{cm.store_name}</p>
+                            {cm.industry_type && (
+                              <span className={`text-[9px] font-semibold ${colors.text} bg-background/50 backdrop-blur-sm px-2 py-0.5 rounded-full`}>{cm.industry_type}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      {cm.address && (
-                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mb-1.5 truncate">
-                          <MapPin size={8} /> {cm.address}
-                        </p>
-                      )}
-                      <p className="text-lg font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-[10px] font-normal text-muted-foreground">pts</span></p>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                        <span>{cm.visit_count} visits</span>
-                        <span className="text-muted-foreground/30">·</span>
-                        <span>${cm.total_spend.toFixed(0)} spent</span>
+                      {/* Content */}
+                      <div className="bg-card p-3.5 space-y-1.5">
+                        {cm.address && (
+                          <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 truncate">
+                            <MapPin size={8} /> {cm.address}
+                          </p>
+                        )}
+                        <p className="text-2xl font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-xs font-normal text-muted-foreground">pts</span></p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span>{cm.visit_count} visits</span>
+                          <span className="text-muted-foreground/30">·</span>
+                          <span>${cm.total_spend.toFixed(0)} spent</span>
+                        </div>
                       </div>
                     </button>
                   );
@@ -550,28 +568,47 @@ const AccessCard = () => {
               <CarouselContent>
                 {carouselSlides.map((slide, i) => (
                   <CarouselItem key={`${slide.type}-${i}`}>
-                    <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${CAROUSEL_GRADIENTS[i % CAROUSEL_GRADIENTS.length]} p-5 sm:p-6 min-h-[140px] flex flex-col justify-between`}>
-                      <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
-                      <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full border border-primary-foreground/8" />
-                      <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-2">
-                          {slide.type === "campaign" ? <Megaphone size={14} className="text-primary-foreground/70" /> : <CalendarDays size={14} className="text-primary-foreground/70" />}
-                          <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">{slide.store}</span>
-                        </div>
-                        <h3 className="text-primary-foreground font-bold text-base sm:text-lg leading-tight">{slide.title}</h3>
-                        {slide.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{slide.description}</p>}
-                      </div>
-                      <div className="relative z-10 flex items-center justify-between mt-3">
-                        <span className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
-                          {slide.type === "campaign" ? "Campaign" : "Monthly Offer"}
-                        </span>
-                        {slide.endsIn !== null && (
-                          <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Clock size={9} /> Ends in {slide.endsIn} days
-                          </span>
+                    <button
+                      onClick={() => {
+                        const cm = customerMerchants.find(c => c.merchant_id === slide.merchant_id);
+                        if (cm) setSelectedMerchantId(slide.merchant_id);
+                      }}
+                      className="w-full text-left"
+                    >
+                      <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${CAROUSEL_GRADIENTS[i % CAROUSEL_GRADIENTS.length]} p-5 sm:p-6 min-h-[160px] flex flex-col justify-between`}>
+                        {slide.image_url && (
+                          <div className="absolute inset-0">
+                            <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+                          </div>
                         )}
+                        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
+                        <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full border border-primary-foreground/8" />
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-2 mb-2">
+                            {slide.type === "campaign" ? <Megaphone size={14} className="text-primary-foreground/70" /> : <CalendarDays size={14} className="text-primary-foreground/70" />}
+                            <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">{slide.store}</span>
+                          </div>
+                          <h3 className="text-primary-foreground font-bold text-lg sm:text-xl leading-tight">{slide.title}</h3>
+                          {slide.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{slide.description}</p>}
+                        </div>
+                        <div className="relative z-10 flex items-center justify-between mt-3">
+                          <span className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
+                            {slide.type === "campaign" ? "Campaign" : "Monthly Offer"}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {slide.endsIn !== null && (
+                              <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Clock size={9} /> {slide.endsIn}d left
+                              </span>
+                            )}
+                            <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                              View Details <ArrowRight size={9} />
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   </CarouselItem>
                 ))}
               </CarouselContent>
@@ -618,18 +655,33 @@ const AccessCard = () => {
                           : 'border-border/20 shadow-card'
                       }`}
                     >
-                      {/* Gradient header */}
-                      <div className={`relative bg-gradient-to-br ${gradient} p-4 pb-3`}>
-                        {readyToRedeem && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent animate-pulse" />
-                        )}
-                        <div className="relative z-10 flex items-center justify-between">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-background/40'}`}>
-                            <IconComp size={18} className={readyToRedeem ? 'text-accent-foreground' : 'text-foreground/70'} />
+                      {/* Image or Gradient header */}
+                      {r.image_url ? (
+                        <div className="relative h-28 overflow-hidden">
+                          <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
+                          <div className={`absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent`} />
+                          {readyToRedeem && (
+                            <div className="absolute top-2 right-2 bg-accent text-accent-foreground text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse">✨ Ready!</div>
+                          )}
+                          <div className="absolute bottom-2 left-2">
+                            <span className="text-[9px] uppercase tracking-wider font-semibold bg-background/60 backdrop-blur-sm px-2 py-0.5 rounded-full text-foreground/70">{r.reward_type}</span>
                           </div>
-                          <span className="text-[9px] uppercase tracking-wider font-semibold bg-background/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-foreground/70">{r.reward_type}</span>
                         </div>
-                      </div>
+                      ) : (
+                        <div className={`relative bg-gradient-to-br ${gradient} p-4 pb-3`}>
+                          {readyToRedeem && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent animate-pulse" />
+                          )}
+                          <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-background/10 border border-background/20" />
+                          <div className="absolute bottom-1 left-3 w-6 h-6 rounded-full bg-background/10 border border-background/20" />
+                          <div className="relative z-10 flex items-center justify-between">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? 'bg-accent/30' : 'bg-background/40'}`}>
+                              <IconComp size={18} className={readyToRedeem ? 'text-accent-foreground' : 'text-foreground/70'} />
+                            </div>
+                            <span className="text-[9px] uppercase tracking-wider font-semibold bg-background/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-foreground/70">{r.reward_type}</span>
+                          </div>
+                        </div>
+                      )}
                       {/* Content */}
                       <div className="bg-card p-4 space-y-2">
                         <p className="font-bold text-sm text-foreground leading-tight">{r.title}</p>
