@@ -76,6 +76,9 @@ const AccessCard = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
+  const [rewardsApi, setRewardsApi] = useState<CarouselApi>();
+  const [rewardsSlide, setRewardsSlide] = useState(0);
+  const [rewardsCount, setRewardsCount] = useState(0);
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
@@ -91,6 +94,17 @@ const AccessCard = () => {
     const interval = setInterval(() => carouselApi.scrollNext(), 4000);
     return () => clearInterval(interval);
   }, [carouselApi]);
+
+  useEffect(() => {
+    if (!rewardsApi) return;
+    setRewardsCount(rewardsApi.scrollSnapList().length);
+    setRewardsSlide(rewardsApi.selectedScrollSnap());
+    rewardsApi.on("select", () => setRewardsSlide(rewardsApi.selectedScrollSnap()));
+    rewardsApi.on("reInit", () => {
+      setRewardsCount(rewardsApi.scrollSnapList().length);
+      setRewardsSlide(rewardsApi.selectedScrollSnap());
+    });
+  }, [rewardsApi]);
 
   useEffect(() => { fetchData(); }, []);
 
