@@ -36,6 +36,20 @@ const CAROUSEL_GRADIENTS = [
   "from-accent/90 via-accent/80 to-primary/80",
 ];
 
+const HOT_REWARD_COLORS = [
+  { bg: "from-amber-500/15 to-orange-400/10", border: "border-amber-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(245,158,11,0.3)]" },
+  { bg: "from-emerald-500/15 to-teal-400/10", border: "border-emerald-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(16,185,129,0.3)]" },
+  { bg: "from-violet-500/15 to-purple-400/10", border: "border-violet-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(139,92,246,0.3)]" },
+  { bg: "from-rose-500/15 to-pink-400/10", border: "border-rose-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(244,63,94,0.3)]" },
+  { bg: "from-cyan-500/15 to-sky-400/10", border: "border-cyan-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(6,182,212,0.3)]" },
+];
+
+const INDUSTRY_COLORS: Record<string, { accent: string; badge: string }> = {
+  "Coffee Shop": { accent: "from-amber-500 to-orange-400", badge: "bg-amber-100 text-amber-700" },
+  "Retail": { accent: "from-blue-500 to-indigo-400", badge: "bg-blue-100 text-blue-700" },
+  "Restaurant": { accent: "from-emerald-500 to-teal-400", badge: "bg-emerald-100 text-emerald-700" },
+};
+
 const daysUntil = (dateStr: string) => {
   const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   return diff > 0 ? diff : 0;
@@ -152,27 +166,45 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
             </h3>
             <Carousel setApi={setCarouselApi} opts={{ loop: true }} className="w-full">
               <CarouselContent>
-                {campaigns.map((c, i) => (
-                  <CarouselItem key={c.id}>
-                    <button
-                      onClick={() => setPreviewMerchantId(c.merchant_id)}
-                      className="w-full text-left relative rounded-2xl overflow-hidden bg-gradient-to-br ${CAROUSEL_GRADIENTS[i % CAROUSEL_GRADIENTS.length]} p-5 min-h-[130px] flex flex-col justify-between"
-                      style={{ background: `linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))` }}
-                    >
-                      <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
-                      <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Megaphone size={13} className="text-primary-foreground/70" />
-                          <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">
-                            {merchantMap.get(c.merchant_id)?.store_name || "Store"}
+                {campaigns.map((c, i) => {
+                  const merchant = merchantMap.get(c.merchant_id);
+                  return (
+                    <CarouselItem key={c.id}>
+                      <button
+                        onClick={() => setPreviewMerchantId(c.merchant_id)}
+                        className="w-full text-left relative rounded-2xl overflow-hidden min-h-[160px] flex flex-col justify-between"
+                      >
+                        {c.image_url ? (
+                          <>
+                            <img src={c.image_url} alt={c.title} className="absolute inset-0 w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/20" />
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br" style={{ background: `linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))` }} />
+                        )}
+                        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
+                        {merchant?.logo_url && (
+                          <div className="absolute top-3 right-3 w-8 h-8 rounded-lg overflow-hidden bg-background/30 backdrop-blur-sm border border-primary-foreground/20">
+                            <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="relative z-10 p-5">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Megaphone size={13} className="text-primary-foreground/70" />
+                            <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">
+                              {merchant?.store_name || "Store"}
+                            </span>
+                          </div>
+                          <h4 className="text-primary-foreground font-bold text-lg leading-tight">{c.title}</h4>
+                          {c.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{c.description}</p>}
+                          <span className="mt-3 inline-flex items-center gap-1 text-[10px] bg-primary-foreground/20 text-primary-foreground px-2.5 py-1 rounded-full font-semibold">
+                            Learn More <TrendingUp size={9} />
                           </span>
                         </div>
-                        <h4 className="text-primary-foreground font-bold text-base leading-tight">{c.title}</h4>
-                        {c.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{c.description}</p>}
-                      </div>
-                    </button>
-                  </CarouselItem>
-                ))}
+                      </button>
+                    </CarouselItem>
+                  );
+                })}
               </CarouselContent>
               {slideCount > 1 && (
                 <div className="flex justify-center gap-1.5 mt-3">
@@ -195,24 +227,36 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
               <Gift size={16} className="text-accent" /> Hot Rewards
             </h3>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-              {rewards.slice(0, 10).map((r) => {
+              {rewards.slice(0, 10).map((r, idx) => {
                 const merchant = merchantMap.get(r.merchant_id);
+                const colorSet = HOT_REWARD_COLORS[idx % HOT_REWARD_COLORS.length];
                 return (
                   <button
                     key={r.id}
                     onClick={() => setPreviewMerchantId(r.merchant_id)}
-                    className="min-w-[170px] snap-start flex-shrink-0 rounded-xl border border-border/30 bg-card p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card"
+                    className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl ${colorSet.border} border bg-gradient-to-br ${colorSet.bg} overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 ${colorSet.glow}`}
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <Gift size={13} className="text-accent" />
+                    {r.image_url ? (
+                      <div className="h-24 overflow-hidden">
+                        <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
                       </div>
-                      <span className="text-[10px] text-muted-foreground truncate flex-1">{merchant?.store_name || "Store"}</span>
-                    </div>
-                    <p className="text-xs font-semibold text-foreground line-clamp-2">{r.title}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] font-bold text-primary">{r.points_required} pts</span>
-                      <span className="text-[10px] text-accent">Earn & redeem →</span>
+                    ) : null}
+                    <div className="p-3.5">
+                      <div className="flex items-center gap-2 mb-2">
+                        {merchant?.logo_url ? (
+                          <img src={merchant.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-border/30" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                            <Gift size={14} className="text-accent" />
+                          </div>
+                        )}
+                        <span className="text-[10px] text-muted-foreground truncate flex-1 font-medium">{merchant?.store_name || "Store"}</span>
+                      </div>
+                      <p className="text-xs font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
+                      <div className="flex items-center justify-between mt-2.5">
+                        <span className="text-xs font-bold text-primary">{r.points_required} pts</span>
+                        <span className="text-[10px] text-accent font-semibold">Earn & redeem →</span>
+                      </div>
                     </div>
                   </button>
                 );
@@ -274,51 +318,59 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
               <p className="text-sm text-muted-foreground">No merchants found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2.5">
-              {filteredMerchants.map((m) => {
+            <div className="grid grid-cols-2 gap-3">
+              {filteredMerchants.map((m, idx) => {
                 const rewardCount = merchantRewardCounts.get(m.id) || 0;
                 const isMember = customerMerchantIds.includes(m.id);
                 const dist = userLocation.latitude && userLocation.longitude && m.latitude && m.longitude
                   ? haversineDistance(userLocation.latitude, userLocation.longitude, m.latitude, m.longitude)
                   : null;
+                const colors = INDUSTRY_COLORS[m.industry_type || ""] || { accent: "from-secondary to-primary", badge: "bg-secondary/10 text-secondary" };
+                const cardGradients = ["from-primary/5 to-secondary/5", "from-secondary/5 to-accent/5", "from-accent/5 to-primary/5", "from-amber-50 to-orange-50"];
                 return (
                   <button
                     key={m.id}
                     onClick={() => setPreviewMerchantId(m.id)}
-                    className="rounded-xl border border-border/30 bg-card p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card overflow-hidden"
+                    className={`rounded-2xl border border-border/30 bg-gradient-to-br ${cardGradients[idx % cardGradients.length]} overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
                   >
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <div className="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center overflow-hidden shrink-0">
-                        {m.logo_url ? (
-                          <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <Store size={18} className="text-secondary" />
+                    {/* Accent strip */}
+                    <div className={`h-1.5 bg-gradient-to-r ${colors.accent}`} />
+                    <div className="p-3.5">
+                      <div className="flex items-center gap-3 mb-2.5">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors.accent} p-0.5 flex items-center justify-center overflow-hidden shrink-0`}>
+                          <div className="w-full h-full rounded-[10px] bg-background flex items-center justify-center overflow-hidden">
+                            {m.logo_url ? (
+                              <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Store size={18} className="text-secondary" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          {isMember && (
+                            <span className="text-[8px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">MEMBER</span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="font-bold text-sm text-foreground truncate">{m.store_name}</p>
+                      {m.industry_type && (
+                        <span className={`text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full inline-block mt-1`}>{m.industry_type}</span>
+                      )}
+                      {m.address && (
+                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mt-1.5 truncate">
+                          <MapPin size={8} /> {m.address}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        {rewardCount > 0 && (
+                          <span className="text-[9px] text-accent font-semibold">{rewardCount} reward{rewardCount > 1 ? "s" : ""}</span>
+                        )}
+                        {dist !== null && (
+                          <span className="text-[9px] text-primary flex items-center gap-0.5 font-medium">
+                            <MapPin size={7} /> {formatDistance(dist)}
+                          </span>
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        {isMember && (
-                          <span className="text-[8px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">MEMBER</span>
-                        )}
-                      </div>
-                    </div>
-                    <p className="font-semibold text-xs text-foreground truncate">{m.store_name}</p>
-                    {m.industry_type && (
-                      <span className="text-[9px] text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-full inline-block mt-1">{m.industry_type}</span>
-                    )}
-                    {m.address && (
-                      <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 mt-1 truncate">
-                        <MapPin size={8} /> {m.address}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 mt-1.5">
-                      {rewardCount > 0 && (
-                        <span className="text-[9px] text-accent">{rewardCount} reward{rewardCount > 1 ? "s" : ""}</span>
-                      )}
-                      {dist !== null && (
-                        <span className="text-[9px] text-primary flex items-center gap-0.5">
-                          <MapPin size={7} /> {formatDistance(dist)}
-                        </span>
-                      )}
                     </div>
                   </button>
                 );
