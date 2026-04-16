@@ -1,28 +1,33 @@
 
 
-## Fix Available Rewards: Full-Width Stacked Cards with Image Backgrounds
+## Fix Text Visibility on Reward Cards + Full-Width Hot Rewards
 
 ### Problem
-The Available Rewards section currently uses a horizontal scrolling layout with small cards (`min-w-[220px]`). The user wants each reward card to be full viewport width, not scrollable, with the image covering the entire card and content overlaid on top.
+1. **Available Rewards (AccessCard.tsx)**: Text overlaid on images is hard to read — white text on potentially light images.
+2. **Hot Rewards (ExploreTab.tsx)**: Still uses horizontal scroll with small cards — needs the same full-width stacked treatment.
 
 ### Changes
 
-**File: `src/pages/AccessCard.tsx` (lines ~641-714)**
+#### 1. Available Rewards — Text Below Image (AccessCard.tsx, lines ~641-713)
 
-1. **Remove horizontal scroll container** — Replace `flex gap-3 overflow-x-auto snap-x` with a vertical `space-y-3` stack so cards fill the full width.
+- **Split layout**: Image takes the top half (~180px), content sits below on a solid card background — no text-on-image readability issues.
+- When `image_url` exists: image displayed as a `h-[180px] object-cover` header, with a subtle gradient fade at the bottom edge.
+- Content section below uses standard `text-foreground` colors on solid `bg-card` background.
+- Badges ("Ready!", reward type) positioned as overlays on the image portion only.
+- Progress bar, points, store name, and CTA button all on the solid background section below.
+- When no image: keep the gradient header with decorative elements, content still below.
 
-2. **Make each card full-width** — Remove `min-w-[220px] snap-start flex-shrink-0`. Cards become `w-full`.
+#### 2. Hot Rewards — Full-Width Stacked Cards (ExploreTab.tsx, lines ~222-267)
 
-3. **Image covers entire card** — When `image_url` exists, use it as a full background with `absolute inset-0 w-full h-full object-cover` and overlay all content (title, points, progress bar, CTA) on top with a dark gradient overlay (`bg-gradient-to-t from-black/80 via-black/40 to-transparent`).
-
-4. **Content overlaid inside the image** — Move the content section (title, store name, description, progress, button) inside the image container with `relative z-10` positioning, white/light text colors, and padding. Card height set to `min-h-[200px]` with `flex flex-col justify-end`.
-
-5. **No-image fallback** — When no `image_url`, keep the existing gradient header but also make it full-card background with content overlaid similarly.
-
-6. **Reward type badge and "Ready!" indicator** — Positioned as absolute elements at top-right of the card.
+- **Remove horizontal scroll**: Replace `flex gap-3 overflow-x-auto snap-x` with `space-y-3` vertical stack.
+- **Remove small card sizing**: Drop `min-w-[200px] snap-start flex-shrink-0`. Cards become `w-full`.
+- **Same split layout as Available Rewards**: Image on top (`h-[160px] object-cover`), content below on solid background.
+- Merchant logo overlaid on image corner.
+- Title, points, store name, and "Earn & redeem" CTA on the solid section below — fully readable.
+- Keep the colorful border accents from `HOT_REWARD_COLORS` for visual variety.
 
 ### Technical Details
-- No database changes
-- Only modifying the reward card layout in `AccessCard.tsx`
-- Progress bar and CTA button will use light/white styling to contrast against the image background
+- No database changes needed.
+- Two files modified: `src/pages/AccessCard.tsx` and `src/components/customer/ExploreTab.tsx`.
+- Text always on solid backgrounds — eliminates all readability concerns.
 
