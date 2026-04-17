@@ -153,14 +153,16 @@ const MerchantPoints = () => {
             </h1>
 
             <Tabs value={defaultTab} onValueChange={handleTabChange}>
-              <TabsList className="w-full justify-start overflow-x-auto flex-wrap">
-                <TabsTrigger value="add-points">Add Points</TabsTrigger>
-                <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                <TabsTrigger value="redemptions">Redemptions</TabsTrigger>
-                <TabsTrigger value="stamps">Stamp Cards</TabsTrigger>
-                <TabsTrigger value="scanner">QR Scanner</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
+              <div className="-mx-4 lg:mx-0 px-4 lg:px-0 sticky top-16 lg:top-20 z-30 bg-muted/20 backdrop-blur-md py-2">
+                <TabsList className="w-full justify-start overflow-x-auto flex-nowrap whitespace-nowrap scrollbar-hide h-auto p-1 bg-card border border-border/50 shadow-sm">
+                  <TabsTrigger value="add-points" className="shrink-0">Add Points</TabsTrigger>
+                  <TabsTrigger value="transactions" className="shrink-0">Transactions</TabsTrigger>
+                  <TabsTrigger value="redemptions" className="shrink-0">Redemptions</TabsTrigger>
+                  <TabsTrigger value="stamps" className="shrink-0">Stamp Cards</TabsTrigger>
+                  <TabsTrigger value="scanner" className="shrink-0">QR Scanner</TabsTrigger>
+                  <TabsTrigger value="settings" className="shrink-0">Settings</TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Add Points */}
               <TabsContent value="add-points">
@@ -315,8 +317,8 @@ const MerchantPoints = () => {
 
               {/* QR Scanner */}
               <TabsContent value="scanner" className="space-y-4">
-                <CustomerSearch merchantId={merchantId} onSelect={() => {}} />
-                <StampQrScanner merchantId={merchantId} />
+                <CustomerSearch merchantId={merchantId} onSelect={(num) => setCardNumber(num)} />
+                <StampQrScanner merchantId={merchantId} initialCardNumber={cardNumber} />
               </TabsContent>
 
               {/* Settings: Points-per-dollar */}

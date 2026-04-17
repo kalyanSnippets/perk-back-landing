@@ -311,14 +311,16 @@ const MerchantMarketing = () => {
             <h1 className="text-xl font-bold text-foreground">Marketing</h1>
 
             <Tabs value={defaultTab} onValueChange={handleTabChange}>
-              <TabsList className="w-full justify-start overflow-x-auto flex-wrap">
-                <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-                <TabsTrigger value="promotions">Promotions</TabsTrigger>
-                <TabsTrigger value="rewards">Rewards</TabsTrigger>
-                <TabsTrigger value="product_offers">Product Offers</TabsTrigger>
-                <TabsTrigger value="birthday">Birthday</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
-              </TabsList>
+              <div className="-mx-4 lg:mx-0 px-4 lg:px-0 sticky top-16 lg:top-20 z-30 bg-muted/20 backdrop-blur-md py-2">
+                <TabsList className="w-full justify-start overflow-x-auto flex-nowrap whitespace-nowrap scrollbar-hide h-auto p-1 bg-card border border-border/50 shadow-sm">
+                  <TabsTrigger value="campaigns" className="shrink-0">Campaigns</TabsTrigger>
+                  <TabsTrigger value="promotions" className="shrink-0">Promotions</TabsTrigger>
+                  <TabsTrigger value="rewards" className="shrink-0">Rewards</TabsTrigger>
+                  <TabsTrigger value="product_offers" className="shrink-0">Product Offers</TabsTrigger>
+                  <TabsTrigger value="birthday" className="shrink-0">Birthday</TabsTrigger>
+                  <TabsTrigger value="monthly" className="shrink-0">Monthly</TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* ── Campaigns ── */}
               <TabsContent value="campaigns" className="space-y-4">

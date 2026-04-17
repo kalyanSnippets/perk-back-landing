@@ -244,12 +244,14 @@ const MerchantInsights = () => {
             <h1 className="text-xl font-bold text-foreground">Insights</h1>
 
             <Tabs value={defaultTab} onValueChange={handleTabChange}>
-              <TabsList className="w-full justify-start overflow-x-auto">
-                <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                <TabsTrigger value="reports">Reports</TabsTrigger>
-                <TabsTrigger value="redemptions">Redemptions</TabsTrigger>
-              </TabsList>
+              <div className="-mx-4 lg:mx-0 px-4 lg:px-0 sticky top-16 lg:top-20 z-30 bg-muted/20 backdrop-blur-md py-2">
+                <TabsList className="w-full justify-start overflow-x-auto flex-nowrap whitespace-nowrap scrollbar-hide h-auto p-1 bg-card border border-border/50 shadow-sm">
+                  <TabsTrigger value="transactions" className="shrink-0">Transactions</TabsTrigger>
+                  <TabsTrigger value="analytics" className="shrink-0">Analytics</TabsTrigger>
+                  <TabsTrigger value="reports" className="shrink-0">Reports</TabsTrigger>
+                  <TabsTrigger value="redemptions" className="shrink-0">Redemptions</TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Transactions Tab */}
               <TabsContent value="transactions" className="space-y-4">
