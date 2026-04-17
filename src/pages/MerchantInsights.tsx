@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { usePersistedTab } from "@/hooks/usePersistedTab";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -55,8 +56,7 @@ const statusBadge = (status: string) => {
 
 const MerchantInsights = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "transactions";
+  const { activeTab, setTab } = usePersistedTab("merchant.insights.tab", "transactions");
 
   const [merchantId, setMerchantId] = useState<string>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -212,9 +212,6 @@ const MerchantInsights = () => {
     }
   };
 
-  const handleTabChange = (value: string) => {
-    setSearchParams({ tab: value });
-  };
 
   if (loading || subLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
@@ -243,7 +240,7 @@ const MerchantInsights = () => {
           <div className="flex-1 min-w-0 space-y-4">
             <h1 className="text-xl font-bold text-foreground">Insights</h1>
 
-            <Tabs value={defaultTab} onValueChange={handleTabChange}>
+            <Tabs value={activeTab} onValueChange={setTab}>
               <div className="-mx-4 lg:mx-0 px-4 lg:px-0 sticky top-16 lg:top-20 z-30 bg-muted/20 backdrop-blur-md py-2">
                 <TabsList className="w-full justify-start overflow-x-auto flex-nowrap whitespace-nowrap scrollbar-hide h-auto p-1 bg-card border border-border/50 shadow-sm">
                   <TabsTrigger value="transactions" className="shrink-0">Transactions</TabsTrigger>

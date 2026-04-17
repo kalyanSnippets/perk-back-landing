@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { usePersistedTab } from "@/hooks/usePersistedTab";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -83,8 +84,7 @@ const SmsButton = ({ merchantId, type, offerId }: { merchantId: string; type: st
 
 const MerchantMarketing = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "campaigns";
+  const { activeTab, setTab } = usePersistedTab("merchant.marketing.tab", "campaigns");
 
   const [merchantId, setMerchantId] = useState<string>();
   const [loading, setLoading] = useState(true);
@@ -292,7 +292,7 @@ const MerchantMarketing = () => {
     toast.success(`Campaign "${s.title}" created!`); await refetchCampaigns();
   };
 
-  const handleTabChange = (value: string) => setSearchParams({ tab: value });
+  const handleTabChange = setTab;
 
   if (loading || subLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
@@ -310,7 +310,7 @@ const MerchantMarketing = () => {
           <div className="flex-1 min-w-0 space-y-4">
             <h1 className="text-xl font-bold text-foreground">Marketing</h1>
 
-            <Tabs value={defaultTab} onValueChange={handleTabChange}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <div className="-mx-4 lg:mx-0 px-4 lg:px-0 sticky top-16 lg:top-20 z-30 bg-muted/20 backdrop-blur-md py-2">
                 <TabsList className="w-full justify-start overflow-x-auto flex-nowrap whitespace-nowrap scrollbar-hide h-auto p-1 bg-card border border-border/50 shadow-sm">
                   <TabsTrigger value="campaigns" className="shrink-0">Campaigns</TabsTrigger>

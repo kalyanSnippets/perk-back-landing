@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { usePersistedTab } from "@/hooks/usePersistedTab";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -36,8 +37,7 @@ interface MerchantData {
 
 const MerchantSettings = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "business";
+  const { activeTab, setTab } = usePersistedTab("merchant.settings.tab", "business");
 
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,7 +160,7 @@ const MerchantSettings = () => {
     window.location.reload();
   };
 
-  const handleTabChange = (value: string) => setSearchParams({ tab: value });
+  const handleTabChange = setTab;
 
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm">Loading settings...</p></div>;
@@ -179,7 +179,7 @@ const MerchantSettings = () => {
           <div className="flex-1 min-w-0 space-y-4">
             <h1 className="text-xl font-bold text-foreground">Settings</h1>
 
-            <Tabs value={defaultTab} onValueChange={handleTabChange}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="w-full justify-start overflow-x-auto flex-wrap">
                 <TabsTrigger value="business">Business</TabsTrigger>
                 <TabsTrigger value="profile">Profile</TabsTrigger>
