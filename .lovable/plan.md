@@ -1,66 +1,52 @@
 
 
-## Root cause
+## Diagnosis
 
-When a user signs up via `MerchantAuth.tsx` (or originally as a customer), our `handle_new_user` trigger **always creates a customer record AND a merchant record under the same `auth.users` row** (one user_id powers both). So the "merchant account" and "customer account" are not two separate accounts — they share one login.
+**The user `madurikalyan@gmail.com` does not exist in the database.** Only `madurikalyan27@gmail.com` exists. So "invalid credentials" for `madurikalyan@gmail.com` is correct — there is no such account.
 
-When you used the in-app "Delete Account" flow, our `delete-user-account` edge function correctly removed:
-- the merchants row
-- the customers row
-- all related data
-- the auth.users row
+**The "redirect to merchant dashboard after customer signup" issue** is caused by `handle_new_user` trigger + `GetStarted.tsx` signup flow:
 
-That single deletion wiped the entire login. The "merchant account" you expected to keep no longer exists, which is why login returns "Invalid credentials".
+1. The merchant account `madurikalyan27@gmail.com` already exists (one auth user, with both a `customers` row AND a `merchants` row — created automatically by `handle_new_user` trigger when role=merchant).
+2. When the user opens GetStarted and tries to "Sign up as Customer" with the **same email + password** as the existing merchant:
+   - Supabase returns `422 user_already_exists`.
+   - `handleSignUp()` (line 161-194) detects this, calls `signInWithPassword`, succeeds (since password matches), then checks if a `customers` row exists. It already does (created by trigger), so no insert happens.
+   - It calls `window.location.reload()`.
+3. After reload, `AuthProvider` re-detects roles: user has BOTH merchant and customer rows → `userRole = "merchant"` (line 87 of AuthContext: `isMerchant ? "merchant" : isCustomer ? "customer"`).
+4. `GetStarted` useEffect (line 50) sees both → routes to `/choose-role`. But if the customer was on a clean tab, they'd be sent to merchant dashboard because `isMerchant` short-circuits.
 
-DB confirms it:
-- `madurikalyan@gmail.com` — completely gone from auth.users (cannot log in, as expected).
-- `madurikalyan27@gmail.com` — exists, owns merchant "Cafe Shop KK", can log in normally.
-- No orphaned merchant rows exist for the deleted user.
+The real bug: **the system silently merges a "customer signup" into an existing merchant account and never lands the user in the customer flow they explicitly chose.** No confirmation page is ever shown.
 
-So the data is consistent — but the UX is wrong. The dialog let a customer delete their account without warning that **the merchant side will also be deleted** (and vice versa).
+## Fix Plan
 
-## The fix
+### 1. `src/pages/GetStarted.tsx` — `handleSignUp()` (existing-user branch)
+After signing the user in to their existing account and ensuring the customer row exists:
+- Do NOT call `window.location.reload()`.
+- Explicitly navigate to `/customer/confirmation` when `role === "customer"` was the chosen signup intent.
+- Show a clearer toast: *"Welcome back! We've added a customer profile to your existing account."*
+- Symmetrically, for merchant intent on an existing account → navigate to `/merchant/dashboard` (or onboarding) instead of reload.
 
-Make deletion role-aware so users keep the side they want to keep.
+### 2. `src/pages/GetStarted.tsx` — auto-redirect useEffect (lines 47-57)
+Add a guard so the auto-redirect does NOT fire while the user is mid-signup. Use a `signupInProgress` ref/state set true at the start of `handleSubmit` and cleared after the explicit `navigate()` call. This prevents the dual-role auto-route from overriding the intentional post-signup destination.
 
-### 1. Edge function — `supabase/functions/delete-user-account/index.ts`
-Accept an optional `scope` param: `"all" | "customer_only" | "merchant_only"`.
-- `customer_only`: delete `customers` + customer-side related rows. Do NOT delete `auth.users` if a merchant record still exists.
-- `merchant_only`: delete `merchants` + merchant-side related rows. Do NOT delete `auth.users` if a customer record still exists.
-- `all` (default): current behavior — full purge including auth.users.
+### 3. `handleLogin()` (lines 203-220) — same email login behaviour
+Currently a dual-role login goes to `/choose-role`, which is correct. No change needed, BUT add: if user came from a "Sign up as Customer" intent and only one role exists post-merge, route to that role's landing page directly.
 
-### 2. Dialog — `src/components/DeleteAccountDialog.tsx`
-Add a new Step 1 question when the user has both roles:
-> "You have both a customer profile and a merchant store under this login. What would you like to delete?"
-> - Just my customer profile (keep merchant store)
-> - Just my merchant store (keep customer profile)
-> - Delete everything and close my account
+### 4. UX clarification on the existing-account merge
+Before silently merging, surface a confirmation toast + slight delay so the user understands a customer profile was added to their existing merchant login (rather than a brand-new account being created).
 
-Pass the chosen scope to the edge function.
-- If scope is partial → show success toast, refresh the page (no signout needed).
-- If scope is `all` → keep current behavior (local signout + redirect home).
+### 5. Regarding `madurikalyan@gmail.com` "invalid credentials"
+No code fix needed. That email has no account. User should either:
+- Sign up fresh with that email, OR
+- Use the existing `madurikalyan27@gmail.com` account.
 
-If the user only has one role, skip this step and behave exactly like today.
+### Files to modify
+- `src/pages/GetStarted.tsx` — adjust post-signup navigation in the existing-user branch and guard the auto-redirect effect.
 
-### 3. Trigger entry points
-- `MerchantSettings.tsx` → defaults the dialog to "merchant context" (preselects "Just my merchant store").
-- `AccessCard.tsx` (customer) → defaults to "customer context" (preselects "Just my customer profile").
-- User can still escalate to "delete everything".
+No DB, edge function, or other component changes needed.
 
-### 4. UX copy update
-Step 2 and 3 wording dynamically reflects scope:
-- "merchant only" → warns about losing store, customers, subscription, transaction history.
-- "customer only" → warns about losing points, rewards, redemption history.
-- "all" → current full warning + mentions login will be permanently removed.
-
-### What you should do right now to recover the lost merchant account
-The auth user `madurikalyan@gmail.com` was fully deleted, so that login cannot be restored. You'll need to re-register the merchant with that email (or use `madurikalyan27@gmail.com` which is still active and owns "Cafe Shop KK").
-
-### Files to change
-- `supabase/functions/delete-user-account/index.ts` — add `scope` handling, conditional auth.users deletion.
-- `src/components/DeleteAccountDialog.tsx` — add scope selector step + dynamic copy + post-deletion behavior branch.
-- `src/pages/MerchantSettings.tsx` — pass `defaultScope="merchant_only"`.
-- `src/pages/AccessCard.tsx` — pass `defaultScope="customer_only"`.
-
-No DB schema or migration changes required.
+### Validation
+1. Log out completely.
+2. Open GetStarted → Sign up as Customer using `madurikalyan27@gmail.com` + the merchant's password.
+3. Expect: toast "customer profile added", land on `/customer/confirmation` (or access card), NOT merchant dashboard.
+4. Log out, log back in with same email → land on `/choose-role` (both profiles present).
 
