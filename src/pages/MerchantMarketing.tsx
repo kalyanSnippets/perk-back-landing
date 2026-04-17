@@ -252,23 +252,43 @@ const MerchantMarketing = () => {
     setSavingBd(false); if (error) { toast.error(error.message); return; } toast.success("Birthday settings saved");
   };
 
-  // ── AI Suggestion handlers (chat-style brief) ──
-  const generateAiSuggestions = async () => {
+  // ── AI Suggestion handlers (multi-turn chat) ──
+  const sendChat = async () => {
     if (!merchantId) return;
-    if (aiBrief.trim().length > 0 && aiBrief.trim().length < 5) { toast.error("Describe your idea more (or leave empty)"); return; }
-    setGenerating(true); setAiSuggestions([]);
+    const text = aiBrief.trim();
+    if (!text && chatMessages.length === 0) {
+      // First turn allowed without text — produce data-driven suggestions
+    } else if (text.length > 0 && text.length < 3) {
+      toast.error("Please type a bit more"); return;
+    }
+    const nextHistory: ChatMsg[] = text
+      ? [...chatMessages, { role: "user", content: text }]
+      : [...chatMessages, { role: "user", content: "Suggest data-driven campaigns based on my transactions." }];
+    setChatMessages(nextHistory);
+    setAiBrief("");
+    setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", { body: { merchant_id: merchantId, user_brief: aiBrief.trim() } });
+      const conversation = nextHistory.map(m => ({ role: m.role, content: m.content }));
+      const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", {
+        body: { merchant_id: merchantId, conversation },
+      });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
-      setAiSuggestions(data?.suggestions || []);
-      if (!data?.suggestions?.length) toast.info("No suggestions generated.");
-    } catch (err: any) { toast.error(err.message || "Failed"); } finally { setGenerating(false); }
+      const reply: string = data?.reply || "Here are some ideas:";
+      const suggestions: AiSuggestion[] = data?.suggestions || [];
+      setChatMessages(prev => [...prev, { role: "assistant", content: reply, suggestions }]);
+    } catch (err: any) {
+      toast.error(err.message || "Failed");
+      setChatMessages(prev => [...prev, { role: "assistant", content: "Sorry — I couldn't generate suggestions. Try again." }]);
+    } finally {
+      setGenerating(false);
+    }
   };
-  const createAiCampaign = async (s: AiSuggestion, idx: number) => {
-    if (!merchantId) return; setCreatingIdx(idx);
+  const resetChat = () => { setChatMessages([]); setAiBrief(""); };
+  const createAiCampaign = async (s: AiSuggestion, key: string) => {
+    if (!merchantId) return; setCreatingKey(key);
     const { error } = await supabase.from("campaigns").insert({ merchant_id: merchantId, title: s.title, description: s.description, ai_generated: true, expected_impact: s.expected_impact, confidence_score: s.confidence === "high" ? 0.9 : s.confidence === "medium" ? 0.6 : 0.3, target_segment: s.target_audience });
-    setCreatingIdx(null); if (error) { toast.error(error.message); return; }
+    setCreatingKey(null); if (error) { toast.error(error.message); return; }
     toast.success(`Campaign "${s.title}" created!`); await refetchCampaigns();
   };
 
