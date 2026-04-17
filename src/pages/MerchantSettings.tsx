@@ -403,6 +403,13 @@ const MerchantSettings = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Account (with friction) */}
+      <DeleteAccountDialog
+        open={showDeleteAccountDialog}
+        onOpenChange={setShowDeleteAccountDialog}
+        accountType="merchant"
+      />
     </div>
   );
 };
