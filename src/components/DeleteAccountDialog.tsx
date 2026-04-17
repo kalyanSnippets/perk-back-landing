@@ -72,11 +72,19 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
         return;
       }
 
-      // Sign out and redirect
-      await supabase.auth.signOut();
+      // Force local session cleanup — server logout will 403 since user no longer exists
+      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
       try { sessionStorage.removeItem("perkback_role"); } catch {}
+      // Clear any cached supabase auth tokens from localStorage as a safety net
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.startsWith("sb-") && k.includes("-auth-token")) localStorage.removeItem(k);
+        });
+      } catch {}
       toast.success("Your account has been permanently deleted.");
       navigate("/", { replace: true });
+      // Hard reload to flush any in-memory auth context
+      setTimeout(() => { window.location.reload(); }, 100);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unexpected error";
       toast.error(msg);

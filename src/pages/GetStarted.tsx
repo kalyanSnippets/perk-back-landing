@@ -146,12 +146,22 @@ const GetStarted = () => {
       if (industryType) metadata.industry_type = industryType.trim();
     }
 
+    // Clear any stale local session before signup
+    try {
+      const { data: { session: stale } } = await supabase.auth.getSession();
+      if (stale) await supabase.auth.signOut({ scope: "local" });
+    } catch { /* ignore */ }
+
     const { error } = await supabase.auth.signUp({
       email: validEmail, password,
       options: { data: metadata, emailRedirectTo: window.location.origin },
     });
 
-    if (error && (error.message?.includes("User already registered") || error.status === 422)) {
+    const msg = error?.message?.toLowerCase() || "";
+    const isExistingUser =
+      !!error && (msg.includes("already registered") || msg.includes("already exists") || msg.includes("user already"));
+
+    if (isExistingUser) {
       const { error: loginError } = await supabase.auth.signInWithPassword({ email: validEmail, password });
       if (loginError) throw new Error("Account exists but password is incorrect. Try logging in instead.");
       const { data: { user } } = await supabase.auth.getUser();
