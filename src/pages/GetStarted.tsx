@@ -43,10 +43,12 @@ const GetStarted = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const { user, loading: authLoading, isMerchant, isCustomer } = useAuth();
+  const signupInProgress = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) return;
+    if (signupInProgress.current) return;
     if (isMerchant && isCustomer) {
       navigate("/choose-role");
     } else if (isMerchant) {
