@@ -77,6 +77,9 @@ const HeroSection = () => {
                 <img
                   src={loyaltyCardImg}
                   alt="Perk Back digital loyalty card with barcode and reward points"
+                  width={512}
+                  height={512}
+                  decoding="async"
                   className="w-full max-w-md animate-float drop-shadow-2xl"
                 />
                 {/* Floating badges */}
