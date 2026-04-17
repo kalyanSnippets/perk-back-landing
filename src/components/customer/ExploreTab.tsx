@@ -9,6 +9,7 @@ import { getIndustryImage } from "@/lib/industryImages";
 import IndustryFilter from "./IndustryFilter";
 import NearbyMerchants from "./NearbyMerchants";
 import MerchantPreview from "./MerchantPreview";
+import MapPreview from "./MapPreview";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import {
