@@ -1,4 +1,4 @@
-import { Store, Gift, Megaphone, CalendarDays, MapPin } from "lucide-react";
+import { Store, Gift, Megaphone, CalendarDays, MapPin, Navigation } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -12,6 +12,8 @@ interface MerchantPreviewProps {
     industry_type: string | null;
     logo_url: string | null;
     address: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   } | null;
   rewards: { id: string; title: string; points_required: number; reward_type: string }[];
   campaigns: { id: string; title: string; description: string | null }[];
@@ -22,6 +24,13 @@ interface MerchantPreviewProps {
 
 const MerchantPreview = ({ open, onOpenChange, merchant, rewards, campaigns, offers, isCustomer, distance }: MerchantPreviewProps) => {
   if (!merchant) return null;
+
+  const hasLocation = merchant.latitude != null && merchant.longitude != null;
+  const directionsUrl = hasLocation
+    ? `https://www.google.com/maps/dir/?api=1&destination=${merchant.latitude},${merchant.longitude}`
+    : merchant.address
+      ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(merchant.address)}`
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,14 +44,26 @@ const MerchantPreview = ({ open, onOpenChange, merchant, rewards, campaigns, off
                 <Store size={24} className="text-secondary" />
               )}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <DialogTitle className="text-base">{merchant.store_name}</DialogTitle>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <span className="text-xs text-muted-foreground">{merchant.industry_type || "Business"}</span>
                 {distance && (
                   <span className="text-[10px] text-primary flex items-center gap-0.5">
                     <MapPin size={8} /> {distance}
                   </span>
+                )}
+                {directionsUrl && (
+                  <a
+                    href={directionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[10px] font-semibold text-secondary bg-secondary/10 hover:bg-secondary/20 px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors"
+                    aria-label="Get directions"
+                  >
+                    <Navigation size={10} /> Directions
+                  </a>
                 )}
               </div>
             </div>
