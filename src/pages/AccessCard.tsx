@@ -1135,6 +1135,13 @@ const AccessCard = () => {
         })()}
       </DialogContent>
     </Dialog>
+
+    {/* Delete Account (with friction) */}
+    <DeleteAccountDialog
+      open={showDeleteAccountDialog}
+      onOpenChange={setShowDeleteAccountDialog}
+      accountType="customer"
+    />
     </>
   );
 };
