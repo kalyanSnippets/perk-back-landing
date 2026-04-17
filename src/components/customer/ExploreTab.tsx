@@ -526,7 +526,7 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                         )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
