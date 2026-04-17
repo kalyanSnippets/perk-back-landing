@@ -293,21 +293,69 @@ const MerchantMarketing = () => {
                 <TabsTrigger value="product_offers">Product Offers</TabsTrigger>
                 <TabsTrigger value="birthday">Birthday</TabsTrigger>
                 <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                <TabsTrigger value="ai">AI</TabsTrigger>
               </TabsList>
 
               {/* ── Campaigns ── */}
               <TabsContent value="campaigns" className="space-y-4">
                 {!canAccess("campaigns") ? <LockedFeature featureKey="campaigns" /> : (
                   <>
+                    {/* AI Campaign Assistant — chat-style */}
+                    {canAccess("ai_suggestions") && (
+                      <div className="bg-gradient-to-br from-primary/5 via-card to-secondary/5 rounded-2xl p-5 border border-primary/20 shadow-card space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles size={16} className="text-accent" />
+                          <p className="text-sm font-bold text-foreground">AI Campaign Assistant</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Describe the kind of campaign you have in mind — or leave blank to get data-driven suggestions.</p>
+                        <Textarea
+                          placeholder="e.g. I want to bring back lapsed customers with a weekend-only discount, focused on coffee drinkers..."
+                          value={aiBrief}
+                          onChange={e => setAiBrief(e.target.value)}
+                          rows={3}
+                          className="bg-background"
+                        />
+                        <div className="flex justify-end">
+                          <Button variant="hero" size="sm" className="gap-1.5" onClick={generateAiSuggestions} disabled={generating}>
+                            {generating ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                            {generating ? "Generating..." : "Generate Campaigns"}
+                          </Button>
+                        </div>
+                        {aiSuggestions.length > 0 && (
+                          <div className="space-y-2 pt-2">
+                            {aiSuggestions.map((s, i) => (
+                              <div key={i} className="bg-card rounded-xl p-4 border border-border/50 space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                      <Megaphone size={14} className="text-primary shrink-0" />
+                                      <p className="text-sm font-bold text-foreground">{s.title}</p>
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${confidenceColor[s.confidence] || ""}`}>{s.confidence}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{s.description}</p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-3 text-[11px]">
+                                  <span className="flex items-center gap-1 text-muted-foreground"><Target size={11} /> {s.target_audience}</span>
+                                  <span className="flex items-center gap-1 text-muted-foreground"><TrendingUp size={11} /> {s.expected_impact}</span>
+                                </div>
+                                <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => createAiCampaign(s, i)} disabled={creatingIdx === i}>
+                                  <Plus size={11} /> {creatingIdx === i ? "Creating..." : "Create Campaign"}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">Campaigns</p>
+                      <p className="text-sm font-semibold text-foreground">Your Campaigns</p>
                       <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowCampaignForm(!showCampaignForm)}><Plus size={14} /> New</Button>
                     </div>
                     {showCampaignForm && (
                       <form onSubmit={createCampaign} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
-                        <Input placeholder="Campaign title" value={campaignTitle} onChange={e => setCampaignTitle(e.target.value)} required />
-                        <Textarea placeholder="Description (optional)" value={campaignDesc} onChange={e => setCampaignDesc(e.target.value)} rows={3} />
+                        <Input placeholder="Campaign title" value={campaignTitle} onChange={e => setCampaignTitle(e.target.value)} maxLength={100} required />
+                        <Textarea placeholder="Description (optional, max 500)" value={campaignDesc} onChange={e => setCampaignDesc(e.target.value)} maxLength={500} rows={3} />
                         <div className="flex gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => setShowCampaignForm(false)}>Cancel</Button>
                           <Button type="submit" variant="hero" size="sm" disabled={savingCampaign}>{savingCampaign ? "Creating..." : "Create"}</Button>
@@ -325,7 +373,7 @@ const MerchantMarketing = () => {
                           </div>
                           <div className="flex items-center gap-2 shrink-0 pl-3">
                             <button onClick={async () => { await supabase.from("campaigns").update({ active: !c.active }).eq("id", c.id); await refetchCampaigns(); }} className="text-muted-foreground hover:text-foreground">
-                              {c.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
+                              {c.active ? <ToggleRight size={20} className="text-accent" /> : <ToggleLeft size={20} />}
                             </button>
                             <button onClick={async () => { await supabase.from("campaigns").delete().eq("id", c.id); await refetchCampaigns(); toast.success("Deleted"); }} className="text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
                           </div>
