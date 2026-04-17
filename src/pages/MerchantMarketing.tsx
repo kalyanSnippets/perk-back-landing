@@ -20,6 +20,10 @@ import MerchantNav from "@/components/merchant/MerchantNav";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ProductOffersTab from "@/components/merchant/ProductOffersTab";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
+import {
+  campaignSchema, rewardSchema, promotionSchema,
+  monthlyOfferSchema, birthdaySchema, firstZodError,
+} from "@/lib/validationSchemas";
 
 // ── Types ──
 interface Campaign { id: string; title: string; description: string | null; active: boolean; created_at: string; }
@@ -122,10 +126,14 @@ const MerchantMarketing = () => {
   const [bdRewardValue, setBdRewardValue] = useState("50"); const [bdMessage, setBdMessage] = useState("Happy Birthday! Enjoy your special reward.");
   const [bdDaysBefore, setBdDaysBefore] = useState("0"); const [bdDaysValid, setBdDaysValid] = useState("7"); const [savingBd, setSavingBd] = useState(false);
 
-  // ── AI Suggestions state ──
+  // ── AI Suggestions state (chat-style, embedded in Campaigns tab) ──
+  const [aiBrief, setAiBrief] = useState("");
   const [generating, setGenerating] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
   const [creatingIdx, setCreatingIdx] = useState<number | null>(null);
+
+  // ── Reward image prompt state ──
+  const [rwImagePrompt, setRwImagePrompt] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -163,60 +171,100 @@ const MerchantMarketing = () => {
 
   // ── Campaign handlers ──
   const createCampaign = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!merchantId || !campaignTitle.trim()) return;
+    e.preventDefault(); if (!merchantId) return;
+    const parsed = campaignSchema.safeParse({ title: campaignTitle, description: campaignDesc });
+    if (!parsed.success) { toast.error(firstZodError(parsed.error)); return; }
     setSavingCampaign(true);
-    const { error } = await supabase.from("campaigns").insert({ merchant_id: merchantId, title: campaignTitle.trim(), description: campaignDesc.trim() || null });
+    const { error } = await supabase.from("campaigns").insert({ merchant_id: merchantId, title: parsed.data.title, description: parsed.data.description || null });
     setSavingCampaign(false); if (error) { toast.error(error.message); return; }
     toast.success("Campaign created"); setCampaignTitle(""); setCampaignDesc(""); setShowCampaignForm(false); await refetchCampaigns();
   };
 
   // ── Reward handlers ──
-  const resetRewardForm = () => { setRwTitle(""); setRwDesc(""); setRwPoints("100"); setRwType("discount"); setRwLimited(false); setRwExpires(""); setRwImageUrl(""); setEditingRewardId(null); setShowRewardForm(false); };
-  const startEditReward = (r: Reward) => { setEditingRewardId(r.id); setRwTitle(r.title); setRwDesc(r.description || ""); setRwPoints(String(r.points_required)); setRwType(r.reward_type); setRwLimited(r.is_limited_time); setRwExpires(r.expires_at ? r.expires_at.slice(0, 16) : ""); setRwImageUrl(r.image_url || ""); setShowRewardForm(true); };
+  const resetRewardForm = () => { setRwTitle(""); setRwDesc(""); setRwPoints("100"); setRwType("discount"); setRwLimited(false); setRwExpires(""); setRwImageUrl(""); setRwImagePrompt(""); setEditingRewardId(null); setShowRewardForm(false); };
+  const startEditReward = (r: Reward) => { setEditingRewardId(r.id); setRwTitle(r.title); setRwDesc(r.description || ""); setRwPoints(String(r.points_required)); setRwType(r.reward_type); setRwLimited(r.is_limited_time); setRwExpires(r.expires_at ? r.expires_at.slice(0, 16) : ""); setRwImageUrl(r.image_url || ""); setRwImagePrompt(""); setShowRewardForm(true); };
   const submitReward = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!merchantId || !rwTitle.trim()) return; setSavingReward(true);
-    const payload = { title: rwTitle.trim(), description: rwDesc.trim() || null, points_required: parseInt(rwPoints) || 100, reward_type: rwType, is_limited_time: rwLimited, expires_at: rwLimited && rwExpires ? new Date(rwExpires).toISOString() : null, image_url: rwImageUrl || null };
+    e.preventDefault(); if (!merchantId) return;
+    const parsed = rewardSchema.safeParse({
+      title: rwTitle, description: rwDesc,
+      points_required: parseInt(rwPoints) || 0,
+      reward_type: rwType, image_url: rwImageUrl || "",
+    });
+    if (!parsed.success) { toast.error(firstZodError(parsed.error)); return; }
+    setSavingReward(true);
+    const payload = { title: parsed.data.title, description: parsed.data.description || null, points_required: parsed.data.points_required, reward_type: rwType, is_limited_time: rwLimited, expires_at: rwLimited && rwExpires ? new Date(rwExpires).toISOString() : null, image_url: rwImageUrl || null };
     if (editingRewardId) { const { error } = await supabase.from("rewards").update(payload).eq("id", editingRewardId); setSavingReward(false); if (error) { toast.error(error.message); return; } toast.success("Reward updated"); }
     else { const { error } = await supabase.from("rewards").insert({ ...payload, merchant_id: merchantId }); setSavingReward(false); if (error) { toast.error(error.message); return; } toast.success("Reward created"); }
     resetRewardForm(); await refetchRewards();
   };
   const generateRewardImage = async (prompt: string) => {
-    if (!merchantId) return; setGeneratingImage(true);
-    try { const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", { body: { merchant_id: merchantId, type: "generate_image", prompt } }); if (error) throw error; if (data?.image_url) { setRwImageUrl(data.image_url); toast.success("Image generated!"); } } catch (err: any) { toast.error(err.message || "Image generation failed"); } finally { setGeneratingImage(false); }
+    if (!merchantId) return;
+    const cleanPrompt = (prompt || "").trim();
+    if (cleanPrompt.length < 3) { toast.error("Please describe your image (at least 3 characters)"); return; }
+    setGeneratingImage(true);
+    try { const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", { body: { merchant_id: merchantId, type: "generate_image", prompt: cleanPrompt } }); if (error) throw error; if (data?.image_url) { setRwImageUrl(data.image_url); toast.success("Image generated!"); } } catch (err: any) { toast.error(err.message || "Image generation failed"); } finally { setGeneratingImage(false); }
   };
 
   // ── Promo handlers ──
   const createPromo = async () => {
-    if (!merchantId) return; setSavingPromo(true);
-    const { error } = await supabase.from("promotion_rules").insert({ merchant_id: merchantId, rule_type: prRuleType, trigger_count: parseInt(prTrigger) || 10, reward_description: prRewardDesc.trim() || "Free item", reward_type: prRewardType, reward_value: prRewardValue.trim(), active: true });
+    if (!merchantId) return;
+    const parsed = promotionSchema.safeParse({
+      rule_type: prRuleType,
+      trigger_count: parseInt(prTrigger) || 0,
+      reward_description: prRewardDesc,
+      reward_type: prRewardType,
+    });
+    if (!parsed.success) { toast.error(firstZodError(parsed.error)); return; }
+    setSavingPromo(true);
+    const { error } = await supabase.from("promotion_rules").insert({ merchant_id: merchantId, rule_type: prRuleType, trigger_count: parsed.data.trigger_count, reward_description: parsed.data.reward_description, reward_type: prRewardType, reward_value: prRewardValue.trim(), active: true });
     setSavingPromo(false); if (error) { toast.error(error.message); return; }
     toast.success("Promotion rule created!"); setShowPromoForm(false); setPrTrigger("10"); setPrRewardDesc("Free coffee"); setPrRewardValue(""); await refetchPromos();
   };
 
   // ── Monthly handlers ──
   const createMonthly = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!merchantId || !moTitle.trim()) return; setSavingMonthly(true);
-    const { error } = await supabase.from("monthly_offers").insert({ merchant_id: merchantId, title: moTitle.trim(), description: moDesc.trim() || null, valid_from: moFrom || null, valid_to: moTo || null });
+    e.preventDefault(); if (!merchantId) return;
+    const parsed = monthlyOfferSchema.safeParse({ title: moTitle, description: moDesc, valid_from: moFrom, valid_to: moTo });
+    if (!parsed.success) { toast.error(firstZodError(parsed.error)); return; }
+    setSavingMonthly(true);
+    const { error } = await supabase.from("monthly_offers").insert({ merchant_id: merchantId, title: parsed.data.title, description: parsed.data.description || null, valid_from: moFrom || null, valid_to: moTo || null });
     setSavingMonthly(false); if (error) { toast.error(error.message); return; }
     toast.success("Offer created"); setMoTitle(""); setMoDesc(""); setMoFrom(""); setMoTo(""); setShowMonthlyForm(false); await refetchMonthly();
   };
 
   // ── Birthday handler ──
   const saveBirthday = async () => {
-    if (!merchantId) return; setSavingBd(true);
-    const { error } = await supabase.from("birthday_offer_settings").upsert({ merchant_id: merchantId, enabled: bdEnabled, reward_type: bdRewardType, reward_value: bdRewardValue, message: bdMessage.trim() || null, days_before: parseInt(bdDaysBefore) || 0, days_valid: parseInt(bdDaysValid) || 7 }, { onConflict: "merchant_id" });
+    if (!merchantId) return;
+    const parsed = birthdaySchema.safeParse({
+      days_before: parseInt(bdDaysBefore) || 0,
+      days_valid: parseInt(bdDaysValid) || 1,
+      reward_value: bdRewardValue,
+      message: bdMessage,
+    });
+    if (!parsed.success) { toast.error(firstZodError(parsed.error)); return; }
+    setSavingBd(true);
+    const { error } = await supabase.from("birthday_offer_settings").upsert({ merchant_id: merchantId, enabled: bdEnabled, reward_type: bdRewardType, reward_value: parsed.data.reward_value, message: parsed.data.message || null, days_before: parsed.data.days_before, days_valid: parsed.data.days_valid }, { onConflict: "merchant_id" });
     setSavingBd(false); if (error) { toast.error(error.message); return; } toast.success("Birthday settings saved");
   };
 
-  // ── AI Suggestion handlers ──
+  // ── AI Suggestion handlers (chat-style brief) ──
   const generateAiSuggestions = async () => {
-    if (!merchantId) return; setGenerating(true); setAiSuggestions([]);
-    try { const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", { body: { merchant_id: merchantId } }); if (error) throw error; if (data?.error) { toast.error(data.error); return; } setAiSuggestions(data?.suggestions || []); if (!data?.suggestions?.length) toast.info("No suggestions generated."); } catch (err: any) { toast.error(err.message || "Failed"); } finally { setGenerating(false); }
+    if (!merchantId) return;
+    if (aiBrief.trim().length > 0 && aiBrief.trim().length < 5) { toast.error("Describe your idea more (or leave empty)"); return; }
+    setGenerating(true); setAiSuggestions([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-merchant-assistant", { body: { merchant_id: merchantId, user_brief: aiBrief.trim() } });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      setAiSuggestions(data?.suggestions || []);
+      if (!data?.suggestions?.length) toast.info("No suggestions generated.");
+    } catch (err: any) { toast.error(err.message || "Failed"); } finally { setGenerating(false); }
   };
   const createAiCampaign = async (s: AiSuggestion, idx: number) => {
     if (!merchantId) return; setCreatingIdx(idx);
     const { error } = await supabase.from("campaigns").insert({ merchant_id: merchantId, title: s.title, description: s.description, ai_generated: true, expected_impact: s.expected_impact, confidence_score: s.confidence === "high" ? 0.9 : s.confidence === "medium" ? 0.6 : 0.3, target_segment: s.target_audience });
-    setCreatingIdx(null); if (error) { toast.error(error.message); return; } toast.success(`Campaign "${s.title}" created!`);
+    setCreatingIdx(null); if (error) { toast.error(error.message); return; }
+    toast.success(`Campaign "${s.title}" created!`); await refetchCampaigns();
   };
 
   const handleTabChange = (value: string) => setSearchParams({ tab: value });
@@ -245,21 +293,69 @@ const MerchantMarketing = () => {
                 <TabsTrigger value="product_offers">Product Offers</TabsTrigger>
                 <TabsTrigger value="birthday">Birthday</TabsTrigger>
                 <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                <TabsTrigger value="ai">AI</TabsTrigger>
               </TabsList>
 
               {/* ── Campaigns ── */}
               <TabsContent value="campaigns" className="space-y-4">
                 {!canAccess("campaigns") ? <LockedFeature featureKey="campaigns" /> : (
                   <>
+                    {/* AI Campaign Assistant — chat-style */}
+                    {canAccess("ai_suggestions") && (
+                      <div className="bg-gradient-to-br from-primary/5 via-card to-secondary/5 rounded-2xl p-5 border border-primary/20 shadow-card space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles size={16} className="text-accent" />
+                          <p className="text-sm font-bold text-foreground">AI Campaign Assistant</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Describe the kind of campaign you have in mind — or leave blank to get data-driven suggestions.</p>
+                        <Textarea
+                          placeholder="e.g. I want to bring back lapsed customers with a weekend-only discount, focused on coffee drinkers..."
+                          value={aiBrief}
+                          onChange={e => setAiBrief(e.target.value)}
+                          rows={3}
+                          className="bg-background"
+                        />
+                        <div className="flex justify-end">
+                          <Button variant="hero" size="sm" className="gap-1.5" onClick={generateAiSuggestions} disabled={generating}>
+                            {generating ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                            {generating ? "Generating..." : "Generate Campaigns"}
+                          </Button>
+                        </div>
+                        {aiSuggestions.length > 0 && (
+                          <div className="space-y-2 pt-2">
+                            {aiSuggestions.map((s, i) => (
+                              <div key={i} className="bg-card rounded-xl p-4 border border-border/50 space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                      <Megaphone size={14} className="text-primary shrink-0" />
+                                      <p className="text-sm font-bold text-foreground">{s.title}</p>
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${confidenceColor[s.confidence] || ""}`}>{s.confidence}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{s.description}</p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-3 text-[11px]">
+                                  <span className="flex items-center gap-1 text-muted-foreground"><Target size={11} /> {s.target_audience}</span>
+                                  <span className="flex items-center gap-1 text-muted-foreground"><TrendingUp size={11} /> {s.expected_impact}</span>
+                                </div>
+                                <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => createAiCampaign(s, i)} disabled={creatingIdx === i}>
+                                  <Plus size={11} /> {creatingIdx === i ? "Creating..." : "Create Campaign"}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">Campaigns</p>
+                      <p className="text-sm font-semibold text-foreground">Your Campaigns</p>
                       <Button variant="hero" size="sm" className="gap-1.5" onClick={() => setShowCampaignForm(!showCampaignForm)}><Plus size={14} /> New</Button>
                     </div>
                     {showCampaignForm && (
                       <form onSubmit={createCampaign} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
-                        <Input placeholder="Campaign title" value={campaignTitle} onChange={e => setCampaignTitle(e.target.value)} required />
-                        <Textarea placeholder="Description (optional)" value={campaignDesc} onChange={e => setCampaignDesc(e.target.value)} rows={3} />
+                        <Input placeholder="Campaign title" value={campaignTitle} onChange={e => setCampaignTitle(e.target.value)} maxLength={100} required />
+                        <Textarea placeholder="Description (optional, max 500)" value={campaignDesc} onChange={e => setCampaignDesc(e.target.value)} maxLength={500} rows={3} />
                         <div className="flex gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => setShowCampaignForm(false)}>Cancel</Button>
                           <Button type="submit" variant="hero" size="sm" disabled={savingCampaign}>{savingCampaign ? "Creating..." : "Create"}</Button>
@@ -277,7 +373,7 @@ const MerchantMarketing = () => {
                           </div>
                           <div className="flex items-center gap-2 shrink-0 pl-3">
                             <button onClick={async () => { await supabase.from("campaigns").update({ active: !c.active }).eq("id", c.id); await refetchCampaigns(); }} className="text-muted-foreground hover:text-foreground">
-                              {c.active ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} />}
+                              {c.active ? <ToggleRight size={20} className="text-accent" /> : <ToggleLeft size={20} />}
                             </button>
                             <button onClick={async () => { await supabase.from("campaigns").delete().eq("id", c.id); await refetchCampaigns(); toast.success("Deleted"); }} className="text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
                           </div>
@@ -392,19 +488,40 @@ const MerchantMarketing = () => {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground block">Image</Label>
+                          <Label className="text-xs text-muted-foreground block">Reward Image</Label>
                           {rwImageUrl ? (
-                            <div className="relative rounded-xl overflow-hidden border border-border/50">
-                              <img src={rwImageUrl} alt="Reward" className="w-full h-32 object-cover" />
-                              <div className="absolute top-2 right-2 flex gap-1">
-                                <Button type="button" variant="secondary" size="sm" className="h-7 text-[10px] gap-1" onClick={() => generateRewardImage(rwTitle || "loyalty reward")} disabled={generatingImage}>{generatingImage ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Regen</Button>
-                                <Button type="button" variant="destructive" size="sm" className="h-7 text-[10px]" onClick={() => setRwImageUrl("")}>Remove</Button>
+                            <div className="space-y-2">
+                              <div className="relative rounded-xl overflow-hidden border border-border/50">
+                                <img src={rwImageUrl} alt="Reward" className="w-full h-32 object-cover" />
+                                <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2 h-7 text-[10px]" onClick={() => setRwImageUrl("")}>Remove</Button>
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Describe a different image..."
+                                  value={rwImagePrompt}
+                                  onChange={e => setRwImagePrompt(e.target.value)}
+                                  maxLength={300}
+                                  className="flex-1"
+                                />
+                                <Button type="button" variant="secondary" size="sm" className="gap-1.5" onClick={() => generateRewardImage(rwImagePrompt || rwTitle)} disabled={generatingImage}>
+                                  {generatingImage ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Regenerate
+                                </Button>
                               </div>
                             </div>
                           ) : (
-                            <Button type="button" variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => generateRewardImage(rwTitle || rwDesc || "loyalty reward")} disabled={generatingImage || (!rwTitle && !rwDesc)}>
-                              {generatingImage ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}{generatingImage ? "Generating..." : "Generate AI Image"}
-                            </Button>
+                            <div className="space-y-2">
+                              <Textarea
+                                placeholder="Describe your reward image (e.g. 'a steaming cappuccino on a wooden table with morning light')"
+                                value={rwImagePrompt}
+                                onChange={e => setRwImagePrompt(e.target.value)}
+                                rows={2}
+                                maxLength={300}
+                              />
+                              <Button type="button" variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => generateRewardImage(rwImagePrompt || rwTitle || rwDesc)} disabled={generatingImage || (!rwImagePrompt.trim() && !rwTitle.trim() && !rwDesc.trim())}>
+                                {generatingImage ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                                {generatingImage ? "Generating..." : "Generate AI Image"}
+                              </Button>
+                            </div>
                           )}
                         </div>
                         <div className="flex items-center gap-3"><Switch checked={rwLimited} onCheckedChange={setRwLimited} /><Label className="text-xs">Limited time</Label></div>
@@ -513,52 +630,7 @@ const MerchantMarketing = () => {
                 )}
               </TabsContent>
 
-              {/* ── AI Suggestions ── */}
-              <TabsContent value="ai" className="space-y-4">
-                {!canAccess("ai_suggestions") ? <LockedFeature featureKey="ai_suggestions" /> : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">AI Campaign Suggestions</p>
-                      <Button variant="hero" size="sm" className="gap-1.5" onClick={generateAiSuggestions} disabled={generating}>
-                        {generating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}{generating ? "Analyzing..." : "Generate"}
-                      </Button>
-                    </div>
-                    {aiSuggestions.length === 0 && !generating && (
-                      <div className="bg-card rounded-2xl p-8 border border-border/50 shadow-card text-center">
-                        <Sparkles size={40} className="mx-auto mb-3 text-secondary/40" />
-                        <p className="text-sm text-muted-foreground">Click "Generate" for AI-powered campaign ideas</p>
-                      </div>
-                    )}
-                    {generating && (
-                      <div className="bg-card rounded-2xl p-8 border border-border/50 shadow-card text-center">
-                        <Loader2 size={32} className="mx-auto mb-3 text-primary animate-spin" />
-                        <p className="text-sm text-muted-foreground">Analyzing your transaction data...</p>
-                      </div>
-                    )}
-                    {aiSuggestions.map((s, i) => (
-                      <div key={i} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Megaphone size={16} className="text-primary shrink-0" />
-                              <p className="text-sm font-bold text-foreground">{s.title}</p>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${confidenceColor[s.confidence] || ""}`}>{s.confidence}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{s.description}</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-xs">
-                          <span className="flex items-center gap-1 text-muted-foreground"><Target size={12} /> {s.target_audience}</span>
-                          <span className="flex items-center gap-1 text-muted-foreground"><TrendingUp size={12} /> {s.expected_impact}</span>
-                        </div>
-                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => createAiCampaign(s, i)} disabled={creatingIdx === i}>
-                          <Plus size={12} /> {creatingIdx === i ? "Creating..." : "Create Campaign"}
-                        </Button>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </TabsContent>
+              {/* AI suggestions are now embedded in the Campaigns tab */}
             </Tabs>
           </div>
         </div>
