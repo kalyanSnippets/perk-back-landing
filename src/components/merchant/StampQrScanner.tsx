@@ -1,17 +1,22 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ScanLine, CheckCircle, Camera } from "lucide-react";
+import { ScanLine, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 interface StampQrScannerProps {
   merchantId: string;
+  initialCardNumber?: string;
 }
 
-const StampQrScanner = ({ merchantId }: StampQrScannerProps) => {
-  const [cardNumber, setCardNumber] = useState("");
+const StampQrScanner = ({ merchantId, initialCardNumber }: StampQrScannerProps) => {
+  const [cardNumber, setCardNumber] = useState(initialCardNumber || "");
   const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    if (initialCardNumber) setCardNumber(initialCardNumber);
+  }, [initialCardNumber]);
 
   const handleAwardStamp = async () => {
     if (!cardNumber.trim()) {

@@ -89,6 +89,7 @@ const AccessCard = () => {
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore">("my-rewards");
+  const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -187,6 +188,25 @@ const AccessCard = () => {
     setCampaigns((campaignsRes.data || []).map(c => ({ ...c, store_name: merchantMap.get(c.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map(o => ({ ...o, store_name: merchantMap.get(o.merchant_id) || "Store" })));
     setRedemptions((redemptionsRes.data || []).map((r: any) => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
+
+    // Fetch per-merchant gamification settings to gate the status indicator
+    const merchantIds = cmList.map(cm => cm.merchant_id);
+    if (merchantIds.length > 0) {
+      const { data: gamData } = await supabase
+        .from("gamification_settings")
+        .select("merchant_id, stamp_card_enabled, visit_streak_enabled, levels_enabled")
+        .in("merchant_id", merchantIds);
+      const map: Record<string, { stamp: boolean; streak: boolean; levels: boolean }> = {};
+      (gamData || []).forEach(g => {
+        map[g.merchant_id] = {
+          stamp: !!g.stamp_card_enabled,
+          streak: !!g.visit_streak_enabled,
+          levels: !!g.levels_enabled,
+        };
+      });
+      setGamificationByMerchant(map);
+    }
+
     setLoading(false);
     setTimeout(() => setPointsVisible(true), 300);
   };
@@ -474,109 +494,13 @@ const AccessCard = () => {
         <>
         {/* ─── MY REWARDS TAB ─── */}
 
-        {/* My Stores */}
-        {customerMerchants.length > 0 && (
-          <ScrollReveal delay={15}>
-            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Store size={16} className="text-secondary" /> My Stores
-                </h3>
-                {selectedMerchantId && (
-                  <button onClick={() => setSelectedMerchantId(null)} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
-                    <ArrowLeft size={12} /> All Stores
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-                {customerMerchants.map(cm => {
-                  const isSelected = selectedMerchantId === cm.merchant_id;
-                  const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
-                  return (
-                    <button
-                      key={cm.merchant_id}
-                      onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
-                      className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
-                        isSelected
-                          ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
-                          : 'border border-border/30 hover:shadow-card'
-                      }`}
-                    >
-                      {/* Industry-themed image header */}
-                      <div className="relative min-h-[100px] overflow-hidden">
-                        <img
-                          src={getIndustryImage(cm.industry_type)}
-                          alt={cm.industry_type || "Store"}
-                          loading="lazy"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} mix-blend-multiply opacity-80`} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-card/95 via-card/30 to-transparent" />
-                        <div className="relative z-10 p-4 pb-3 flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-background/90 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 shadow-md ring-2 ring-background/50">
-                            {cm.logo_url ? (
-                              <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Store size={20} className={colors.text} />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm text-foreground truncate drop-shadow-sm">{cm.store_name}</p>
-                            {cm.industry_type && (
-                              <span className={`text-[9px] font-semibold ${colors.text} bg-background/80 backdrop-blur-sm px-2 py-0.5 rounded-full`}>{cm.industry_type}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Content */}
-                      <div className="bg-card p-3.5 space-y-1.5">
-                        {cm.address && (
-                          <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5 truncate">
-                            <MapPin size={8} /> {cm.address}
-                          </p>
-                        )}
-                        <p className="text-2xl font-bold text-primary tabular-nums">{cm.points_balance} <span className="text-xs font-normal text-muted-foreground">pts</span></p>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span>{cm.visit_count} visits</span>
-                          <span className="text-muted-foreground/30">·</span>
-                          <span>${cm.total_spend.toFixed(0)} spent</span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </ScrollReveal>
-        )}
-
-        {/* Your Status — Tier + Streak per merchant */}
-        {customerMerchants.length > 0 && (
-          <ScrollReveal delay={20}>
-            <div className="space-y-3">
-              {(selectedMerchantId
-                ? customerMerchants.filter(cm => cm.merchant_id === selectedMerchantId)
-                : customerMerchants
-              ).map(cm => (
-                <MerchantStatusCard
-                  key={cm.merchant_id}
-                  merchantId={cm.merchant_id}
-                  storeName={cm.store_name}
-                  pointsBalance={cm.points_balance}
-                  transactions={transactions}
-                />
-              ))}
-            </div>
-          </ScrollReveal>
-        )}
-
-        {/* Points Balance — Vibrant */}
-        <ScrollReveal delay={25}>
+        {/* Points Balance — Vibrant — TOP */}
+        <ScrollReveal>
           <div className="relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
             {/* Decorative floating shapes */}
             <div className="floating-dot w-6 h-6 bg-accent/15 -top-1 right-[15%]" style={{ animationDelay: "0s" }} />
             <div className="floating-dot w-4 h-4 bg-coral/10 bottom-2 left-[10%]" style={{ animationDelay: "1.5s" }} />
-            
+
             <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3 relative z-10">
               {selectedMerchant ? `${selectedMerchant.store_name} Points` : "Total Points Balance"}
             </p>
@@ -603,7 +527,102 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* Promo Carousel */}
+        {/* My Stores */}
+        {customerMerchants.length > 0 && (
+          <ScrollReveal delay={15}>
+            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Store size={16} className="text-secondary" /> My Stores
+                </h3>
+                {selectedMerchantId && (
+                  <button onClick={() => setSelectedMerchantId(null)} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
+                    <ArrowLeft size={12} /> All Stores
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
+                {customerMerchants.map(cm => {
+                  const isSelected = selectedMerchantId === cm.merchant_id;
+                  const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
+                  return (
+                    <button
+                      key={cm.merchant_id}
+                      onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
+                      className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-card text-left ${
+                        isSelected
+                          ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
+                          : 'border border-border/50 hover:shadow-card'
+                      }`}
+                    >
+                      {/* Industry-themed image header (image only, no text overlay) */}
+                      <div className="relative h-20 overflow-hidden">
+                        <img
+                          src={getIndustryImage(cm.industry_type)}
+                          alt={cm.industry_type || "Store"}
+                          loading="lazy"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} mix-blend-multiply opacity-60`} />
+                      </div>
+                      {/* Clean content area below image */}
+                      <div className="p-3.5 space-y-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border/50 -mt-8 relative z-10 shadow-md">
+                            {cm.logo_url ? (
+                              <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Store size={18} className={colors.text} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-sm text-foreground truncate leading-tight">{cm.store_name}</p>
+                            {cm.industry_type && (
+                              <p className="text-[10px] text-muted-foreground truncate">{cm.industry_type}</p>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-2xl font-bold text-primary tabular-nums leading-none">{cm.points_balance} <span className="text-xs font-normal text-muted-foreground">pts</span></p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span>{cm.visit_count} visits</span>
+                          <span className="text-muted-foreground/30">·</span>
+                          <span>${cm.total_spend.toFixed(0)} spent</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
+        {/* Your Status — slim bar, only when merchant has gamification enabled */}
+        {customerMerchants.length > 0 && (
+          <div className="space-y-2">
+            {(selectedMerchantId
+              ? customerMerchants.filter(cm => cm.merchant_id === selectedMerchantId)
+              : customerMerchants
+            ).map(cm => {
+              const gam = gamificationByMerchant[cm.merchant_id];
+              if (!gam) return null;
+              if (!gam.levels && !gam.streak) return null;
+              return (
+                <MerchantStatusCard
+                  key={cm.merchant_id}
+                  merchantId={cm.merchant_id}
+                  storeName={cm.store_name}
+                  pointsBalance={cm.points_balance}
+                  transactions={transactions}
+                  showTier={gam.levels}
+                  showStreak={gam.streak}
+                />
+              );
+            })}
+          </div>
+        )}
+
+
         {carouselSlides.length > 0 && (
           <ScrollReveal delay={50}>
             <Carousel setApi={setCarouselApi} opts={{ loop: true }} className="w-full">
