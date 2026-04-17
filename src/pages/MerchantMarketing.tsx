@@ -13,13 +13,17 @@ import {
   Plus, Trash2, ToggleLeft, ToggleRight, Megaphone, Gift, Clock,
   ShoppingBag, Footprints, DollarSign, Save, Cake, CalendarHeart,
   Sparkles, Loader2, Target, TrendingUp, Send, Pencil, X,
-  Image as ImageIcon
+  Image as ImageIcon, MessageSquare
 } from "lucide-react";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ProductOffersTab from "@/components/merchant/ProductOffersTab";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
+import {
+  campaignSchema, rewardSchema, promotionSchema,
+  monthlyOfferSchema, birthdaySchema, firstZodError,
+} from "@/lib/validationSchemas";
 
 // ── Types ──
 interface Campaign { id: string; title: string; description: string | null; active: boolean; created_at: string; }

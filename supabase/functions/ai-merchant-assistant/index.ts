@@ -215,7 +215,9 @@ serve(async (req) => {
       });
     }
 
-    // ─── Default: Campaign Suggestions (existing behavior) ───
+    // ─── Default: Campaign Suggestions (with optional user_brief) ───
+    const userBrief = (body?.user_brief || "").toString().trim().slice(0, 1000);
+
     const { data: transactions } = await supabase
       .from("transactions")
       .select("customer_id, purchase_amount, points_awarded, transaction_date")
@@ -237,13 +239,15 @@ serve(async (req) => {
     const slowDays = Object.entries(dayCount).sort((a, b) => a[1] - b[1]).slice(0, 2).map(d => d[0]);
 
     const context = `
-Merchant data summary:
+Merchant: "${storeName}" (${industryType})
+Data summary:
 - Total transactions: ${txs.length}
 - Unique customers: ${totalCustomers}
 - Total revenue: $${totalRevenue.toFixed(2)}
 - Average transaction: $${avgSpend}
 - Slowest days: ${slowDays.join(", ") || "Not enough data"}
 - Date range: ${txs.length > 0 ? txs[txs.length - 1].transaction_date.split("T")[0] + " to " + txs[0].transaction_date.split("T")[0] : "No data"}
+${userBrief ? `\nMerchant's specific request: "${userBrief}"\nTailor the campaigns to match this brief while still grounding them in the data above.` : ""}
 `;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -257,7 +261,7 @@ Merchant data summary:
         messages: [
           {
             role: "system",
-            content: "You are a loyalty program marketing expert. Based on the merchant's transaction data, suggest 3-5 specific campaign ideas to improve customer engagement and revenue. Use the suggest_campaigns tool to return structured suggestions.",
+            content: "You are a loyalty program marketing expert. Based on the merchant's transaction data and any specific brief they provide, suggest 3 highly tailored campaign ideas to improve customer engagement and revenue. Use the suggest_campaigns tool to return structured suggestions.",
           },
           { role: "user", content: context },
         ],
