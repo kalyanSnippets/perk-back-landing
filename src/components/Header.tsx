@@ -39,7 +39,7 @@ const Header = () => {
       <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 px-4 lg:px-8">
         {/* Logo */}
         <Link to="/" className="shrink-0">
-          <img src={perkbackLogo} alt="Perk Back" className="h-12 sm:h-14 w-auto" />
+          <img src={perkbackLogo} alt="Perk Back" width={498} height={124} fetchPriority="high" decoding="async" className="h-12 sm:h-14 w-auto" />
         </Link>
 
         {/* Desktop Nav */}
