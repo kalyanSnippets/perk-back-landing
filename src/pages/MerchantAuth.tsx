@@ -269,6 +269,12 @@ const MerchantAuth = () => {
             {loading ? "Please wait..." : isSignUp ? "Register Store" : "Sign In"}
           </Button>
 
+          {!isSignUp && (
+            <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline w-full text-center">
+              Forgot password?
+            </button>
+          )}
+
           <div className="text-center">
             <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-secondary hover:underline">
               {isSignUp ? "Already registered? Sign in" : "New merchant? Register your store"}
