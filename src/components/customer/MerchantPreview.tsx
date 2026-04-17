@@ -12,6 +12,8 @@ interface MerchantPreviewProps {
     industry_type: string | null;
     logo_url: string | null;
     address: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   } | null;
   rewards: { id: string; title: string; points_required: number; reward_type: string }[];
   campaigns: { id: string; title: string; description: string | null }[];
