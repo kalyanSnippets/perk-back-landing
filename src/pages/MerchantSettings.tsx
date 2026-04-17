@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import PosTab from "@/components/merchant/PosTab";
+import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
 import PlanBadge from "@/components/merchant/PlanBadge";
@@ -52,6 +53,7 @@ const MerchantSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [showDeleteSubDialog, setShowDeleteSubDialog] = useState(false);
   const [deletingSub, setDeletingSub] = useState(false);
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
 
   const { plan, status, canAccess, loading: subLoading } = useMerchantSubscription(merchant?.id);
 
@@ -186,6 +188,7 @@ const MerchantSettings = () => {
                 <TabsTrigger value="password">Password</TabsTrigger>
                 <TabsTrigger value="pos">POS</TabsTrigger>
                 <TabsTrigger value="subscription">Plan</TabsTrigger>
+                <TabsTrigger value="account">Account</TabsTrigger>
               </TabsList>
 
               {/* Business */}
