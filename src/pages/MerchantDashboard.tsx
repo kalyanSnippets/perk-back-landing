@@ -192,29 +192,6 @@ const MerchantDashboard = () => {
                       </div>
                     </div>
                     {!subLoading && <PlanBadge plan={plan} status={status} variant="banner" />}
-                  </div>
-
-                  {/* Quick stats overlay */}
-                  <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
-                    {[
-                      { label: "Customers", value: kpis.totalCustomers, icon: Users },
-                      { label: "Today", value: kpis.transactionsToday, icon: Receipt },
-                      { label: "Points", value: kpis.totalPointsAwarded, icon: Star },
-                    ].map((stat, i) => (
-                      <div
-                        key={i}
-                        className="bg-primary-foreground/15 backdrop-blur-md border border-primary-foreground/20 rounded-xl px-3 py-2.5 flex items-center gap-2.5"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center shrink-0">
-                          <stat.icon size={14} className="text-primary-foreground" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-base sm:text-lg font-bold text-primary-foreground tabular-nums leading-none">{stat.value}</p>
-                          <p className="text-[9px] text-primary-foreground/70 uppercase tracking-wider mt-0.5">{stat.label}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </ScrollReveal>
