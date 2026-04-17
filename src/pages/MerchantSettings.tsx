@@ -359,6 +359,30 @@ const MerchantSettings = () => {
                   </div>
                 )}
               </TabsContent>
+
+              {/* Account */}
+              <TabsContent value="account">
+                <div className="bg-card rounded-2xl p-6 shadow-card border-2 border-destructive/30 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={18} className="text-destructive" />
+                    <h2 className="text-base font-bold text-destructive">Danger Zone</h2>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">Delete account</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Permanently delete your merchant account, all customer relationships, transactions, campaigns, and rewards.
+                      Your active subscription will be cancelled. This cannot be undone.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="gap-2 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setShowDeleteAccountDialog(true)}
+                  >
+                    <Trash2 size={14} /> Delete my account
+                  </Button>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
         </div>
