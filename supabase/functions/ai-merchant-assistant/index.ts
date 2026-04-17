@@ -215,7 +215,11 @@ serve(async (req) => {
       });
     }
 
-    // ─── Default: Campaign Suggestions (with optional user_brief) ───
+    // ─── Default: Conversational Campaign Assistant ───
+    // Accepts either:
+    //   - { user_brief: string }  (legacy single-shot)
+    //   - { conversation: [{role:'user'|'assistant', content:string}, ...] } (multi-turn)
+    const rawConversation = Array.isArray(body?.conversation) ? body.conversation : null;
     const userBrief = (body?.user_brief || "").toString().trim().slice(0, 1000);
 
     const { data: transactions } = await supabase
@@ -238,7 +242,7 @@ serve(async (req) => {
     });
     const slowDays = Object.entries(dayCount).sort((a, b) => a[1] - b[1]).slice(0, 2).map(d => d[0]);
 
-    const context = `
+    const dataContext = `
 Merchant: "${storeName}" (${industryType})
 Data summary:
 - Total transactions: ${txs.length}
@@ -247,8 +251,34 @@ Data summary:
 - Average transaction: $${avgSpend}
 - Slowest days: ${slowDays.join(", ") || "Not enough data"}
 - Date range: ${txs.length > 0 ? txs[txs.length - 1].transaction_date.split("T")[0] + " to " + txs[0].transaction_date.split("T")[0] : "No data"}
-${userBrief ? `\nMerchant's specific request: "${userBrief}"\nTailor the campaigns to match this brief while still grounding them in the data above.` : ""}
 `;
+
+    const systemPrompt = `You are a loyalty program marketing expert chatting with the merchant of "${storeName}" (${industryType}).
+Use the merchant transaction data below as grounding for every reply.
+${dataContext}
+Conversation rules:
+- Always respond by calling the suggest_campaigns tool.
+- Each turn: produce a short conversational reply (1-3 sentences) AND 3 refined campaign suggestions.
+- Refine suggestions based on the full prior conversation — when the merchant asks to tweak (e.g. "more weekend-focused", "lower spend threshold", "target lapsed customers"), update accordingly.
+- Keep titles concise and descriptions actionable.`;
+
+    const chatMessages: Array<{ role: string; content: string }> = [
+      { role: "system", content: systemPrompt },
+    ];
+    if (rawConversation && rawConversation.length > 0) {
+      const safeHistory = rawConversation
+        .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+        .slice(-12)
+        .map((m: any) => ({ role: m.role, content: m.content.toString().slice(0, 2000) }));
+      chatMessages.push(...safeHistory);
+    } else {
+      chatMessages.push({
+        role: "user",
+        content: userBrief
+          ? `Merchant's brief: "${userBrief}". Suggest 3 tailored campaigns.`
+          : "Suggest 3 data-driven campaign ideas.",
+      });
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -258,22 +288,17 @@ ${userBrief ? `\nMerchant's specific request: "${userBrief}"\nTailor the campaig
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: "You are a loyalty program marketing expert. Based on the merchant's transaction data and any specific brief they provide, suggest 3 highly tailored campaign ideas to improve customer engagement and revenue. Use the suggest_campaigns tool to return structured suggestions.",
-          },
-          { role: "user", content: context },
-        ],
+        messages: chatMessages,
         tools: [
           {
             type: "function",
             function: {
               name: "suggest_campaigns",
-              description: "Return campaign suggestions for the merchant",
+              description: "Return a short reply and 3 campaign suggestions for the merchant",
               parameters: {
                 type: "object",
                 properties: {
+                  reply: { type: "string", description: "A short conversational reply (1-3 sentences) acknowledging the merchant's input." },
                   suggestions: {
                     type: "array",
                     items: {
@@ -289,7 +314,7 @@ ${userBrief ? `\nMerchant's specific request: "${userBrief}"\nTailor the campaig
                     },
                   },
                 },
-                required: ["suggestions"],
+                required: ["reply", "suggestions"],
               },
             },
           },
@@ -308,12 +333,17 @@ ${userBrief ? `\nMerchant's specific request: "${userBrief}"\nTailor the campaig
 
     const result = await response.json();
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
-    let suggestions = [];
+    let reply = "";
+    let suggestions: unknown[] = [];
     if (toolCall?.function?.arguments) {
-      try { suggestions = JSON.parse(toolCall.function.arguments).suggestions || []; } catch { suggestions = []; }
+      try {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        reply = (parsed.reply || "").toString();
+        suggestions = parsed.suggestions || [];
+      } catch { /* keep defaults */ }
     }
 
-    return new Response(JSON.stringify({ suggestions }), {
+    return new Response(JSON.stringify({ reply, suggestions }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
