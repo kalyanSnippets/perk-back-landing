@@ -1,50 +1,36 @@
 
-The user wants an account deletion option in the customer settings, with friction (2-3 confirmation questions) before the actual delete happens.
+Fix plan: correct the misleading “account already exists” flow after deletion.
 
-Let me check current state — we have `MerchantSettings.tsx` but need to find customer settings location.
+1. Diagnosis from the current code and logs
+- The delete itself is succeeding. The backend log shows “Account deleted for user …” and the current auth tables have no user/identity row for that email.
+- The message is misleading because the real signup screen is `src/pages/GetStarted.tsx` (both `/customer/auth` and `/merchant/auth` route there), not the old `CustomerAuth.tsx` / `MerchantAuth.tsx`.
+- In `GetStarted.tsx`, `handleSignUp()` treats every signup `422` as if the email already exists:
+  - it checks `error.status === 422`
+  - then it tries `signInWithPassword()`
+  - when that fails, it throws “Account exists but password is incorrect”
+- So the app is converting an unknown signup failure into a false “already exists” message.
+- After deletion, `DeleteAccountDialog.tsx` calls normal `signOut()`. The logs show `/logout` returns `403 User from sub claim in JWT does not exist`, which means the deleted session is not being cleaned up safely and stale local auth state may remain.
 
-Looking at the file list: there's `AccessCard.tsx` for customer dashboard but no dedicated customer settings page. The merchant has `MerchantSettings.tsx`.
+2. Minimal code changes
+- `src/pages/GetStarted.tsx`
+  - Remove the broad `error.status === 422` fallback.
+  - Only treat signup as “existing account” when the backend message explicitly says the user is already registered/already exists.
+  - For any other signup error, show the real backend error instead of masking it.
+  - Before signup, clear any stale local session if one exists.
+- `src/components/DeleteAccountDialog.tsx`
+  - After successful deletion, use local sign-out/forced local session cleanup instead of relying on server logout for a user that no longer exists.
+  - Clear cached role/session state deterministically before redirecting home.
+- Optional consistency hardening
+  - Mirror the safer signup error handling in legacy `CustomerAuth.tsx` and `MerchantAuth.tsx`, or leave a note that those files are no longer the routed auth entry points.
 
-The request says "users" generally — best to add this to BOTH merchant and customer flows. For customer, since there's no dedicated settings page, I'll add it inside `AccessCard.tsx` (the customer dashboard) under a new "Account" section, OR add a small Settings entry. Cleanest: add a "Danger Zone" section to MerchantSettings (new tab) and add account deletion access to the customer side via AccessCard.
+3. Expected result
+- If the email truly no longer exists, the user will be able to re-register with the same email.
+- If signup fails for another reason, the app will show the real reason instead of the false “account already exists” message.
+- Deleting an account will no longer leave a stale client session behind.
 
-I'll keep scope tight: add deletion to MerchantSettings (new "Account" tab) and add it to the customer AccessCard menu.
-
-## Plan: Add Account Deletion with Friction
-
-### What we'll build
-A multi-step "Delete Account" flow that requires the user to pass 3 confirmation steps before their account is permanently removed.
-
-### Friction steps (modal with progress)
-1. **Step 1 — Warning**: Explains what will be deleted (loyalty points, rewards, transaction history, subscription if merchant). User clicks "Continue" or "Cancel".
-2. **Step 2 — Reason check**: Asks "Why are you leaving?" with options (Too expensive / Not using it / Found alternative / Other) — requires a selection. Includes "Are you sure? You'll lose all your rewards." retention message.
-3. **Step 3 — Final confirmation**: User must type the word **DELETE** exactly into an input field AND check a box confirming "I understand this action is permanent and cannot be undone."
-
-Only after all 3 steps are completed does the Delete button become active.
-
-### Where it appears
-- **Merchant Settings** (`src/pages/MerchantSettings.tsx`): New "Account" tab at the end of the tabs row, containing a clearly marked red "Danger Zone" card.
-- **Customer Dashboard** (`src/pages/AccessCard.tsx`): Add a small "Account Settings" section/link at the bottom that opens the same deletion flow.
-
-### Backend deletion
-Create a Supabase edge function `delete-user-account` that:
-- Verifies the caller's JWT
-- Uses service-role client to delete the auth.users row (cascades to customers/merchants via existing FK relationships)
-- Returns success/error
-
-After successful deletion, the client signs out and redirects to the home page with a toast confirmation.
-
-### New files
-- `src/components/DeleteAccountDialog.tsx` — reusable 3-step dialog component (works for both merchant + customer)
-- `supabase/functions/delete-user-account/index.ts` — secure edge function
-
-### Modified files
-- `src/pages/MerchantSettings.tsx` — add "Account" tab + dialog
-- `src/pages/AccessCard.tsx` — add deletion entry point
-
-### UX safeguards
-- Red destructive styling only on final step
-- "Cancel" available at every step
-- Loading state during deletion
-- Clear messaging that subscriptions are cancelled and data is irrecoverable
-
-No DB schema changes needed — auth.users deletion cascades through existing foreign keys.
+4. Validation steps
+- Delete a test customer account.
+- Confirm the app clears local session and redirects cleanly.
+- Re-sign up immediately with the same email/password.
+- Repeat once more after a fresh page reload.
+- Confirm the error message now reflects the real backend response if signup still fails.
