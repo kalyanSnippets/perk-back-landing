@@ -96,6 +96,14 @@ const MerchantSettings = () => {
   const handleBusinessSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!merchant || !bizForm.store_name.trim()) { toast.error("Store name is required"); return; }
+    if (bizForm.contact_number.trim()) {
+      const AU_PHONE_REGEX = /^(?:\+?61|0)[2-478](?:[ -]?\d){8}$/;
+      const normalized = bizForm.contact_number.replace(/[\s\-()]/g, "");
+      if (!AU_PHONE_REGEX.test(normalized)) {
+        toast.error("Enter a valid Australian phone (e.g. +61 400 000 000 or 0400 000 000)");
+        return;
+      }
+    }
     setSavingBiz(true);
     const payload: Record<string, unknown> = {
       store_name: bizForm.store_name.trim(),
@@ -219,7 +227,7 @@ const MerchantSettings = () => {
                     />
                     <p className="text-[10px] text-muted-foreground">Pick a suggestion so customers can find you on the map.</p>
                   </div>
-                  <div className="space-y-2"><Label htmlFor="contact_number" className="flex items-center gap-1.5"><Phone size={12} /> Contact Number</Label><Input id="contact_number" value={bizForm.contact_number} onChange={(e) => setBizForm((p) => ({ ...p, contact_number: e.target.value }))} /></div>
+                  <div className="space-y-2"><Label htmlFor="contact_number" className="flex items-center gap-1.5"><Phone size={12} /> Contact Number</Label><Input id="contact_number" type="tel" inputMode="tel" placeholder="0400 000 000 or +61 400 000 000" value={bizForm.contact_number} onChange={(e) => setBizForm((p) => ({ ...p, contact_number: e.target.value }))} /><p className="text-[10px] text-muted-foreground">Australian numbers only.</p></div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1.5"><Building2 size={12} /> Industry Type</Label>
                     <Select value={bizForm.industry_type} onValueChange={(v) => setBizForm((p) => ({ ...p, industry_type: v }))}>

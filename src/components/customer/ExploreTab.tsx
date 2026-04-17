@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Store, Gift, Megaphone, CalendarDays, MapPin, Sparkles, Clock, TrendingUp, Loader2, CheckCircle, Copy,
+  Store, Gift, Megaphone, CalendarDays, MapPin, Sparkles, Clock, TrendingUp, Loader2, CheckCircle, Copy, Navigation,
 } from "lucide-react";
 import { useUserLocation, haversineDistance, formatDistance } from "@/lib/geo";
 import { getIndustryImage } from "@/lib/industryImages";
@@ -434,10 +434,13 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                 const colors = INDUSTRY_COLORS[m.industry_type || ""] || { accent: "from-secondary to-primary", badge: "bg-secondary/10 text-secondary" };
                 const cardGradients = ["from-primary/5 to-secondary/5", "from-secondary/5 to-accent/5", "from-accent/5 to-primary/5", "from-amber-50 to-orange-50"];
                 return (
-                  <button
+                  <div
                     key={m.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setPreviewMerchantId(m.id)}
-                    className="rounded-2xl border border-border/30 bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group"
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPreviewMerchantId(m.id); } }}
+                    className="rounded-2xl border border-border/30 bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     {/* Industry-themed image header */}
                     <div className="relative h-28 overflow-hidden">
@@ -483,6 +486,24 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                           {m.industry_type}
                         </span>
                       )}
+                      {/* Directions button — opens Google Maps */}
+                      {(m.latitude != null && m.longitude != null) || m.address ? (
+                        <a
+                          href={
+                            m.latitude != null && m.longitude != null
+                              ? `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`
+                              : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(m.address || "")}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Get directions to ${m.store_name}`}
+                          title="Get directions"
+                          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm border border-border/40 shadow-md flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-colors z-20"
+                        >
+                          <Navigation size={14} />
+                        </a>
+                      ) : null}
                     </div>
                     {/* Accent strip */}
                     <div className={`h-1 bg-gradient-to-r ${colors.accent}`} />
@@ -505,7 +526,7 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                         )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

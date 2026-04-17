@@ -12,6 +12,10 @@ import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const INDUSTRY_OPTIONS = ["Coffee Shop", "Retail", "Restaurant"];
 
+// Australian phone: accepts +61 4xx xxx xxx, 04xx xxx xxx, +61 2/3/7/8 xxxx xxxx, 0[2378] xxxx xxxx (spaces optional)
+const AU_PHONE_REGEX = /^(?:\+?61|0)[2-478](?:[ -]?\d){8}$/;
+const normalizePhone = (raw: string) => raw.replace(/[\s\-()]/g, "");
+
 const MerchantAuth = () => {
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -36,6 +40,22 @@ const MerchantAuth = () => {
     setLogoPreview(URL.createObjectURL(file));
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your inbox (and spam folder).");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send reset link");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -46,6 +66,11 @@ const MerchantAuth = () => {
         if (!logoFile) { toast.error("Please upload your store logo"); setLoading(false); return; }
         if (!address.trim()) { toast.error("Please enter your store address"); setLoading(false); return; }
         if (!phone.trim()) { toast.error("Please enter your phone number"); setLoading(false); return; }
+        if (!AU_PHONE_REGEX.test(normalizePhone(phone))) {
+          toast.error("Enter a valid Australian phone (e.g. +61 400 000 000 or 0400 000 000)");
+          setLoading(false);
+          return;
+        }
         if (!industryType) { toast.error("Please select your industry type"); setLoading(false); return; }
 
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -192,8 +217,9 @@ const MerchantAuth = () => {
                 <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input id="phone" type="tel" placeholder="+61 400 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" required />
+                  <Input id="phone" type="tel" inputMode="tel" placeholder="0400 000 000 or +61 400 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" required />
                 </div>
+                <p className="text-[10px] text-muted-foreground">Australian numbers only (mobile or landline).</p>
               </div>
 
               <div className="space-y-2">
@@ -242,6 +268,12 @@ const MerchantAuth = () => {
           <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading || (isSignUp && !agreedToTerms)}>
             {loading ? "Please wait..." : isSignUp ? "Register Store" : "Sign In"}
           </Button>
+
+          {!isSignUp && (
+            <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline w-full text-center">
+              Forgot password?
+            </button>
+          )}
 
           <div className="text-center">
             <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-secondary hover:underline">
