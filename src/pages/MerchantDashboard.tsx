@@ -13,6 +13,7 @@ import UpgradeBanner from "@/components/merchant/UpgradeBanner";
 import CustomerLimitBanner from "@/components/merchant/CustomerLimitBanner";
 import DashboardFeatureCard from "@/components/merchant/DashboardFeatureCard";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
+import { getIndustryImage } from "@/lib/industryImages";
 
 interface MerchantData {
   id: string;
