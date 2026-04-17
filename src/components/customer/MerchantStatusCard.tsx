@@ -10,13 +10,15 @@ interface Props {
   pointsBalance: number;
   merchantId: string;
   transactions: Tx[];
+  showTier?: boolean;
+  showStreak?: boolean;
 }
 
 const TIERS = [
-  { name: "VIP",    min: 5000, gradient: "from-purple-500 via-fuchsia-500 to-pink-500",   icon: Crown,  ring: "ring-purple-400/40" },
-  { name: "Gold",   min: 1500, gradient: "from-yellow-400 via-amber-500 to-orange-500",   icon: Trophy, ring: "ring-amber-400/40" },
-  { name: "Silver", min: 500,  gradient: "from-slate-300 via-slate-400 to-slate-500",     icon: Award,  ring: "ring-slate-400/40" },
-  { name: "Bronze", min: 0,    gradient: "from-amber-700 via-orange-700 to-amber-800",    icon: Medal,  ring: "ring-amber-700/40" },
+  { name: "VIP",    min: 5000, color: "text-purple-500",  bar: "from-purple-500 to-fuchsia-500", icon: Crown },
+  { name: "Gold",   min: 1500, color: "text-amber-500",   bar: "from-yellow-400 to-amber-500",   icon: Trophy },
+  { name: "Silver", min: 500,  color: "text-slate-400",   bar: "from-slate-300 to-slate-500",    icon: Award },
+  { name: "Bronze", min: 0,    color: "text-amber-700",   bar: "from-amber-700 to-orange-700",   icon: Medal },
 ];
 
 const getTier = (pts: number) => TIERS.find(t => pts >= t.min) ?? TIERS[TIERS.length - 1];
@@ -33,13 +35,9 @@ const computeStreak = (txs: Tx[], merchantId: string): number => {
   if (dates.length === 0) return 0;
   const uniqueDays = Array.from(new Set(dates)).sort((a, b) => b - a);
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const todayMs = today.getTime();
   const ONE_DAY = 24 * 60 * 60 * 1000;
-
-  // streak counts back from most recent visit, allowing today or yesterday as start
-  const diffFromToday = (todayMs - uniqueDays[0]) / ONE_DAY;
+  const diffFromToday = (today.getTime() - uniqueDays[0]) / ONE_DAY;
   if (diffFromToday > 1) return 0;
-
   let streak = 1;
   for (let i = 1; i < uniqueDays.length; i++) {
     const gap = (uniqueDays[i - 1] - uniqueDays[i]) / ONE_DAY;
@@ -49,7 +47,9 @@ const computeStreak = (txs: Tx[], merchantId: string): number => {
   return streak;
 };
 
-const MerchantStatusCard = ({ storeName, pointsBalance, merchantId, transactions }: Props) => {
+const MerchantStatusCard = ({ storeName, pointsBalance, merchantId, transactions, showTier = true, showStreak = true }: Props) => {
+  if (!showTier && !showStreak) return null;
+
   const tier = getTier(pointsBalance);
   const nextTier = getNextTier(pointsBalance);
   const TierIcon = tier.icon;
@@ -58,50 +58,32 @@ const MerchantStatusCard = ({ storeName, pointsBalance, merchantId, transactions
   const progress = nextTier ? Math.min(100, ((pointsBalance - tier.min) / (nextTier.min - tier.min)) * 100) : 100;
 
   return (
-    <div className="bg-card rounded-2xl p-4 sm:p-5 shadow-card border border-border/50 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Your Status · {storeName}</p>
-      </div>
+    <div className="bg-card rounded-xl px-4 py-3 border border-border/50 shadow-sm flex items-center gap-4">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold shrink-0 hidden sm:block">{storeName}</p>
 
-      <div className="grid grid-cols-2 gap-3">
-        {/* Tier badge */}
-        <div className={`relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br ${tier.gradient} text-white shadow-lg ring-2 ${tier.ring}`}>
-          <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
-          <div className="absolute -bottom-2 -left-2 w-12 h-12 rounded-full bg-white/10 blur-lg" />
-          <div className="relative flex items-center gap-2 mb-1">
-            <TierIcon size={18} className="drop-shadow" />
-            <p className="text-[10px] font-semibold uppercase tracking-wider opacity-90">Tier</p>
-          </div>
-          <p className="relative text-2xl font-extrabold drop-shadow-sm">{tier.name}</p>
-          <p className="relative text-[10px] opacity-90 mt-0.5 tabular-nums">{pointsBalance.toLocaleString()} pts</p>
+      {showTier && (
+        <div className="flex items-center gap-2 shrink-0">
+          <TierIcon size={14} className={tier.color} />
+          <span className={`text-xs font-bold ${tier.color}`}>{tier.name}</span>
         </div>
+      )}
 
-        {/* Visit streak */}
-        <div className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 text-white shadow-lg ring-2 ring-orange-400/40">
-          <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
-          <div className="absolute -bottom-2 -left-2 w-12 h-12 rounded-full bg-white/10 blur-lg" />
-          <div className="relative flex items-center gap-2 mb-1">
-            <Flame size={18} className="drop-shadow" />
-            <p className="text-[10px] font-semibold uppercase tracking-wider opacity-90">Streak</p>
-          </div>
-          <p className="relative text-2xl font-extrabold drop-shadow-sm tabular-nums">{streak} <span className="text-sm font-bold opacity-90">{streak === 1 ? "day" : "days"}</span></p>
-          <p className="relative text-[10px] opacity-90 mt-0.5">{streak >= 2 ? "Keep the heat 🔥" : "Visit again to build streak"}</p>
-        </div>
-      </div>
-
-      {/* Progress to next tier */}
-      {nextTier && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground">Next: <span className="font-semibold text-foreground">{nextTier.name}</span></span>
-            <span className="font-semibold text-primary tabular-nums">{pointsToNext.toLocaleString()} pts to go</span>
-          </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
+      {showTier && nextTier && (
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
             <div
-              className={`h-full rounded-full bg-gradient-to-r ${nextTier.gradient} transition-all duration-700`}
+              className={`h-full rounded-full bg-gradient-to-r ${nextTier.bar} transition-all duration-700`}
               style={{ width: `${progress}%` }}
             />
           </div>
+          <span className="text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">{pointsToNext.toLocaleString()} → {nextTier.name}</span>
+        </div>
+      )}
+
+      {showStreak && streak > 0 && (
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          <Flame size={13} className="text-orange-500" />
+          <span className="text-xs font-semibold text-foreground tabular-nums">{streak}d</span>
         </div>
       )}
     </div>
