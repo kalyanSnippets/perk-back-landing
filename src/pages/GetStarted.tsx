@@ -123,10 +123,12 @@ const GetStarted = () => {
     }
 
     setLoading(true);
+    if (authMode === "signup") signupInProgress.current = true;
     try {
       if (authMode === "signup") { await handleSignUp(emailResult.data); }
       else { await handleLogin(emailResult.data); }
     } catch (error: any) {
+      signupInProgress.current = false;
       toast.error(error.message || "Authentication failed");
     } finally {
       setLoading(false);
