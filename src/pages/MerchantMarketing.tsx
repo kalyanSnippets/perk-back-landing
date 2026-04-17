@@ -13,7 +13,7 @@ import {
   Plus, Trash2, ToggleLeft, ToggleRight, Megaphone, Gift, Clock,
   ShoppingBag, Footprints, DollarSign, Save, Cake, CalendarHeart,
   Sparkles, Loader2, Target, TrendingUp, Send, Pencil, X,
-  Image as ImageIcon, MessageSquare
+  Image as ImageIcon
 } from "lucide-react";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
@@ -488,19 +488,40 @@ const MerchantMarketing = () => {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground block">Image</Label>
+                          <Label className="text-xs text-muted-foreground block">Reward Image</Label>
                           {rwImageUrl ? (
-                            <div className="relative rounded-xl overflow-hidden border border-border/50">
-                              <img src={rwImageUrl} alt="Reward" className="w-full h-32 object-cover" />
-                              <div className="absolute top-2 right-2 flex gap-1">
-                                <Button type="button" variant="secondary" size="sm" className="h-7 text-[10px] gap-1" onClick={() => generateRewardImage(rwTitle || "loyalty reward")} disabled={generatingImage}>{generatingImage ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Regen</Button>
-                                <Button type="button" variant="destructive" size="sm" className="h-7 text-[10px]" onClick={() => setRwImageUrl("")}>Remove</Button>
+                            <div className="space-y-2">
+                              <div className="relative rounded-xl overflow-hidden border border-border/50">
+                                <img src={rwImageUrl} alt="Reward" className="w-full h-32 object-cover" />
+                                <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2 h-7 text-[10px]" onClick={() => setRwImageUrl("")}>Remove</Button>
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Describe a different image..."
+                                  value={rwImagePrompt}
+                                  onChange={e => setRwImagePrompt(e.target.value)}
+                                  maxLength={300}
+                                  className="flex-1"
+                                />
+                                <Button type="button" variant="secondary" size="sm" className="gap-1.5" onClick={() => generateRewardImage(rwImagePrompt || rwTitle)} disabled={generatingImage}>
+                                  {generatingImage ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Regenerate
+                                </Button>
                               </div>
                             </div>
                           ) : (
-                            <Button type="button" variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => generateRewardImage(rwTitle || rwDesc || "loyalty reward")} disabled={generatingImage || (!rwTitle && !rwDesc)}>
-                              {generatingImage ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}{generatingImage ? "Generating..." : "Generate AI Image"}
-                            </Button>
+                            <div className="space-y-2">
+                              <Textarea
+                                placeholder="Describe your reward image (e.g. 'a steaming cappuccino on a wooden table with morning light')"
+                                value={rwImagePrompt}
+                                onChange={e => setRwImagePrompt(e.target.value)}
+                                rows={2}
+                                maxLength={300}
+                              />
+                              <Button type="button" variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => generateRewardImage(rwImagePrompt || rwTitle || rwDesc)} disabled={generatingImage || (!rwImagePrompt.trim() && !rwTitle.trim() && !rwDesc.trim())}>
+                                {generatingImage ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                                {generatingImage ? "Generating..." : "Generate AI Image"}
+                              </Button>
+                            </div>
                           )}
                         </div>
                         <div className="flex items-center gap-3"><Switch checked={rwLimited} onCheckedChange={setRwLimited} /><Label className="text-xs">Limited time</Label></div>
@@ -609,52 +630,7 @@ const MerchantMarketing = () => {
                 )}
               </TabsContent>
 
-              {/* ── AI Suggestions ── */}
-              <TabsContent value="ai" className="space-y-4">
-                {!canAccess("ai_suggestions") ? <LockedFeature featureKey="ai_suggestions" /> : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">AI Campaign Suggestions</p>
-                      <Button variant="hero" size="sm" className="gap-1.5" onClick={generateAiSuggestions} disabled={generating}>
-                        {generating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}{generating ? "Analyzing..." : "Generate"}
-                      </Button>
-                    </div>
-                    {aiSuggestions.length === 0 && !generating && (
-                      <div className="bg-card rounded-2xl p-8 border border-border/50 shadow-card text-center">
-                        <Sparkles size={40} className="mx-auto mb-3 text-secondary/40" />
-                        <p className="text-sm text-muted-foreground">Click "Generate" for AI-powered campaign ideas</p>
-                      </div>
-                    )}
-                    {generating && (
-                      <div className="bg-card rounded-2xl p-8 border border-border/50 shadow-card text-center">
-                        <Loader2 size={32} className="mx-auto mb-3 text-primary animate-spin" />
-                        <p className="text-sm text-muted-foreground">Analyzing your transaction data...</p>
-                      </div>
-                    )}
-                    {aiSuggestions.map((s, i) => (
-                      <div key={i} className="bg-card rounded-2xl p-5 border border-border/50 shadow-card space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Megaphone size={16} className="text-primary shrink-0" />
-                              <p className="text-sm font-bold text-foreground">{s.title}</p>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${confidenceColor[s.confidence] || ""}`}>{s.confidence}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{s.description}</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-xs">
-                          <span className="flex items-center gap-1 text-muted-foreground"><Target size={12} /> {s.target_audience}</span>
-                          <span className="flex items-center gap-1 text-muted-foreground"><TrendingUp size={12} /> {s.expected_impact}</span>
-                        </div>
-                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => createAiCampaign(s, i)} disabled={creatingIdx === i}>
-                          <Plus size={12} /> {creatingIdx === i ? "Creating..." : "Create Campaign"}
-                        </Button>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </TabsContent>
+              {/* AI suggestions are now embedded in the Campaigns tab */}
             </Tabs>
           </div>
         </div>
