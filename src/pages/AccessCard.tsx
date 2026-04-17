@@ -319,6 +319,7 @@ const AccessCard = () => {
   const nearestProgress = nearestReward ? Math.min((displayPoints / nearestReward.points_required) * 100, 100) : 0;
 
   return (
+    <>
     <div className="min-h-screen bg-muted/20">
       <Header />
       <div className="fixed inset-0 -z-10">
@@ -1028,6 +1029,7 @@ const AccessCard = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
