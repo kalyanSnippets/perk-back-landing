@@ -324,52 +324,116 @@ const MerchantMarketing = () => {
               <TabsContent value="campaigns" className="space-y-4">
                 {!canAccess("campaigns") ? <LockedFeature featureKey="campaigns" /> : (
                   <>
-                    {/* AI Campaign Assistant — chat-style */}
+                    {/* AI Campaign Assistant — multi-turn chat */}
                     {canAccess("ai_suggestions") && (
-                      <div className="bg-gradient-to-br from-primary/5 via-card to-secondary/5 rounded-2xl p-5 border border-primary/20 shadow-card space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Sparkles size={16} className="text-accent" />
-                          <p className="text-sm font-bold text-foreground">AI Campaign Assistant</p>
+                      <div className="bg-gradient-to-br from-primary/5 via-card to-secondary/5 rounded-2xl border border-primary/20 shadow-card overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 bg-card/40">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                              <Sparkles size={14} className="text-primary-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-foreground leading-tight">AI Campaign Assistant</p>
+                              <p className="text-[10px] text-muted-foreground leading-tight">Chat to refine ideas based on your data</p>
+                            </div>
+                          </div>
+                          {chatMessages.length > 0 && (
+                            <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs" onClick={resetChat}>
+                              <X size={12} /> Reset
+                            </Button>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground">Describe the kind of campaign you have in mind — or leave blank to get data-driven suggestions.</p>
-                        <Textarea
-                          placeholder="e.g. I want to bring back lapsed customers with a weekend-only discount, focused on coffee drinkers..."
-                          value={aiBrief}
-                          onChange={e => setAiBrief(e.target.value)}
-                          rows={3}
-                          className="bg-background"
-                        />
-                        <div className="flex justify-end">
-                          <Button variant="hero" size="sm" className="gap-1.5" onClick={generateAiSuggestions} disabled={generating}>
+
+                        {/* Chat thread */}
+                        <div className="px-5 py-4 space-y-4 max-h-[480px] overflow-y-auto">
+                          {chatMessages.length === 0 && (
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                <Sparkles size={14} className="text-primary" />
+                              </div>
+                              <div className="bg-card rounded-2xl rounded-tl-sm px-4 py-2.5 border border-border/50 max-w-[85%]">
+                                <p className="text-xs text-foreground">
+                                  Hi! Tell me what kind of campaign you'd like to run — or just hit Send for data-driven ideas. You can refine over multiple messages (e.g. "make them weekend-focused", "target lapsed customers").
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {chatMessages.map((m, mi) => (
+                            <div key={mi} className={`flex items-start gap-2.5 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                m.role === "user" ? "bg-secondary/15" : "bg-primary/10"
+                              }`}>
+                                {m.role === "user" ? <Pencil size={12} className="text-secondary" /> : <Sparkles size={14} className="text-primary" />}
+                              </div>
+                              <div className={`max-w-[85%] space-y-2 ${m.role === "user" ? "items-end" : ""}`}>
+                                <div className={`rounded-2xl px-4 py-2.5 border ${
+                                  m.role === "user"
+                                    ? "bg-primary text-primary-foreground border-primary/40 rounded-tr-sm"
+                                    : "bg-card text-foreground border-border/50 rounded-tl-sm"
+                                }`}>
+                                  <p className="text-xs whitespace-pre-wrap">{m.content}</p>
+                                </div>
+
+                                {m.role === "assistant" && m.suggestions && m.suggestions.length > 0 && (
+                                  <div className="space-y-2">
+                                    {m.suggestions.map((s, si) => {
+                                      const key = `${mi}-${si}`;
+                                      return (
+                                        <div key={si} className="bg-card rounded-xl p-3 border border-border/50 space-y-2">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <Megaphone size={13} className="text-primary shrink-0" />
+                                            <p className="text-sm font-bold text-foreground">{s.title}</p>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${confidenceColor[s.confidence] || ""}`}>{s.confidence}</span>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground">{s.description}</p>
+                                          <div className="flex flex-wrap gap-3 text-[11px]">
+                                            <span className="flex items-center gap-1 text-muted-foreground"><Target size={11} /> {s.target_audience}</span>
+                                            <span className="flex items-center gap-1 text-muted-foreground"><TrendingUp size={11} /> {s.expected_impact}</span>
+                                          </div>
+                                          <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => createAiCampaign(s, key)} disabled={creatingKey === key}>
+                                            <Plus size={11} /> {creatingKey === key ? "Creating..." : "Create Campaign"}
+                                          </Button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+
+                          {generating && (
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                <Sparkles size={14} className="text-primary" />
+                              </div>
+                              <div className="bg-card rounded-2xl rounded-tl-sm px-4 py-2.5 border border-border/50">
+                                <div className="flex items-center gap-1.5">
+                                  <Loader2 size={12} className="animate-spin text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Thinking…</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Composer */}
+                        <div className="px-5 py-3 border-t border-border/40 bg-card/40 flex items-end gap-2">
+                          <Textarea
+                            placeholder={chatMessages.length === 0
+                              ? "Describe your idea, or just press Send for data-driven suggestions…"
+                              : "Refine: e.g. make them weekend-focused, lower the spend threshold…"}
+                            value={aiBrief}
+                            onChange={e => setAiBrief(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!generating) sendChat(); } }}
+                            rows={2}
+                            className="bg-background resize-none min-h-[44px]"
+                          />
+                          <Button variant="hero" size="sm" className="gap-1.5 shrink-0" onClick={sendChat} disabled={generating}>
                             {generating ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                            {generating ? "Generating..." : "Generate Campaigns"}
                           </Button>
                         </div>
-                        {aiSuggestions.length > 0 && (
-                          <div className="space-y-2 pt-2">
-                            {aiSuggestions.map((s, i) => (
-                              <div key={i} className="bg-card rounded-xl p-4 border border-border/50 space-y-2">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                      <Megaphone size={14} className="text-primary shrink-0" />
-                                      <p className="text-sm font-bold text-foreground">{s.title}</p>
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${confidenceColor[s.confidence] || ""}`}>{s.confidence}</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">{s.description}</p>
-                                  </div>
-                                </div>
-                                <div className="flex flex-wrap gap-3 text-[11px]">
-                                  <span className="flex items-center gap-1 text-muted-foreground"><Target size={11} /> {s.target_audience}</span>
-                                  <span className="flex items-center gap-1 text-muted-foreground"><TrendingUp size={11} /> {s.expected_impact}</span>
-                                </div>
-                                <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => createAiCampaign(s, i)} disabled={creatingIdx === i}>
-                                  <Plus size={11} /> {creatingIdx === i ? "Creating..." : "Create Campaign"}
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     )}
 
