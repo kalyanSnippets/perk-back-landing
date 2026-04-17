@@ -40,6 +40,22 @@ const MerchantAuth = () => {
     setLogoPreview(URL.createObjectURL(file));
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your inbox (and spam folder).");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send reset link");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -201,8 +217,9 @@ const MerchantAuth = () => {
                 <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input id="phone" type="tel" placeholder="+61 400 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" required />
+                  <Input id="phone" type="tel" inputMode="tel" placeholder="0400 000 000 or +61 400 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" required />
                 </div>
+                <p className="text-[10px] text-muted-foreground">Australian numbers only (mobile or landline).</p>
               </div>
 
               <div className="space-y-2">
