@@ -13,6 +13,7 @@ import UpgradeBanner from "@/components/merchant/UpgradeBanner";
 import CustomerLimitBanner from "@/components/merchant/CustomerLimitBanner";
 import DashboardFeatureCard from "@/components/merchant/DashboardFeatureCard";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
+import { getIndustryImage } from "@/lib/industryImages";
 
 interface MerchantData {
   id: string;
@@ -150,39 +151,70 @@ const MerchantDashboard = () => {
           <MerchantNav merchantId={merchant.id} />
           <div className="flex-1 min-w-0 space-y-6">
 
-            {/* Branded Banner */}
+            {/* Industry-themed Banner */}
             <ScrollReveal>
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-5 sm:p-6 shadow-card-hover">
+              <div className="relative overflow-hidden rounded-2xl shadow-card-hover">
+                {/* Industry background image */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${getIndustryImage(merchant.industry_type)})` }}
+                />
+                {/* Brand gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/85 via-primary/75 to-secondary/80" />
                 {/* Floating decorative shapes */}
-                <div className="floating-circle w-20 h-20 border border-primary-foreground/10 -top-6 -right-6" style={{ animationDelay: "0s" }} />
-                <div className="floating-circle w-14 h-14 border border-primary-foreground/8 -bottom-4 -left-4" style={{ animationDelay: "1s" }} />
-                <div className="floating-dot w-4 h-4 bg-accent/30 top-4 right-[30%]" style={{ animationDelay: "2s" }} />
+                <div className="floating-circle w-20 h-20 border border-primary-foreground/15 -top-6 -right-6" style={{ animationDelay: "0s" }} />
+                <div className="floating-circle w-14 h-14 border border-primary-foreground/10 -bottom-4 -left-4" style={{ animationDelay: "1s" }} />
+                <div className="floating-dot w-4 h-4 bg-accent/40 top-4 right-[30%]" style={{ animationDelay: "2s" }} />
 
-                <div className="relative z-10 flex items-center gap-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-primary-foreground/20 shrink-0">
-                    {merchant.logo_url ? (
-                      <img src={merchant.logo_url} alt={merchant.store_name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Store size={28} className="text-primary-foreground/60" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.15em]">Merchant Dashboard</p>
-                    <h1 className="text-xl sm:text-2xl font-bold text-primary-foreground truncate">{merchant.store_name}</h1>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      {merchant.industry_type && (
-                        <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Building2 size={9} /> {merchant.industry_type}
-                        </span>
-                      )}
-                      {merchant.address && (
-                        <span className="text-[10px] text-primary-foreground/60 flex items-center gap-1 truncate">
-                          <MapPin size={9} /> {merchant.address}
-                        </span>
+                <div className="relative z-10 p-5 sm:p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-primary-foreground/30 shrink-0 shadow-lg">
+                      {merchant.logo_url ? (
+                        <img src={merchant.logo_url} alt={merchant.store_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Store size={28} className="text-primary-foreground/80" />
                       )}
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-primary-foreground/70 text-[10px] uppercase tracking-[0.15em]">Merchant Dashboard</p>
+                      <h1 className="text-xl sm:text-2xl font-bold text-primary-foreground truncate drop-shadow-sm">{merchant.store_name}</h1>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        {merchant.industry_type && (
+                          <span className="text-[10px] bg-primary-foreground/25 backdrop-blur-sm text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary-foreground/20">
+                            <Building2 size={9} /> {merchant.industry_type}
+                          </span>
+                        )}
+                        {merchant.address && (
+                          <span className="text-[10px] text-primary-foreground/80 flex items-center gap-1 truncate">
+                            <MapPin size={9} /> {merchant.address}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {!subLoading && <PlanBadge plan={plan} status={status} variant="banner" />}
                   </div>
-                  {!subLoading && <PlanBadge plan={plan} status={status} variant="banner" />}
+
+                  {/* Quick stats overlay */}
+                  <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+                    {[
+                      { label: "Customers", value: kpis.totalCustomers, icon: Users },
+                      { label: "Today", value: kpis.transactionsToday, icon: Receipt },
+                      { label: "Points", value: kpis.totalPointsAwarded, icon: Star },
+                    ].map((stat, i) => (
+                      <div
+                        key={i}
+                        className="bg-primary-foreground/15 backdrop-blur-md border border-primary-foreground/20 rounded-xl px-3 py-2.5 flex items-center gap-2.5"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center shrink-0">
+                          <stat.icon size={14} className="text-primary-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-base sm:text-lg font-bold text-primary-foreground tabular-nums leading-none">{stat.value}</p>
+                          <p className="text-[9px] text-primary-foreground/70 uppercase tracking-wider mt-0.5">{stat.label}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </ScrollReveal>
