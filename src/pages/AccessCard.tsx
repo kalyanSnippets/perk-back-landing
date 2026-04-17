@@ -18,6 +18,7 @@ import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
 import StampCardProgress from "@/components/customer/StampCardProgress";
+import MerchantStatusCard from "@/components/customer/MerchantStatusCard";
 import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -543,6 +544,26 @@ const AccessCard = () => {
                   );
                 })}
               </div>
+            </div>
+          </ScrollReveal>
+        )}
+
+        {/* Your Status — Tier + Streak per merchant */}
+        {customerMerchants.length > 0 && (
+          <ScrollReveal delay={20}>
+            <div className="space-y-3">
+              {(selectedMerchantId
+                ? customerMerchants.filter(cm => cm.merchant_id === selectedMerchantId)
+                : customerMerchants
+              ).map(cm => (
+                <MerchantStatusCard
+                  key={cm.merchant_id}
+                  merchantId={cm.merchant_id}
+                  storeName={cm.store_name}
+                  pointsBalance={cm.points_balance}
+                  transactions={transactions}
+                />
+              ))}
             </div>
           </ScrollReveal>
         )}
