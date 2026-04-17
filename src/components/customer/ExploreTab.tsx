@@ -205,8 +205,8 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
 
   return (
     <div className="space-y-5">
-      {/* Near You */}
-      {userLocation.latitude && userLocation.longitude && (
+      {/* Near You — only when there's a meaningful number of merchants to filter */}
+      {merchants.length >= 10 && userLocation.latitude && userLocation.longitude && (
         <ScrollReveal>
           <NearbyMerchants
             merchants={filteredMerchants.map((m) => ({ ...m, reward_count: merchantRewardCounts.get(m.id) || 0 }))}
