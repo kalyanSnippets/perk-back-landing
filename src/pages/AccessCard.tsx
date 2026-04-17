@@ -548,6 +548,28 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
+        {/* Your Status — Tier + Streak per merchant */}
+        {customerMerchants.length > 0 && (
+          <ScrollReveal delay={20}>
+            <div className="space-y-3">
+              {(selectedMerchantId
+                ? customerMerchants.filter(cm => cm.merchant_id === selectedMerchantId)
+                : customerMerchants
+              ).map(cm => (
+                <MerchantStatusCard
+                  key={cm.merchant_id}
+                  merchantId={cm.merchant_id}
+                  storeName={cm.store_name}
+                  pointsBalance={cm.points_balance}
+                  transactions={transactions}
+                />
+              ))}
+            </div>
+          </ScrollReveal>
+        )}
+
+        <ScrollReveal delay={25}>
+
         {/* Points Balance — Vibrant */}
         <ScrollReveal delay={25}>
           <div className="relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
