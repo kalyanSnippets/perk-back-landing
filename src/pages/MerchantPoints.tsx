@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { usePersistedTab } from "@/hooks/usePersistedTab";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -22,8 +23,7 @@ import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
 
 const MerchantPoints = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "add-points";
+  const { activeTab, setTab } = usePersistedTab("merchant.points.tab", "add-points");
 
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,7 +123,7 @@ const MerchantPoints = () => {
     toast.success("Settings saved");
   };
 
-  const handleTabChange = (value: string) => setSearchParams({ tab: value });
+  const handleTabChange = setTab;
 
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
@@ -152,7 +152,7 @@ const MerchantPoints = () => {
               <Coins size={22} className="text-secondary" /> Points & Stamps
             </h1>
 
-            <Tabs value={defaultTab} onValueChange={handleTabChange}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <div className="-mx-4 lg:mx-0 px-4 lg:px-0 sticky top-16 lg:top-20 z-30 bg-muted/20 backdrop-blur-md py-2">
                 <TabsList className="w-full justify-start overflow-x-auto flex-nowrap whitespace-nowrap scrollbar-hide h-auto p-1 bg-card border border-border/50 shadow-sm">
                   <TabsTrigger value="add-points" className="shrink-0">Add Points</TabsTrigger>
