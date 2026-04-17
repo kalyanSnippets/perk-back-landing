@@ -18,6 +18,7 @@ import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
 import StampCardProgress from "@/components/customer/StampCardProgress";
+import MerchantStatusCard from "@/components/customer/MerchantStatusCard";
 import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
