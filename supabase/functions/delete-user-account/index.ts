@@ -6,8 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+type DeletionScope = "all" | "customer_only" | "merchant_only";
+
 interface DeletionPayload {
   reason?: string;
+  scope?: DeletionScope;
 }
 
 Deno.serve(async (req) => {
@@ -44,11 +47,15 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub as string;
 
-    // Optional reason for analytics/logging
+    // Optional reason + scope
     let reason: string | undefined;
+    let scope: DeletionScope = "all";
     try {
       const body = (await req.json()) as DeletionPayload;
       reason = body?.reason?.toString().slice(0, 200);
+      if (body?.scope === "customer_only" || body?.scope === "merchant_only" || body?.scope === "all") {
+        scope = body.scope;
+      }
     } catch {
       // body is optional
     }
@@ -57,26 +64,24 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Best-effort cleanup of related rows that don't have ON DELETE CASCADE
-    // (auth.users deletion alone won't necessarily remove these references).
-    try {
-      // Find merchant + customer ids tied to this user
-      const { data: merchantRow } = await adminClient
-        .from("merchants")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const { data: customerRow } = await adminClient
-        .from("customers")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
+    // Look up both possible records for this user
+    const { data: merchantRow } = await adminClient
+      .from("merchants")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const { data: customerRow } = await adminClient
+      .from("customers")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-      const merchantId = merchantRow?.id as string | undefined;
-      const customerId = customerRow?.id as string | undefined;
+    const merchantId = merchantRow?.id as string | undefined;
+    const customerId = customerRow?.id as string | undefined;
 
-      if (merchantId) {
-        // Delete merchant-owned rows
+    const deleteMerchantData = async () => {
+      if (!merchantId) return;
+      try {
         await adminClient.from("birthday_offer_settings").delete().eq("merchant_id", merchantId);
         await adminClient.from("gamification_settings").delete().eq("merchant_id", merchantId);
         await adminClient.from("merchant_feature_overrides").delete().eq("merchant_id", merchantId);
@@ -95,10 +100,14 @@ Deno.serve(async (req) => {
         await adminClient.from("unmatched_transactions").delete().eq("merchant_id", merchantId);
         await adminClient.from("transactions").delete().eq("merchant_id", merchantId);
         await adminClient.from("merchants").delete().eq("id", merchantId);
+      } catch (e) {
+        console.error("Merchant cleanup error (non-fatal):", e);
       }
+    };
 
-      if (customerId) {
-        // Delete customer-owned rows
+    const deleteCustomerData = async () => {
+      if (!customerId) return;
+      try {
         await adminClient.from("wallet_passes").delete().eq("customer_id", customerId);
         await adminClient.from("customer_stamps").delete().eq("customer_id", customerId);
         await adminClient.from("customer_merchants").delete().eq("customer_id", customerId);
@@ -106,28 +115,64 @@ Deno.serve(async (req) => {
         await adminClient.from("transactions").delete().eq("customer_id", customerId);
         await adminClient.from("external_customer_mappings").delete().eq("customer_id", customerId);
         await adminClient.from("customers").delete().eq("id", customerId);
+      } catch (e) {
+        console.error("Customer cleanup error (non-fatal):", e);
       }
+    };
 
-      // Remove role assignments
-      await adminClient.from("user_roles").delete().eq("user_id", userId);
-    } catch (cleanupErr) {
-      console.error("Cleanup error (non-fatal):", cleanupErr);
+    if (scope === "merchant_only") {
+      await deleteMerchantData();
+    } else if (scope === "customer_only") {
+      await deleteCustomerData();
+    } else {
+      // all
+      await deleteMerchantData();
+      await deleteCustomerData();
+      try {
+        await adminClient.from("user_roles").delete().eq("user_id", userId);
+      } catch (e) {
+        console.error("Role cleanup error (non-fatal):", e);
+      }
     }
 
-    // Finally delete the auth user
-    const { error: deleteErr } = await adminClient.auth.admin.deleteUser(userId);
-    if (deleteErr) {
-      console.error("Auth user deletion error:", deleteErr);
-      return new Response(
-        JSON.stringify({ error: deleteErr.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    // Decide whether to delete the auth user.
+    // Re-check remaining records after partial deletion.
+    let authDeleted = false;
+    if (scope === "all") {
+      const { error: deleteErr } = await adminClient.auth.admin.deleteUser(userId);
+      if (deleteErr) {
+        console.error("Auth user deletion error:", deleteErr);
+        return new Response(
+          JSON.stringify({ error: deleteErr.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      authDeleted = true;
+    } else {
+      // Partial scope: only remove auth.users if NO profile remains on either side.
+      const { data: remainingMerchant } = await adminClient
+        .from("merchants").select("id").eq("user_id", userId).maybeSingle();
+      const { data: remainingCustomer } = await adminClient
+        .from("customers").select("id").eq("user_id", userId).maybeSingle();
+
+      if (!remainingMerchant && !remainingCustomer) {
+        try {
+          await adminClient.from("user_roles").delete().eq("user_id", userId);
+        } catch (e) {
+          console.error("Role cleanup error (non-fatal):", e);
+        }
+        const { error: deleteErr } = await adminClient.auth.admin.deleteUser(userId);
+        if (!deleteErr) authDeleted = true;
+        else console.error("Auth user deletion error (partial fallthrough):", deleteErr);
+      }
     }
 
-    console.log(`Account deleted for user ${userId}. Reason: ${reason || "not provided"}`);
+    console.log(
+      `Account deletion for user ${userId}. Scope: ${scope}. Auth removed: ${authDeleted}. Reason: ${reason || "not provided"}`,
+    );
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, scope, authDeleted }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {

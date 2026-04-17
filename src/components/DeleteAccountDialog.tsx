@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -9,12 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AlertTriangle, Trash2, Heart, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Trash2, Heart, ShieldAlert, Store, User } from "lucide-react";
 import { toast } from "sonner";
+
+export type DeletionScope = "customer_only" | "merchant_only" | "all";
 
 interface DeleteAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Which dashboard the user opened the dialog from. Drives default scope + copy. */
   accountType: "merchant" | "customer";
 }
 
@@ -27,19 +30,67 @@ const REASONS = [
 
 const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountDialogProps) => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // 0 = scope selector (only when both exist)
+  const [hasMerchant, setHasMerchant] = useState(false);
+  const [hasCustomer, setHasCustomer] = useState(false);
+  const [scope, setScope] = useState<DeletionScope>(
+    accountType === "merchant" ? "merchant_only" : "customer_only",
+  );
   const [reason, setReason] = useState<string>("");
   const [confirmText, setConfirmText] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
 
   const reset = () => {
-    setStep(1);
+    setStep(0);
+    setScope(accountType === "merchant" ? "merchant_only" : "customer_only");
     setReason("");
     setConfirmText("");
     setAcknowledged(false);
     setDeleting(false);
   };
+
+  // When opened, look up which profiles this user actually has so we can
+  // skip the scope step if there's nothing to choose between.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingProfiles(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const [{ data: m }, { data: c }] = await Promise.all([
+          supabase.from("merchants").select("id").eq("user_id", user.id).maybeSingle(),
+          supabase.from("customers").select("id").eq("user_id", user.id).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        const merchantExists = !!m;
+        const customerExists = !!c;
+        setHasMerchant(merchantExists);
+        setHasCustomer(customerExists);
+
+        // Decide the starting step + default scope
+        if (merchantExists && customerExists) {
+          setStep(0); // scope selector
+          setScope(accountType === "merchant" ? "merchant_only" : "customer_only");
+        } else if (merchantExists) {
+          setScope("merchant_only");
+          setStep(1);
+        } else if (customerExists) {
+          setScope("customer_only");
+          setStep(1);
+        } else {
+          setScope("all");
+          setStep(1);
+        }
+      } finally {
+        if (!cancelled) setLoadingProfiles(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, accountType]);
 
   const handleClose = () => {
     if (deleting) return;
@@ -61,7 +112,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
       }
 
       const { data, error } = await supabase.functions.invoke("delete-user-account", {
-        body: { reason },
+        body: { reason, scope },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
@@ -72,19 +123,33 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
         return;
       }
 
-      // Force local session cleanup — server logout will 403 since user no longer exists
-      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
-      try { sessionStorage.removeItem("perkback_role"); } catch {}
-      // Clear any cached supabase auth tokens from localStorage as a safety net
-      try {
-        Object.keys(localStorage).forEach((k) => {
-          if (k.startsWith("sb-") && k.includes("-auth-token")) localStorage.removeItem(k);
-        });
-      } catch {}
-      toast.success("Your account has been permanently deleted.");
-      navigate("/", { replace: true });
-      // Hard reload to flush any in-memory auth context
-      setTimeout(() => { window.location.reload(); }, 100);
+      const authDeleted = (data as any)?.authDeleted === true;
+
+      if (scope === "all" || authDeleted) {
+        // Full account closure — sign out locally and redirect home
+        try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+        try { sessionStorage.removeItem("perkback_role"); } catch {}
+        try {
+          Object.keys(localStorage).forEach((k) => {
+            if (k.startsWith("sb-") && k.includes("-auth-token")) localStorage.removeItem(k);
+          });
+        } catch {}
+        toast.success("Your account has been permanently deleted.");
+        navigate("/", { replace: true });
+        setTimeout(() => { window.location.reload(); }, 100);
+      } else {
+        // Partial: keep the session, send them to the side they kept.
+        const keptSide = scope === "merchant_only" ? "customer" : "merchant";
+        try { sessionStorage.setItem("perkback_role", keptSide); } catch {}
+        toast.success(
+          scope === "merchant_only"
+            ? "Your merchant store has been deleted. Your customer profile is still active."
+            : "Your customer profile has been deleted. Your merchant store is still active.",
+        );
+        const target = keptSide === "merchant" ? "/merchant/dashboard" : "/customer/access-card";
+        navigate(target, { replace: true });
+        setTimeout(() => { window.location.reload(); }, 100);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unexpected error";
       toast.error(msg);
@@ -92,47 +157,142 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
     }
   };
 
-  const dataLossList = accountType === "merchant"
-    ? [
-        "Your business profile, logo, and store details",
-        "All campaigns, rewards, offers, and promotions",
-        "All customer relationships and transaction history",
-        "Your active subscription (cancelled immediately)",
-        "POS integrations and NFC tap settings",
-      ]
-    : [
-        "Your loyalty card, CRN, and points across every store",
-        "All available rewards and pending redemptions",
-        "Your transaction and stamp card history",
-        "Wallet passes (Apple/Google Wallet)",
-        "Your profile and personal information",
-      ];
+  const merchantLossList = [
+    "Your business profile, logo, and store details",
+    "All campaigns, rewards, offers, and promotions",
+    "All customer relationships and transaction history",
+    "Your active subscription (cancelled immediately)",
+    "POS integrations and NFC tap settings",
+  ];
+  const customerLossList = [
+    "Your loyalty card, CRN, and points across every store",
+    "All available rewards and pending redemptions",
+    "Your transaction and stamp card history",
+    "Wallet passes (Apple/Google Wallet)",
+    "Your saved profile and personal information",
+  ];
+  const allLossList = [
+    ...(hasMerchant ? merchantLossList : []),
+    ...(hasCustomer ? customerLossList : []),
+    "Your login — this email will be permanently removed",
+  ];
+
+  const dataLossList =
+    scope === "merchant_only" ? merchantLossList
+    : scope === "customer_only" ? customerLossList
+    : allLossList;
+
+  const scopeTitle =
+    scope === "merchant_only" ? "Delete your merchant store?"
+    : scope === "customer_only" ? "Delete your customer profile?"
+    : "Close your entire account?";
+
+  const reasonLossText =
+    scope === "merchant_only" ? "your business data and customers"
+    : scope === "customer_only" ? "your rewards and points"
+    : "everything tied to this login";
+
+  const showScopeStep = step === 0 && hasMerchant && hasCustomer;
+  const totalSteps = showScopeStep || (hasMerchant && hasCustomer) ? 4 : 3;
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(o) : handleClose())}>
       <DialogContent className="max-w-md">
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-1.5 pb-1">
-          {[1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className={`h-1.5 rounded-full transition-all ${
-                n === step
-                  ? "w-8 bg-destructive"
-                  : n < step
-                  ? "w-6 bg-destructive/60"
+          {Array.from({ length: totalSteps }).map((_, i) => {
+            const n = totalSteps === 4 ? i : i + 1; // when 3 steps, render steps 1..3
+            const active = n === step;
+            const past = n < step;
+            return (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  active ? "w-8 bg-destructive"
+                  : past ? "w-6 bg-destructive/60"
                   : "w-6 bg-muted"
-              }`}
-            />
-          ))}
+                }`}
+              />
+            );
+          })}
         </div>
 
-        {/* STEP 1 — Warning */}
-        {step === 1 && (
+        {loadingProfiles && (
+          <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+        )}
+
+        {/* STEP 0 — Scope selector (dual-role users only) */}
+        {!loadingProfiles && showScopeStep && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle size={20} className="text-destructive" /> Delete your account?
+                <ShieldAlert size={20} className="text-destructive" /> What would you like to delete?
+              </DialogTitle>
+              <DialogDescription>
+                You have both a customer profile and a merchant store under this login. Choose what to remove.
+              </DialogDescription>
+            </DialogHeader>
+            <RadioGroup
+              value={scope}
+              onValueChange={(v) => setScope(v as DeletionScope)}
+              className="space-y-2"
+            >
+              <Label
+                htmlFor="scope-customer"
+                className="flex items-start gap-3 rounded-xl border border-border/50 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+              >
+                <RadioGroupItem id="scope-customer" value="customer_only" className="mt-1" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <User size={14} /> Just my customer profile
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Keep my merchant store and login.
+                  </p>
+                </div>
+              </Label>
+              <Label
+                htmlFor="scope-merchant"
+                className="flex items-start gap-3 rounded-xl border border-border/50 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+              >
+                <RadioGroupItem id="scope-merchant" value="merchant_only" className="mt-1" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <Store size={14} /> Just my merchant store
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Keep my customer profile and login.
+                  </p>
+                </div>
+              </Label>
+              <Label
+                htmlFor="scope-all"
+                className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 cursor-pointer hover:bg-destructive/10 transition-colors"
+              >
+                <RadioGroupItem id="scope-all" value="all" className="mt-1" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium flex items-center gap-2 text-destructive">
+                    <Trash2 size={14} /> Delete everything and close my account
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Removes both profiles and your login permanently.
+                  </p>
+                </div>
+              </Label>
+            </RadioGroup>
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={handleClose}>Cancel</Button>
+              <Button variant="destructive" className="flex-1" onClick={() => setStep(1)}>Continue</Button>
+            </div>
+          </>
+        )}
+
+        {/* STEP 1 — Warning */}
+        {!loadingProfiles && step === 1 && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle size={20} className="text-destructive" /> {scopeTitle}
               </DialogTitle>
               <DialogDescription>
                 This is permanent. Once you confirm, the following will be removed and cannot be recovered:
@@ -147,8 +307,12 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
               ))}
             </ul>
             <div className="flex gap-3 pt-1">
-              <Button variant="outline" className="flex-1" onClick={handleClose}>
-                Cancel
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => (hasMerchant && hasCustomer ? setStep(0) : handleClose())}
+              >
+                {hasMerchant && hasCustomer ? "Back" : "Cancel"}
               </Button>
               <Button variant="destructive" className="flex-1" onClick={() => setStep(2)}>
                 Continue
@@ -158,7 +322,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
         )}
 
         {/* STEP 2 — Reason */}
-        {step === 2 && (
+        {!loadingProfiles && step === 2 && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -181,8 +345,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
               ))}
             </RadioGroup>
             <p className="text-xs text-muted-foreground text-center">
-              Are you sure? You'll lose all your{" "}
-              {accountType === "merchant" ? "business data and customers" : "rewards and points"}.
+              Are you sure? You'll lose {reasonLossText}.
             </p>
             <div className="flex gap-3 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
@@ -201,7 +364,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, accountType }: DeleteAccountD
         )}
 
         {/* STEP 3 — Final confirmation */}
-        {step === 3 && (
+        {!loadingProfiles && step === 3 && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
