@@ -87,6 +87,7 @@ const AccessCard = () => {
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore">("my-rewards");
 
   useEffect(() => {
