@@ -20,7 +20,7 @@ import PlatformStatsTab from "@/components/admin/PlatformStatsTab";
 import {
   Pencil, Trash2, Plus, Save, X, Eye, EyeOff,
   FileText, MessageSquare, Mail, Users, Bold, Italic,
-  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard, BarChart3
+  List, ListOrdered, Heading1, Heading2, ImageIcon, Undo, Redo, Quote, CreditCard, BarChart3, MapPin, Loader2
 } from "lucide-react";
 
 /* ── Types ── */
@@ -78,6 +78,24 @@ const AdminPanel = () => {
 
   /* ── Contact state ── */
   const [contacts, setContacts] = useState<ContactMsg[]>([]);
+
+  /* ── Backfill state ── */
+  const [backfilling, setBackfilling] = useState(false);
+
+  const runBackfillGeocodes = async () => {
+    if (!confirm("Geocode all merchants missing map coordinates? This may take ~1s per merchant.")) return;
+    setBackfilling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("backfill-merchant-geocodes", { body: {} });
+      if (error) throw error;
+      const r = data as any;
+      toast.success(`Backfill complete: ${r.updated}/${r.total} merchants updated${r.failed ? `, ${r.failed} failed` : ""}.`);
+    } catch (err: any) {
+      toast.error(err.message || "Backfill failed");
+    } finally {
+      setBackfilling(false);
+    }
+  };
 
   /* ── Tiptap editor ── */
   const editor = useEditor({
@@ -193,7 +211,18 @@ const AdminPanel = () => {
 
             {/* ═══ PLATFORM STATS TAB ═══ */}
             <TabsContent value="platform">
-              <PlatformStatsTab />
+              <div className="space-y-4">
+                <div className="bg-card rounded-xl border border-border/50 p-4 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-2"><MapPin size={14} className="text-secondary" /> Merchant Map Coordinates</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Backfill latitude/longitude for merchants whose addresses haven't been geocoded yet.</p>
+                  </div>
+                  <Button onClick={runBackfillGeocodes} disabled={backfilling} variant="outline" size="sm" className="gap-2 shrink-0">
+                    {backfilling ? <><Loader2 size={14} className="animate-spin" /> Running…</> : <><MapPin size={14} /> Backfill Geocodes</>}
+                  </Button>
+                </div>
+                <PlatformStatsTab />
+              </div>
             </TabsContent>
 
             {/* ═══ BLOGS TAB ═══ */}
