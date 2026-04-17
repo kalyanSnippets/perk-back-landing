@@ -126,11 +126,16 @@ const MerchantMarketing = () => {
   const [bdRewardValue, setBdRewardValue] = useState("50"); const [bdMessage, setBdMessage] = useState("Happy Birthday! Enjoy your special reward.");
   const [bdDaysBefore, setBdDaysBefore] = useState("0"); const [bdDaysValid, setBdDaysValid] = useState("7"); const [savingBd, setSavingBd] = useState(false);
 
-  // ── AI Suggestions state (chat-style, embedded in Campaigns tab) ──
+  // ── AI Suggestions state (multi-turn chat in Campaigns tab) ──
+  type ChatMsg = {
+    role: "user" | "assistant";
+    content: string;
+    suggestions?: AiSuggestion[];
+  };
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [aiBrief, setAiBrief] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
-  const [creatingIdx, setCreatingIdx] = useState<number | null>(null);
+  const [creatingKey, setCreatingKey] = useState<string | null>(null);
 
   // ── Reward image prompt state ──
   const [rwImagePrompt, setRwImagePrompt] = useState("");
