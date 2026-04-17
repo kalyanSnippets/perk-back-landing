@@ -53,7 +53,7 @@ const AddressAutocomplete = ({
   }, []);
 
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (query.trim().length < 3) {
+    if (query.trim().length < 2) {
       setSuggestions([]);
       setOpen(false);
       return;
@@ -86,7 +86,7 @@ const AddressAutocomplete = ({
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       fetchSuggestions(value);
-    }, 350);
+    }, 250);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
