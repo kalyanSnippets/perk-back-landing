@@ -105,10 +105,10 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
     });
   }, [hotApi]);
 
-  // Proximity suggestion
+  // Proximity suggestion — only when there are enough merchants to make filtering meaningful
   useEffect(() => {
     if (userLocation.loading || !userLocation.latitude || !userLocation.longitude) return;
-    if (merchants.length === 0) return;
+    if (merchants.length < 10) return;
 
     const nearbyMerchant = merchants.find((m) => {
       if (!m.latitude || !m.longitude) return false;
