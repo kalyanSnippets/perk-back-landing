@@ -117,16 +117,16 @@ const MerchantRedemptions = () => {
               <Shield size={16} className="text-secondary" />
               Enter Redemption Code
             </h2>
-            <form onSubmit={handleVerify} className="flex gap-3">
+            <form onSubmit={handleVerify} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Input
                 placeholder="e.g. A1B2C3D4"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                className="font-mono text-lg tracking-wider uppercase"
+                className="font-mono text-lg tracking-wider uppercase flex-1 min-w-0"
                 maxLength={8}
                 required
               />
-              <Button type="submit" variant="hero" disabled={verifying || !code.trim()} className="gap-2 shrink-0">
+              <Button type="submit" variant="hero" disabled={verifying || !code.trim()} className="gap-2 w-full sm:w-auto shrink-0">
                 <Search size={16} />
                 {verifying ? "Verifying..." : "Verify"}
               </Button>
@@ -137,14 +137,14 @@ const MerchantRedemptions = () => {
                 {verifyResult.success ? (
                   <div className="text-center space-y-1">
                     <CheckCircle size={32} className="mx-auto text-green-500" />
-                    <p className="font-bold text-foreground">{verifyResult.reward_title}</p>
-                    <p className="text-sm text-muted-foreground">Customer: {verifyResult.customer_name}</p>
+                    <p className="font-bold text-foreground break-words">{verifyResult.reward_title}</p>
+                    <p className="text-sm text-muted-foreground break-words">Customer: {verifyResult.customer_name}</p>
                     <p className="text-sm text-muted-foreground">{verifyResult.points_spent} points redeemed</p>
                   </div>
                 ) : (
                   <div className="text-center space-y-1">
                     <XCircle size={32} className="mx-auto text-destructive" />
-                    <p className="font-bold text-foreground">{verifyResult.error}</p>
+                    <p className="font-bold text-foreground break-words">{verifyResult.error}</p>
                   </div>
                 )}
               </div>
@@ -165,10 +165,10 @@ const MerchantRedemptions = () => {
             ) : (
               <div className="space-y-2">
                 {redemptions.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
+                  <div key={r.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/30 border border-border/30">
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-xs text-foreground">{r.reward_title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <p className="font-semibold text-xs text-foreground truncate">{r.reward_title}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[11px] text-muted-foreground font-mono">{r.redemption_code}</span>
                         <span className="text-muted-foreground/30">·</span>
                         <span className="text-[11px] text-muted-foreground">{r.points_spent} pts</span>
@@ -178,7 +178,7 @@ const MerchantRedemptions = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="pl-2">{statusBadge(r.status)}</div>
+                    <div className="shrink-0">{statusBadge(r.status)}</div>
                   </div>
                 ))}
               </div>

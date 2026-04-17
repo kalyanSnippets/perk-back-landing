@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import PosTab from "@/components/merchant/PosTab";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import Header from "@/components/Header";
 import MerchantNav from "@/components/merchant/MerchantNav";
 import PlanBadge from "@/components/merchant/PlanBadge";
@@ -49,6 +50,7 @@ const MerchantSettings = () => {
   const [savingPassword, setSavingPassword] = useState(false);
 
   const [bizForm, setBizForm] = useState({ store_name: "", address: "", contact_number: "", industry_type: "" });
+  const [bizCoords, setBizCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const [savingBiz, setSavingBiz] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showDeleteSubDialog, setShowDeleteSubDialog] = useState(false);
@@ -95,14 +97,23 @@ const MerchantSettings = () => {
     e.preventDefault();
     if (!merchant || !bizForm.store_name.trim()) { toast.error("Store name is required"); return; }
     setSavingBiz(true);
-    const { error } = await supabase.from("merchants").update({
-      store_name: bizForm.store_name.trim(), address: bizForm.address.trim() || null,
-      contact_number: bizForm.contact_number.trim() || null, industry_type: bizForm.industry_type || null,
-    }).eq("id", merchant.id);
+    const payload: Record<string, unknown> = {
+      store_name: bizForm.store_name.trim(),
+      address: bizForm.address.trim() || null,
+      contact_number: bizForm.contact_number.trim() || null,
+      industry_type: bizForm.industry_type || null,
+    };
+    if (bizCoords.lat != null && bizCoords.lng != null) {
+      payload.latitude = bizCoords.lat;
+      payload.longitude = bizCoords.lng;
+    }
+    const { error } = await supabase.from("merchants").update(payload as any).eq("id", merchant.id);
     if (error) { setSavingBiz(false); toast.error(error.message); return; }
     setMerchant((prev) => prev ? { ...prev, ...bizForm } : prev);
     toast.success("Business info updated");
-    if (bizForm.address.trim()) {
+
+    // Fallback: if user typed but didn't pick a suggestion, try geocoding the raw text
+    if (bizForm.address.trim() && (bizCoords.lat == null || bizCoords.lng == null)) {
       try {
         const { data: geoData, error: geoError } = await supabase.functions.invoke("geocode-address", { body: { address: bizForm.address.trim() } });
         if (!geoError && geoData?.latitude != null && geoData?.longitude != null) {
@@ -196,7 +207,18 @@ const MerchantSettings = () => {
                 <form onSubmit={handleBusinessSave} className="bg-card rounded-2xl p-6 shadow-card border border-border/50 space-y-4">
                   <h2 className="text-base font-bold text-foreground flex items-center gap-2"><Building2 size={18} className="text-secondary" /> Business Information</h2>
                   <div className="space-y-2"><Label htmlFor="store_name">Store Name</Label><Input id="store_name" value={bizForm.store_name} onChange={(e) => setBizForm((p) => ({ ...p, store_name: e.target.value }))} required /></div>
-                  <div className="space-y-2"><Label htmlFor="address" className="flex items-center gap-1.5"><MapPin size={12} /> Address</Label><Input id="address" value={bizForm.address} onChange={(e) => setBizForm((p) => ({ ...p, address: e.target.value }))} /></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="flex items-center gap-1.5"><MapPin size={12} /> Address</Label>
+                    <AddressAutocomplete
+                      id="address"
+                      value={bizForm.address}
+                      onChange={(v) => { setBizForm((p) => ({ ...p, address: v })); setBizCoords({ lat: null, lng: null }); }}
+                      onSelect={(s) => { setBizForm((p) => ({ ...p, address: s.display_name })); setBizCoords({ lat: s.latitude, lng: s.longitude }); }}
+                      placeholder="Start typing your address…"
+                      withIcon={false}
+                    />
+                    <p className="text-[10px] text-muted-foreground">Pick a suggestion so customers can find you on the map.</p>
+                  </div>
                   <div className="space-y-2"><Label htmlFor="contact_number" className="flex items-center gap-1.5"><Phone size={12} /> Contact Number</Label><Input id="contact_number" value={bizForm.contact_number} onChange={(e) => setBizForm((p) => ({ ...p, contact_number: e.target.value }))} /></div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1.5"><Building2 size={12} /> Industry Type</Label>

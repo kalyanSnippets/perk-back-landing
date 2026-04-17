@@ -9,16 +9,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { address } = await req.json();
+    const body = await req.json();
+    const { address, mode } = body ?? {};
     if (!address || typeof address !== "string" || address.trim().length < 3) {
-      return new Response(JSON.stringify({ error: "Address is required" }), {
+      return new Response(JSON.stringify({ error: "Address is required (min 3 chars)" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const isSuggest = mode === "suggest";
+    const limit = isSuggest ? 5 : 1;
     const encoded = encodeURIComponent(address.trim());
-    const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&countrycodes=au`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&addressdetails=1&limit=${limit}&countrycodes=au`;
 
     const res = await fetch(url, {
       headers: { "User-Agent": "PerkBack/1.0 (loyalty platform)" },
@@ -32,6 +35,18 @@ Deno.serve(async (req) => {
     }
 
     const results = await res.json();
+
+    if (isSuggest) {
+      const suggestions = (results || []).map((r: any) => ({
+        display_name: r.display_name,
+        latitude: parseFloat(r.lat),
+        longitude: parseFloat(r.lon),
+      }));
+      return new Response(JSON.stringify({ suggestions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!results || results.length === 0) {
       return new Response(JSON.stringify({ latitude: null, longitude: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

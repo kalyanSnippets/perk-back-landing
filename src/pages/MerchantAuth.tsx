@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Mail, Lock, Store, ArrowLeft, MapPin, Phone, Upload, Briefcase } from "lucide-react";
+import { Mail, Lock, Store, ArrowLeft, Phone, Upload, Briefcase } from "lucide-react";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const INDUSTRY_OPTIONS = ["Coffee Shop", "Retail", "Restaurant"];
 
@@ -24,6 +25,8 @@ const MerchantAuth = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,14 +79,19 @@ const MerchantAuth = () => {
           }
 
           // Update merchant record with logo_url (created by trigger)
+          const updatePayload: Record<string, unknown> = {
+            logo_url: logoUrl,
+            address: address.trim(),
+            contact_number: phone.trim(),
+            industry_type: industryType,
+          };
+          if (latitude != null && longitude != null) {
+            updatePayload.latitude = latitude;
+            updatePayload.longitude = longitude;
+          }
           await supabase
             .from("merchants")
-            .update({
-              logo_url: logoUrl,
-              address: address.trim(),
-              contact_number: phone.trim(),
-              industry_type: industryType,
-            })
+            .update(updatePayload as any)
             .eq("user_id", authData.user.id);
         }
 
@@ -169,10 +177,15 @@ const MerchantAuth = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="address">Store Address <span className="text-destructive">*</span></Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input id="address" placeholder="123 Main St, Melbourne VIC" value={address} onChange={(e) => setAddress(e.target.value)} className="pl-10" required />
-                </div>
+                <AddressAutocomplete
+                  id="address"
+                  value={address}
+                  onChange={(v) => { setAddress(v); setLatitude(null); setLongitude(null); }}
+                  onSelect={(s) => { setAddress(s.display_name); setLatitude(s.latitude); setLongitude(s.longitude); }}
+                  placeholder="Start typing — e.g. 123 Main St, Melbourne"
+                  required
+                />
+                <p className="text-[10px] text-muted-foreground">Pick a suggestion so customers can find you on the map.</p>
               </div>
 
               <div className="space-y-2">
