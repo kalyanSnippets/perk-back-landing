@@ -613,7 +613,7 @@ const AccessCard = () => {
                     <button
                       onClick={() => {
                         if (slide.type === "campaign") {
-                          const c = campaigns.find(x => x.id === (filteredCampaigns[i]?.id));
+                          const c = campaigns.find(x => x.id === slide.id);
                           if (c) setSelectedCampaign(c);
                           return;
                         }
