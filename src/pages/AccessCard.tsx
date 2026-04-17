@@ -612,6 +612,11 @@ const AccessCard = () => {
                   <CarouselItem key={`${slide.type}-${i}`}>
                     <button
                       onClick={() => {
+                        if (slide.type === "campaign") {
+                          const c = campaigns.find(x => x.id === (filteredCampaigns[i]?.id));
+                          if (c) setSelectedCampaign(c);
+                          return;
+                        }
                         const cm = customerMerchants.find(c => c.merchant_id === slide.merchant_id);
                         if (cm) setSelectedMerchantId(slide.merchant_id);
                       }}
