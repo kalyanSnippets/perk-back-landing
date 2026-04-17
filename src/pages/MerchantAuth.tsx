@@ -12,6 +12,10 @@ import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const INDUSTRY_OPTIONS = ["Coffee Shop", "Retail", "Restaurant"];
 
+// Australian phone: accepts +61 4xx xxx xxx, 04xx xxx xxx, +61 2/3/7/8 xxxx xxxx, 0[2378] xxxx xxxx (spaces optional)
+const AU_PHONE_REGEX = /^(?:\+?61|0)[2-478](?:[ -]?\d){8}$/;
+const normalizePhone = (raw: string) => raw.replace(/[\s\-()]/g, "");
+
 const MerchantAuth = () => {
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -46,6 +50,11 @@ const MerchantAuth = () => {
         if (!logoFile) { toast.error("Please upload your store logo"); setLoading(false); return; }
         if (!address.trim()) { toast.error("Please enter your store address"); setLoading(false); return; }
         if (!phone.trim()) { toast.error("Please enter your phone number"); setLoading(false); return; }
+        if (!AU_PHONE_REGEX.test(normalizePhone(phone))) {
+          toast.error("Enter a valid Australian phone (e.g. +61 400 000 000 or 0400 000 000)");
+          setLoading(false);
+          return;
+        }
         if (!industryType) { toast.error("Please select your industry type"); setLoading(false); return; }
 
         const { data: authData, error: authError } = await supabase.auth.signUp({
