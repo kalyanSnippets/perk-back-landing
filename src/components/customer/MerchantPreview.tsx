@@ -1,4 +1,4 @@
-import { Store, Gift, Megaphone, CalendarDays, MapPin } from "lucide-react";
+import { Store, Gift, Megaphone, CalendarDays, MapPin, Navigation } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
