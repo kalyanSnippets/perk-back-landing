@@ -96,7 +96,7 @@ const App = () => (
               <Route path="/merchant/promotions" element={<Navigate to="/merchant/marketing?tab=promotions" replace />} />
               <Route path="/merchant/birthday-offers" element={<Navigate to="/merchant/marketing?tab=birthday" replace />} />
               <Route path="/merchant/monthly-offers" element={<Navigate to="/merchant/marketing?tab=monthly" replace />} />
-              <Route path="/merchant/ai-suggestions" element={<Navigate to="/merchant/marketing?tab=ai" replace />} />
+              <Route path="/merchant/ai-suggestions" element={<Navigate to="/merchant/marketing?tab=campaigns" replace />} />
               <Route path="/merchant/gamification" element={<Navigate to="/merchant/points?tab=stamps" replace />} />
               <Route path="/merchant/pos" element={<Navigate to="/merchant/settings?tab=pos" replace />} />
 
