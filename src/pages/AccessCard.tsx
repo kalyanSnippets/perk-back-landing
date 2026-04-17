@@ -306,8 +306,8 @@ const AccessCard = () => {
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
-    ...filteredCampaigns.map(c => ({ type: "campaign" as const, title: c.title, description: c.description, store: c.store_name, endsIn: null, image_url: c.image_url, merchant_id: c.merchant_id })),
-    ...filteredOffers.map(o => ({ type: "offer" as const, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null, image_url: null as string | null, merchant_id: o.merchant_id })),
+    ...filteredCampaigns.map(c => ({ type: "campaign" as const, id: c.id, title: c.title, description: c.description, store: c.store_name, endsIn: null, image_url: c.image_url, merchant_id: c.merchant_id })),
+    ...filteredOffers.map(o => ({ type: "offer" as const, id: o.id, title: o.title, description: o.description, store: o.store_name, endsIn: o.valid_to ? daysUntil(o.valid_to) : null, image_url: null as string | null, merchant_id: o.merchant_id })),
   ];
   const nearestReward = filteredRewards.length > 0
     ? filteredRewards.reduce((closest, r) => {
