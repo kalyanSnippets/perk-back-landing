@@ -9,6 +9,7 @@ import { getIndustryImage } from "@/lib/industryImages";
 import IndustryFilter from "./IndustryFilter";
 import NearbyMerchants from "./NearbyMerchants";
 import MerchantPreview from "./MerchantPreview";
+import MapPreview from "./MapPreview";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,10 +105,10 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
     });
   }, [hotApi]);
 
-  // Proximity suggestion
+  // Proximity suggestion — only when there are enough merchants to make filtering meaningful
   useEffect(() => {
     if (userLocation.loading || !userLocation.latitude || !userLocation.longitude) return;
-    if (merchants.length === 0) return;
+    if (merchants.length < 10) return;
 
     const nearbyMerchant = merchants.find((m) => {
       if (!m.latitude || !m.longitude) return false;
@@ -204,8 +205,8 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
 
   return (
     <div className="space-y-5">
-      {/* Near You */}
-      {userLocation.latitude && userLocation.longitude && (
+      {/* Near You — only when there's a meaningful number of merchants to filter */}
+      {merchants.length >= 10 && userLocation.latitude && userLocation.longitude && (
         <ScrollReveal>
           <NearbyMerchants
             merchants={filteredMerchants.map((m) => ({ ...m, reward_count: merchantRewardCounts.get(m.id) || 0 }))}
@@ -447,8 +448,15 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      {/* Lazy map preview revealed on hover when coordinates exist */}
+                      {m.latitude != null && m.longitude != null && (
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                          <MapPreview latitude={m.latitude} longitude={m.longitude} zoom={14} className="w-full h-full" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        </div>
+                      )}
                       {/* Logo overlay */}
-                      <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-xl bg-background border-2 border-background shadow-lg flex items-center justify-center overflow-hidden">
+                      <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-xl bg-background border-2 border-background shadow-lg flex items-center justify-center overflow-hidden z-10">
                         {m.logo_url ? (
                           <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
                         ) : (
@@ -457,11 +465,11 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                       </div>
                       {/* Member badge */}
                       {isMember && (
-                        <span className="absolute top-2 right-2 text-[8px] font-bold text-accent-foreground bg-accent px-2 py-0.5 rounded-full shadow-md">MEMBER</span>
+                        <span className="absolute top-2 right-2 text-[8px] font-bold text-accent-foreground bg-accent px-2 py-0.5 rounded-full shadow-md z-10">MEMBER</span>
                       )}
                       {/* Industry badge */}
                       {m.industry_type && (
-                        <span className={`absolute top-2 left-2 text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm`}>
+                        <span className={`absolute top-2 left-2 text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm z-10`}>
                           {m.industry_type}
                         </span>
                       )}
