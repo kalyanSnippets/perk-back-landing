@@ -1035,6 +1035,67 @@ const AccessCard = () => {
         </div>
       )}
     </div>
+
+    {/* Campaign Detail Dialog */}
+    <Dialog open={!!selectedCampaign} onOpenChange={(open) => !open && setSelectedCampaign(null)}>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden gap-0">
+        {selectedCampaign && (() => {
+          const cm = customerMerchants.find(c => c.merchant_id === selectedCampaign.merchant_id);
+          return (
+            <>
+              <div className="relative h-44 bg-gradient-to-br from-primary via-primary/90 to-secondary">
+                {selectedCampaign.image_url ? (
+                  <>
+                    <img src={selectedCampaign.image_url} alt={selectedCampaign.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Megaphone size={56} className="text-primary-foreground/40" />
+                  </div>
+                )}
+                <div className="absolute bottom-3 left-4 right-4">
+                  <span className="text-[10px] uppercase tracking-wider text-primary-foreground/80 bg-black/30 backdrop-blur px-2 py-0.5 rounded-full">Campaign</span>
+                </div>
+              </div>
+              <div className="p-5 space-y-4">
+                <DialogHeader className="space-y-1.5 text-left">
+                  <DialogTitle className="text-xl">{selectedCampaign.title}</DialogTitle>
+                  <DialogDescription className="flex items-center gap-1.5 text-xs">
+                    <Store size={12} /> {selectedCampaign.store_name}
+                  </DialogDescription>
+                </DialogHeader>
+                {selectedCampaign.description && (
+                  <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{selectedCampaign.description}</p>
+                )}
+                {cm?.address && (
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/40 rounded-xl p-3">
+                    <MapPin size={14} className="shrink-0 mt-0.5" />
+                    <span>{cm.address}</span>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedCampaign(null)}>Close</Button>
+                  {cm && (
+                    <Button
+                      variant="hero"
+                      size="sm"
+                      className="flex-1 gap-1.5"
+                      onClick={() => {
+                        setSelectedMerchantId(selectedCampaign.merchant_id);
+                        setSelectedCampaign(null);
+                      }}
+                    >
+                      Visit Store <ArrowRight size={14} />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
+          );
+        })()}
+      </DialogContent>
+    </Dialog>
     </>
   );
 };
