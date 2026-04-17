@@ -192,6 +192,7 @@ const MerchantDashboard = () => {
                       </div>
                     </div>
                     {!subLoading && <PlanBadge plan={plan} status={status} variant="banner" />}
+                  </div>
                 </div>
               </div>
             </ScrollReveal>
