@@ -1,6 +1,16 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import perkbackLogo from "@/assets/perkback-logo-sm.webp";
+
+// Preload the LCP image (header logo) with the Vite-hashed URL so the
+// preload tag always matches the actual asset name across rebuilds.
+const preloadLogo = document.createElement("link");
+preloadLogo.rel = "preload";
+preloadLogo.as = "image";
+preloadLogo.href = perkbackLogo;
+preloadLogo.fetchPriority = "high";
+document.head.appendChild(preloadLogo);
 
 // PWA: Unregister stale service workers in preview/iframe contexts
 const isInIframe = (() => {
