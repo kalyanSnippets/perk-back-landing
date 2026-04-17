@@ -89,6 +89,7 @@ const AccessCard = () => {
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore">("my-rewards");
+  const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -187,6 +188,25 @@ const AccessCard = () => {
     setCampaigns((campaignsRes.data || []).map(c => ({ ...c, store_name: merchantMap.get(c.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map(o => ({ ...o, store_name: merchantMap.get(o.merchant_id) || "Store" })));
     setRedemptions((redemptionsRes.data || []).map((r: any) => ({ ...r, store_name: merchantMap.get(r.merchant_id) || "Store" })));
+
+    // Fetch per-merchant gamification settings to gate the status indicator
+    const merchantIds = cmList.map(cm => cm.merchant_id);
+    if (merchantIds.length > 0) {
+      const { data: gamData } = await supabase
+        .from("gamification_settings")
+        .select("merchant_id, stamp_card_enabled, visit_streak_enabled, levels_enabled")
+        .in("merchant_id", merchantIds);
+      const map: Record<string, { stamp: boolean; streak: boolean; levels: boolean }> = {};
+      (gamData || []).forEach(g => {
+        map[g.merchant_id] = {
+          stamp: !!g.stamp_card_enabled,
+          streak: !!g.visit_streak_enabled,
+          levels: !!g.levels_enabled,
+        };
+      });
+      setGamificationByMerchant(map);
+    }
+
     setLoading(false);
     setTimeout(() => setPointsVisible(true), 300);
   };
