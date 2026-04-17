@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,10 +43,12 @@ const GetStarted = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const { user, loading: authLoading, isMerchant, isCustomer } = useAuth();
+  const signupInProgress = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) return;
+    if (signupInProgress.current) return;
     if (isMerchant && isCustomer) {
       navigate("/choose-role");
     } else if (isMerchant) {
@@ -121,10 +123,12 @@ const GetStarted = () => {
     }
 
     setLoading(true);
+    if (authMode === "signup") signupInProgress.current = true;
     try {
       if (authMode === "signup") { await handleSignUp(emailResult.data); }
       else { await handleLogin(emailResult.data); }
     } catch (error: any) {
+      signupInProgress.current = false;
       toast.error(error.message || "Authentication failed");
     } finally {
       setLoading(false);
@@ -176,8 +180,11 @@ const GetStarted = () => {
             industry_type: industryType.trim() || null,
           });
           if (insertErr) throw insertErr;
+          toast.success("Merchant profile added to your existing account!");
+        } else {
+          toast.success("Welcome back! Signed in to your merchant account.");
         }
-        toast.success("Merchant profile added to your existing account!");
+        navigate("/merchant/dashboard");
       } else {
         const { data: existing } = await supabase.from("customers").select("loyalty_card_number").eq("user_id", user.id).maybeSingle();
         if (!existing) {
@@ -186,15 +193,20 @@ const GetStarted = () => {
             phone: phone.trim() || null, date_of_birth: dob || null,
           });
           if (insertErr) throw insertErr;
+          toast.success("Customer profile added to your existing account!");
+        } else {
+          toast.success("Welcome back! Signed in to your customer account.");
         }
-        toast.success("Customer profile added to your existing account!");
+        navigate(existing?.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
       }
-      window.location.reload();
+      // Clear guard after a tick so the auto-redirect effect doesn't override our navigate
+      setTimeout(() => { signupInProgress.current = false; }, 1500);
       return;
     }
 
     if (error) throw error;
     await supabase.auth.signOut();
+    signupInProgress.current = false;
     toast.success("Account created! Please sign in.");
     setAuthMode("login");
     resetForm();
