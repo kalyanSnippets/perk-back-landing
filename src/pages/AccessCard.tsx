@@ -568,8 +568,6 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
-        <ScrollReveal delay={25}>
-
         {/* Points Balance — Vibrant */}
         <ScrollReveal delay={25}>
           <div className="relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
