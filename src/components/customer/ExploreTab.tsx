@@ -434,10 +434,13 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                 const colors = INDUSTRY_COLORS[m.industry_type || ""] || { accent: "from-secondary to-primary", badge: "bg-secondary/10 text-secondary" };
                 const cardGradients = ["from-primary/5 to-secondary/5", "from-secondary/5 to-accent/5", "from-accent/5 to-primary/5", "from-amber-50 to-orange-50"];
                 return (
-                  <button
+                  <div
                     key={m.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setPreviewMerchantId(m.id)}
-                    className="rounded-2xl border border-border/30 bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group"
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPreviewMerchantId(m.id); } }}
+                    className="rounded-2xl border border-border/30 bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     {/* Industry-themed image header */}
                     <div className="relative h-28 overflow-hidden">
