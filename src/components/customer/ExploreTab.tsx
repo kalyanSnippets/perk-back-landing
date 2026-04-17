@@ -449,10 +449,20 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       {/* Lazy map preview revealed on hover when coordinates exist */}
-                      {m.latitude != null && m.longitude != null && (
+                      {m.latitude != null && m.longitude != null ? (
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                           <MapPreview latitude={m.latitude} longitude={m.longitude} zoom={14} className="w-full h-full" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none flex items-end p-2.5">
+                          <div className="bg-background/90 backdrop-blur-sm rounded-lg px-2 py-1.5 border border-border/40 shadow-sm w-full">
+                            <p className="text-[9px] text-foreground font-medium flex items-center gap-1 truncate">
+                              <MapPin size={9} className="text-secondary shrink-0" />
+                              {m.address || "Address not set"}
+                            </p>
+                            <p className="text-[8px] text-muted-foreground mt-0.5">Map unavailable</p>
+                          </div>
                         </div>
                       )}
                       {/* Logo overlay */}
