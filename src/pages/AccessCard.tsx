@@ -23,6 +23,7 @@ import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
 import {
   Carousel, CarouselContent, CarouselItem, type CarouselApi,
@@ -90,6 +91,7 @@ const AccessCard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -487,6 +489,24 @@ const AccessCard = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Account Settings */}
+            <ScrollReveal delay={100}>
+              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Shield size={16} className="text-muted-foreground" /> Account Settings
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Permanently delete your Perk Back account and all your loyalty data.
+                </p>
+                <button
+                  onClick={() => setShowDeleteAccountDialog(true)}
+                  className="text-xs font-semibold text-destructive hover:text-destructive/80 transition-colors flex items-center gap-1.5"
+                >
+                  <XCircle size={12} /> Delete my account
+                </button>
               </div>
             </ScrollReveal>
           </>
@@ -1115,6 +1135,13 @@ const AccessCard = () => {
         })()}
       </DialogContent>
     </Dialog>
+
+    {/* Delete Account (with friction) */}
+    <DeleteAccountDialog
+      open={showDeleteAccountDialog}
+      onOpenChange={setShowDeleteAccountDialog}
+      accountType="customer"
+    />
     </>
   );
 };
