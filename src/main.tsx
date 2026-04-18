@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import perkbackLogo from "@/assets/perkback-logo-sm.webp";
+import perkbackLogo from "@/assets/perkback-logo-224.webp";
 
 // Preload the LCP image (header logo) with the Vite-hashed URL so the
 // preload tag always matches the actual asset name across rebuilds.
