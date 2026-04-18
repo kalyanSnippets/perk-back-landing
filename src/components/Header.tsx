@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, CreditCard, LayoutDashboard, Shield } from "lucide-react";
-import perkbackLogo from "@/assets/perkback-logo-sm.webp";
+import perkbackLogo from "@/assets/perkback-logo-224.webp";
+import perkbackLogo2x from "@/assets/perkback-logo-448.webp";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -39,7 +40,17 @@ const Header = () => {
       <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 px-4 lg:px-8">
         {/* Logo */}
         <Link to="/" className="shrink-0">
-          <img src={perkbackLogo} alt="Perk Back" width={498} height={124} fetchPriority="high" decoding="async" className="h-12 sm:h-14 w-auto" />
+          <img
+            src={perkbackLogo}
+            srcSet={`${perkbackLogo} 224w, ${perkbackLogo2x} 448w`}
+            sizes="(max-width: 640px) 192px, 224px"
+            alt="Perk Back"
+            width={224}
+            height={56}
+            fetchPriority="high"
+            decoding="async"
+            className="h-12 sm:h-14 w-auto"
+          />
         </Link>
 
         {/* Desktop Nav */}
