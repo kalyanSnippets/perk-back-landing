@@ -10,18 +10,20 @@ import BackToTopButton from "@/components/BackToTopButton";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import React, { Suspense } from "react";
 
-// Eagerly loaded public pages
+// Eagerly loaded landing + auth entry (critical for first paint)
 import Index from "./pages/Index.tsx";
 import GetStarted from "./pages/GetStarted.tsx";
-import ResetPassword from "./pages/ResetPassword.tsx";
-import AboutUs from "./pages/AboutUs.tsx";
-import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
-import ContactUs from "./pages/ContactUs.tsx";
-import TestimonialsPage from "./pages/TestimonialsPage.tsx";
-import Pricing from "./pages/Pricing.tsx";
-import Blog from "./pages/Blog.tsx";
-import BlogPost from "./pages/BlogPost.tsx";
-import NotFound from "./pages/NotFound.tsx";
+
+// Lazy-loaded secondary public pages
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword.tsx"));
+const AboutUs = React.lazy(() => import("./pages/AboutUs.tsx"));
+const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy.tsx"));
+const ContactUs = React.lazy(() => import("./pages/ContactUs.tsx"));
+const TestimonialsPage = React.lazy(() => import("./pages/TestimonialsPage.tsx"));
+const Pricing = React.lazy(() => import("./pages/Pricing.tsx"));
+const Blog = React.lazy(() => import("./pages/Blog.tsx"));
+const BlogPost = React.lazy(() => import("./pages/BlogPost.tsx"));
+const NotFound = React.lazy(() => import("./pages/NotFound.tsx"));
 
 // Lazy-loaded protected pages
 const ChooseRole = React.lazy(() => import("./pages/ChooseRole.tsx"));
