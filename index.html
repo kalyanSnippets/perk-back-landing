@@ -59,6 +59,9 @@
     <link rel="apple-touch-startup-image" href="/splash/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
     <link rel="apple-touch-startup-image" href="/splash/splash-2732x2048.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
 
+    <!-- Preload entry module to start fetching ASAP and improve FCP -->
+    <link rel="modulepreload" href="/src/main.tsx" />
+
     <!-- TODO: Set the document title to the name of your application -->
     <title>PerkBack</title>
     <meta name="description" content="Different cards, Different apps, Different rules. Perk Back unifies it all.">
