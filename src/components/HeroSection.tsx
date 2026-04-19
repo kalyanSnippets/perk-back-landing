@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Play, X } from "lucide-react";
@@ -6,6 +6,28 @@ import loyaltyCardImg from "@/assets/loyalty-card-v2.webp";
 
 const HeroSection = () => {
   const [videoOpen, setVideoOpen] = useState(false);
+  // Decorative shapes/particles are non-critical for LCP and add paint cost.
+  // Mount them only after the browser is idle (post first paint).
+  const [decorReady, setDecorReady] = useState(false);
+
+  useEffect(() => {
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    const idle = (window as any).requestIdleCallback as
+      | undefined
+      | ((cb: () => void, opts?: { timeout: number }) => number);
+    if (typeof idle === "function") {
+      idleHandle = idle(() => setDecorReady(true), { timeout: 1500 });
+    } else {
+      timeoutHandle = window.setTimeout(() => setDecorReady(true), 600);
+    }
+    return () => {
+      if (idleHandle !== undefined && (window as any).cancelIdleCallback) {
+        (window as any).cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle !== undefined) window.clearTimeout(timeoutHandle);
+    };
+  }, []);
 
   return (
     <>
@@ -15,16 +37,18 @@ const HeroSection = () => {
         <div className="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-secondary/8 blur-3xl -z-10" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-accent/12 blur-3xl -z-10" />
 
-        {/* GoRewards-style floating decorative shapes */}
-        <div className="floating-circle w-16 h-16 bg-coral/20 top-[15%] left-[5%]" style={{ animationDelay: "0s" }} />
-        <div className="floating-circle w-10 h-10 bg-teal/25 top-[25%] right-[8%]" style={{ animationDelay: "1s" }} />
-        <div className="floating-dot w-5 h-5 bg-accent/30 top-[60%] left-[10%]" style={{ animationDelay: "0.5s" }} />
-        <div className="floating-dot w-4 h-4 bg-secondary/25 bottom-[20%] right-[15%]" style={{ animationDelay: "2s" }} />
-        <div className="floating-circle w-8 h-8 border-2 border-coral/20 top-[40%] right-[4%]" style={{ animationDelay: "1.5s" }} />
-        <div className="floating-dot w-3 h-3 bg-emerald-accent/30 top-[10%] right-[30%]" style={{ animationDelay: "3s" }} />
-
-        {/* Sparkle particles */}
-        <div className="hero-particles" />
+        {/* GoRewards-style floating decorative shapes — deferred to idle */}
+        {decorReady && (
+          <>
+            <div className="floating-circle w-16 h-16 bg-coral/20 top-[15%] left-[5%]" style={{ animationDelay: "0s" }} />
+            <div className="floating-circle w-10 h-10 bg-teal/25 top-[25%] right-[8%]" style={{ animationDelay: "1s" }} />
+            <div className="floating-dot w-5 h-5 bg-accent/30 top-[60%] left-[10%]" style={{ animationDelay: "0.5s" }} />
+            <div className="floating-dot w-4 h-4 bg-secondary/25 bottom-[20%] right-[15%]" style={{ animationDelay: "2s" }} />
+            <div className="floating-circle w-8 h-8 border-2 border-coral/20 top-[40%] right-[4%]" style={{ animationDelay: "1.5s" }} />
+            <div className="floating-dot w-3 h-3 bg-emerald-accent/30 top-[10%] right-[30%]" style={{ animationDelay: "3s" }} />
+            <div className="hero-particles" />
+          </>
+        )}
 
         <div className="container mx-auto px-4 lg:px-8">
           {/* Centered text content */}
@@ -59,6 +83,10 @@ const HeroSection = () => {
               <img
                 src="/images/video-thumbnail.webp"
                 alt="PerkBack introduction video preview"
+                width={1280}
+                height={720}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent flex items-center justify-center">

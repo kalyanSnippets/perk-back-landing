@@ -22,6 +22,24 @@ const CACHE_KEY = "perkback_role";
 
 const defaultRoles: RoleState = { isAdmin: false, isMerchant: false, isCustomer: false, userRole: null };
 
+// Routes where we defer Supabase auth bootstrap until idle to keep
+// the public marketing pages free of network/JS work on first paint.
+const PUBLIC_DEFERRED_ROUTES = new Set<string>([
+  "/",
+  "/about",
+  "/pricing",
+  "/contact",
+  "/testimonials",
+  "/privacy",
+  "/blog",
+]);
+
+function isDeferrableRoute(pathname: string): boolean {
+  if (PUBLIC_DEFERRED_ROUTES.has(pathname)) return true;
+  if (pathname.startsWith("/blog/")) return true;
+  return false;
+}
+
 function cacheRoles(roles: RoleState) {
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify(roles));
@@ -95,34 +113,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    let unsubscribe: (() => void) | undefined;
 
-    // 1. Primary bootstrap via getSession
-    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
-      if (!mounted) return;
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-      await detectRole(existingSession?.user ?? null);
-      bootstrapped.current = true;
-      if (mounted) setLoading(false);
-    });
+    const bootstrap = () => {
+      if (!mounted || bootstrapped.current) return;
 
-    // 2. Listen for subsequent auth changes only
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      // 1. Primary bootstrap via getSession
+      supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
         if (!mounted) return;
-        // Skip the initial event — getSession already handled it
-        if (!bootstrapped.current) return;
-
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        await detectRole(newSession?.user ?? null);
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+        await detectRole(existingSession?.user ?? null);
+        bootstrapped.current = true;
         if (mounted) setLoading(false);
+      });
+
+      // 2. Listen for subsequent auth changes only
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (_event, newSession) => {
+          if (!mounted) return;
+          if (!bootstrapped.current) return;
+
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          await detectRole(newSession?.user ?? null);
+          if (mounted) setLoading(false);
+        }
+      );
+      unsubscribe = () => subscription.unsubscribe();
+    };
+
+    // On public marketing routes, defer auth bootstrap until the browser
+    // is idle so it never competes with first paint or LCP.
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    if (isDeferrableRoute(path)) {
+      // Optimistically clear loading so consumers (e.g. Header) render the
+      // signed-out CTA immediately. If a session exists, it will hydrate shortly.
+      setLoading(false);
+
+      const idle = (window as any).requestIdleCallback as undefined |
+        ((cb: () => void, opts?: { timeout: number }) => number);
+      if (typeof idle === "function") {
+        idleHandle = idle(() => bootstrap(), { timeout: 2000 });
+      } else {
+        timeoutHandle = window.setTimeout(bootstrap, 1200);
       }
-    );
+    } else {
+      bootstrap();
+    }
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (idleHandle !== undefined && (window as any).cancelIdleCallback) {
+        (window as any).cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle !== undefined) window.clearTimeout(timeoutHandle);
+      unsubscribe?.();
     };
   }, [detectRole]);
 
