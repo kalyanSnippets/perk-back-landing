@@ -20,7 +20,7 @@ const navLinks = [
 
 const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, isAdmin, isMerchant, isCustomer, logout } = useAuth();
+  const { user, isAdmin, isMerchant, isCustomer, authReady, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
