@@ -130,7 +130,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(existingSession?.user ?? null);
         await detectRole(existingSession?.user ?? null);
         bootstrapped.current = true;
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setAuthReady(true);
+        }
       });
 
       // 2. Listen for subsequent auth changes only
