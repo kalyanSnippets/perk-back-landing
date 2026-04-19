@@ -15,6 +15,7 @@ interface AuthContextType extends RoleState {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  authReady: boolean;
   logout: () => Promise<void>;
 }
 
@@ -62,6 +63,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  authReady: false,
   ...defaultRoles,
   logout: async () => {},
 });
@@ -74,6 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
   const [roles, setRoles] = useState<RoleState>(cached ?? defaultRoles);
 
   const bootstrapped = useRef(false);
@@ -127,7 +130,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(existingSession?.user ?? null);
         await detectRole(existingSession?.user ?? null);
         bootstrapped.current = true;
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setAuthReady(true);
+        }
       });
 
       // 2. Listen for subsequent auth changes only
@@ -183,7 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, ...roles, logout }}>
+    <AuthContext.Provider value={{ user, session, loading, authReady, ...roles, logout }}>
       {children}
     </AuthContext.Provider>
   );

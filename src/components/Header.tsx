@@ -5,6 +5,7 @@ import { Menu, X, LogOut, CreditCard, LayoutDashboard, Shield } from "lucide-rea
 import perkbackLogo from "@/assets/perkback-logo-224.webp";
 import perkbackLogo2x from "@/assets/perkback-logo-448.webp";
 import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const navLinks = [
@@ -19,7 +20,7 @@ const navLinks = [
 
 const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, isAdmin, isMerchant, isCustomer, logout } = useAuth();
+  const { user, isAdmin, isMerchant, isCustomer, authReady, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -68,7 +69,9 @@ const Header = () => {
 
         {/* Desktop CTA */}
         <div className="hidden lg:flex items-center gap-3">
-          {user ? (
+          {!authReady ? (
+            <Skeleton className="h-10 w-[150px] rounded-full" />
+          ) : user ? (
             <>
               {isAdmin && (
                 <Link to="/admin" className="text-sm font-medium text-accent hover:text-accent-foreground transition-colors flex items-center gap-1">
@@ -129,7 +132,9 @@ const Header = () => {
               </Link>
             ))}
 
-            {user ? (
+            {!authReady ? (
+              <Skeleton className="h-12 w-full mt-2 rounded-full" />
+            ) : user ? (
               <>
                 {isAdmin && (
                   <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-base font-medium text-accent hover:text-accent-foreground transition-colors py-1 flex items-center gap-2">
