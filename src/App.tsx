@@ -6,8 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
-import BackToTopButton from "@/components/BackToTopButton";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import DeferredClientWidgets from "@/components/DeferredClientWidgets";
 import React, { Suspense } from "react";
 
 // Eagerly loaded landing + auth entry (critical for first paint)
@@ -53,8 +52,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
-        <BackToTopButton />
-        <PWAInstallPrompt />
+        <DeferredClientWidgets />
         <AuthProvider>
           <Suspense fallback={<LazyFallback />}>
             <Routes>
