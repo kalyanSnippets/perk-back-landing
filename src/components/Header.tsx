@@ -132,7 +132,9 @@ const Header = () => {
               </Link>
             ))}
 
-            {user ? (
+            {!authReady ? (
+              <Skeleton className="h-12 w-full mt-2 rounded-full" />
+            ) : user ? (
               <>
                 {isAdmin && (
                   <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-base font-medium text-accent hover:text-accent-foreground transition-colors py-1 flex items-center gap-2">
