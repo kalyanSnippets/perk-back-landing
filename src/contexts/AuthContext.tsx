@@ -15,6 +15,7 @@ interface AuthContextType extends RoleState {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  authReady: boolean;
   logout: () => Promise<void>;
 }
 
