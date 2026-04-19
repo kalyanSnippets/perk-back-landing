@@ -83,6 +83,10 @@ const HeroSection = () => {
               <img
                 src="/images/video-thumbnail.webp"
                 alt="PerkBack introduction video preview"
+                width={1280}
+                height={720}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent flex items-center justify-center">
