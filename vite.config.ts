@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   build: {
+    target: "es2020",
+    cssCodeSplit: true,
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -35,6 +38,13 @@ export default defineConfig(({ mode }) => ({
           ],
           "supabase": ["@supabase/supabase-js"],
           "query": ["@tanstack/react-query"],
+          // Heavy libs used only inside lazy-loaded routes — keep them
+          // in dedicated chunks so they never reach the landing bundle.
+          "tiptap": ["@tiptap/react", "@tiptap/starter-kit", "@tiptap/extension-image"],
+          "charts": ["recharts"],
+          "scancodes": ["jsbarcode", "qrcode.react"],
+          "forms": ["react-hook-form", "@hookform/resolvers", "zod"],
+          "icons": ["lucide-react"],
         },
       },
     },
