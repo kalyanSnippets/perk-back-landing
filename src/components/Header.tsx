@@ -5,6 +5,7 @@ import { Menu, X, LogOut, CreditCard, LayoutDashboard, Shield } from "lucide-rea
 import perkbackLogo from "@/assets/perkback-logo-224.webp";
 import perkbackLogo2x from "@/assets/perkback-logo-448.webp";
 import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const navLinks = [
