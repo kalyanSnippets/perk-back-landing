@@ -390,8 +390,8 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Main Tab Switcher — Pill Segmented Control ─── */}
-        <div className="flex gap-1 bg-card rounded-full p-1 border border-border/50 shadow-card">
+        {/* ─── Main Tab Switcher — Pill Segmented Control (desktop / tablet) ─── */}
+        <div className="hidden sm:flex gap-1 bg-card rounded-full p-1 border border-border/50 shadow-card">
           {[
             { key: "my-rewards" as const, label: "🎁 My Rewards" },
             { key: "my-card" as const, label: "💳 My Card" },
