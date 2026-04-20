@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { initTheme } from "./components/shared/ThemeToggle";
+
+// Apply persisted theme as early as possible to avoid first-paint flash.
+initTheme();
 
 // The header logo is rendered eagerly with fetchPriority="high" inside <Header>,
 // so an additional JS-injected preload would just duplicate the request.
