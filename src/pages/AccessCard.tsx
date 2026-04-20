@@ -23,6 +23,8 @@ import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import FloatingBottomNav from "@/components/shared/FloatingBottomNav";
+import { CreditCard as CreditCardIcon, Compass } from "lucide-react";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
 import {
@@ -369,7 +371,7 @@ const AccessCard = () => {
 
   return (
     <>
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-muted/20 pb-24 sm:pb-0">
       <Header />
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
@@ -390,8 +392,8 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Main Tab Switcher — Pill Segmented Control ─── */}
-        <div className="flex gap-1 bg-card rounded-full p-1 border border-border/50 shadow-card">
+        {/* ─── Main Tab Switcher — Pill Segmented Control (desktop / tablet) ─── */}
+        <div className="hidden sm:flex gap-1 bg-card rounded-full p-1 border border-border/50 shadow-card">
           {[
             { key: "my-rewards" as const, label: "🎁 My Rewards" },
             { key: "my-card" as const, label: "💳 My Card" },
@@ -1168,6 +1170,19 @@ const AccessCard = () => {
       onOpenChange={setShowDeleteAccountDialog}
       accountType="customer"
     />
+
+    {/* Mobile floating bottom nav (drives the same activeMainTab state) */}
+    <div className="sm:hidden">
+      <FloatingBottomNav
+        items={[
+          { key: "my-rewards", label: "Rewards", icon: Gift },
+          { key: "my-card", label: "Card", icon: CreditCardIcon },
+          { key: "explore", label: "Explore", icon: Compass },
+        ]}
+        activeKey={activeMainTab}
+        onChange={(k) => setActiveMainTab(k as typeof activeMainTab)}
+      />
+    </div>
     </>
   );
 };
