@@ -371,7 +371,7 @@ const AccessCard = () => {
 
   return (
     <>
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-muted/20 pb-24 sm:pb-0">
       <Header />
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
