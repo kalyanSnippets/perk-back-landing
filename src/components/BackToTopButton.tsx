@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { ChevronUp } from "lucide-react";
 
-const BackToTopButton = () => {
+const BackToTopButton = forwardRef<HTMLButtonElement>((_props, ref) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -24,6 +24,7 @@ const BackToTopButton = () => {
 
   return (
     <button
+      ref={ref}
       onClick={scrollToTop}
       aria-label="Back to top"
       className={`fixed bottom-6 right-6 z-50 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-button hover:shadow-button-hover hover:-translate-y-0.5 flex items-center justify-center transition-all duration-300 ${
@@ -33,6 +34,8 @@ const BackToTopButton = () => {
       <ChevronUp size={22} />
     </button>
   );
-};
+});
+
+BackToTopButton.displayName = "BackToTopButton";
 
 export default BackToTopButton;
