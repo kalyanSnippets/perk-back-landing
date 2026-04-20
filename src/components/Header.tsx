@@ -6,6 +6,7 @@ import perkbackLogo from "@/assets/perkback-logo-224.webp";
 import perkbackLogo2x from "@/assets/perkback-logo-448.webp";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { toast } from "sonner";
 
 // Map of public route → dynamic import. Triggered on hover/touchstart so the
@@ -131,13 +132,16 @@ const Header = () => {
         </div>
 
         {/* Mobile Toggle */}
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="lg:hidden text-foreground p-2"
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="lg:hidden flex items-center gap-2">
+          <ThemeToggle size="sm" />
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="text-foreground p-2"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
