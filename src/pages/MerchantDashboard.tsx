@@ -66,20 +66,32 @@ const MerchantDashboard = () => {
     todayStart.setHours(0, 0, 0, 0);
     const todayISO = todayStart.toISOString();
 
-    const { data: allTx } = await supabase
-      .from("transactions")
-      .select("customer_id, points_awarded, purchase_amount, transaction_date")
-      .eq("merchant_id", merchantId);
+    // Run scoped queries in parallel — no full-table scans.
+    // - Total customers via DISTINCT customer_ids (existing customer_merchants is the right source of truth)
+    // - Aggregate today's tx in a single small fetch
+    // - All-time points: keep cheap by using head:true count + sum is not native; we use lightweight column fetch
+    const [cmCountRes, todayTxRes, allPointsRes] = await Promise.all([
+      supabase
+        .from("customer_merchants")
+        .select("customer_id", { count: "exact", head: true })
+        .eq("merchant_id", merchantId),
+      supabase
+        .from("transactions")
+        .select("purchase_amount, points_awarded")
+        .eq("merchant_id", merchantId)
+        .gte("transaction_date", todayISO),
+      supabase
+        .from("transactions")
+        .select("points_awarded")
+        .eq("merchant_id", merchantId),
+    ]);
 
-    const txList = allTx || [];
-    const uniqueCustomers = new Set(txList.map(t => t.customer_id));
-    const totalPoints = txList.reduce((s, t) => s + (t.points_awarded || 0), 0);
-
-    const todayTx = txList.filter(t => t.transaction_date >= todayISO);
+    const todayTx = todayTxRes.data || [];
     const revenueToday = todayTx.reduce((s, t) => s + Number(t.purchase_amount || 0), 0);
+    const totalPoints = (allPointsRes.data || []).reduce((s, t) => s + (t.points_awarded || 0), 0);
 
     setKpis({
-      totalCustomers: uniqueCustomers.size,
+      totalCustomers: cmCountRes.count || 0,
       transactionsToday: todayTx.length,
       totalPointsAwarded: totalPoints,
       revenueToday,
@@ -168,7 +180,7 @@ const MerchantDashboard = () => {
 
                 <div className="relative z-10 p-5 sm:p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-primary-foreground/30 shrink-0 shadow-lg">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-foreground/20 flex items-center justify-center overflow-hidden border-2 border-primary-foreground/30 shrink-0 shadow-lg">
                       {merchant.logo_url ? (
                         <img src={merchant.logo_url} alt={merchant.store_name} className="w-full h-full object-cover" />
                       ) : (
@@ -180,7 +192,7 @@ const MerchantDashboard = () => {
                       <h1 className="text-xl sm:text-2xl font-bold text-primary-foreground truncate drop-shadow-sm">{merchant.store_name}</h1>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         {merchant.industry_type && (
-                          <span className="text-[10px] bg-primary-foreground/25 backdrop-blur-sm text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary-foreground/20">
+                          <span className="text-[10px] bg-primary-foreground/25 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary-foreground/20">
                             <Building2 size={9} /> {merchant.industry_type}
                           </span>
                         )}

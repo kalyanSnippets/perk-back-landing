@@ -117,19 +117,45 @@ const AccessCard = () => {
 
   useEffect(() => {
     if (!customer) return;
+    // Throttle bursty realtime events: collapse multiple inserts/updates within
+    // 1.2s into a single refetch to avoid render storms on the customer dashboard.
+    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefetch = () => {
+      if (pendingTimer) return;
+      pendingTimer = setTimeout(() => {
+        pendingTimer = null;
+        fetchData();
+      }, 1200);
+    };
+    let offersTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleOffersRefetch = () => {
+      if (offersTimer) return;
+      offersTimer = setTimeout(() => {
+        offersTimer = null;
+        fetchOffersData();
+      }, 1200);
+    };
+
     const channel = supabase
       .channel('customer-updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, (payload) => {
-        if (payload.new.customer_id === customer.id) fetchData();
+        if (payload.new.customer_id === customer.id) scheduleRefetch();
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'customers' }, (payload) => {
-        if (payload.new.id === customer.id) setCustomer((prev) => prev ? { ...prev, points_balance: (payload.new as any).points_balance } : prev);
+        // Use the realtime payload directly — no need to re-fetch the whole page.
+        if (payload.new.id === customer.id) {
+          setCustomer((prev) => prev ? { ...prev, points_balance: (payload.new as any).points_balance } : prev);
+        }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards' }, () => fetchOffersData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => fetchOffersData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_offers' }, () => fetchOffersData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards' }, scheduleOffersRefetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, scheduleOffersRefetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_offers' }, scheduleOffersRefetch)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (pendingTimer) clearTimeout(pendingTimer);
+      if (offersTimer) clearTimeout(offersTimer);
+      supabase.removeChannel(channel);
+    };
   }, [customer?.id]);
 
   const fetchOffersData = useCallback(async () => {
