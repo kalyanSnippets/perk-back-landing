@@ -8,6 +8,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
+// Map of public route → dynamic import. Triggered on hover/touchstart so the
+// lazy chunk + its dependencies are warm by the time the user actually clicks.
+const ROUTE_PREFETCH: Record<string, () => Promise<unknown>> = {
+  "/about": () => import("@/pages/AboutUs.tsx"),
+  "/pricing": () => import("@/pages/Pricing.tsx"),
+  "/testimonials": () => import("@/pages/TestimonialsPage.tsx"),
+  "/blog": () => import("@/pages/Blog.tsx"),
+  "/contact": () => import("@/pages/ContactUs.tsx"),
+  "/reviews": () => import("@/pages/ReviewPage.tsx"),
+};
+
+const prefetched = new Set<string>();
+const prefetchRoute = (href: string) => {
+  if (prefetched.has(href)) return;
+  const loader = ROUTE_PREFETCH[href];
+  if (!loader) return;
+  prefetched.add(href);
+  loader().catch(() => prefetched.delete(href));
+};
+
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "About Us", href: "/about" },
@@ -60,6 +80,9 @@ const Header = () => {
             <Link
               key={link.label}
               to={link.href}
+              onMouseEnter={() => prefetchRoute(link.href)}
+              onTouchStart={() => prefetchRoute(link.href)}
+              onFocus={() => prefetchRoute(link.href)}
               className="text-xs xl:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 whitespace-nowrap flex-shrink-0"
             >
               {link.label}
@@ -126,6 +149,7 @@ const Header = () => {
                 key={link.label}
                 to={link.href}
                 onClick={() => setMobileOpen(false)}
+                onTouchStart={() => prefetchRoute(link.href)}
                 className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
               >
                 {link.label}
