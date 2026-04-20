@@ -93,6 +93,7 @@ const Header = () => {
 
         {/* Desktop CTA */}
         <div className="hidden lg:flex items-center gap-3">
+          <ThemeToggle size="sm" />
           {!authReady ? (
             <Skeleton className="h-10 w-[150px] rounded-full" />
           ) : user ? (
