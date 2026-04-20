@@ -13,6 +13,7 @@ import React, { Suspense } from "react";
 // Eagerly loaded landing + auth entry (critical for first paint)
 import Index from "./pages/Index.tsx";
 import GetStarted from "./pages/GetStarted.tsx";
+import Prototype from "./pages/Prototype.tsx";
 
 // Lazy-loaded secondary public pages
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword.tsx"));
@@ -24,7 +25,6 @@ const Pricing = React.lazy(() => import("./pages/Pricing.tsx"));
 const Blog = React.lazy(() => import("./pages/Blog.tsx"));
 const BlogPost = React.lazy(() => import("./pages/BlogPost.tsx"));
 const NotFound = React.lazy(() => import("./pages/NotFound.tsx"));
-const Prototype = React.lazy(() => import("./pages/Prototype.tsx"));
 
 // Lazy-loaded protected pages
 const ChooseRole = React.lazy(() => import("./pages/ChooseRole.tsx"));
