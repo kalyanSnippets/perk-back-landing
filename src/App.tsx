@@ -24,6 +24,7 @@ const Pricing = React.lazy(() => import("./pages/Pricing.tsx"));
 const Blog = React.lazy(() => import("./pages/Blog.tsx"));
 const BlogPost = React.lazy(() => import("./pages/BlogPost.tsx"));
 const NotFound = React.lazy(() => import("./pages/NotFound.tsx"));
+const Prototype = React.lazy(() => import("./pages/Prototype.tsx"));
 
 // Lazy-loaded protected pages
 const ChooseRole = React.lazy(() => import("./pages/ChooseRole.tsx"));
@@ -83,6 +84,7 @@ const App = () => (
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/reviews" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
+              <Route path="/prototype" element={<Prototype />} />
 
               {/* Role Chooser */}
               <Route path="/choose-role" element={<ProtectedRoute><ChooseRole /></ProtectedRoute>} />
