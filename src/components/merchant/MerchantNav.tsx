@@ -1,9 +1,10 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
-  LayoutDashboard, Users, BarChart3, Megaphone, Settings, Coins
+  LayoutDashboard, Users, BarChart3, Megaphone, Settings, Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import FloatingBottomNav from "@/components/shared/FloatingBottomNav";
 
 interface NavItem {
   label: string;
@@ -26,6 +27,12 @@ interface MerchantNavProps {
 
 const MerchantNav = ({ merchantId }: MerchantNavProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const activeItem =
+    NAV_ITEMS.find(
+      (item) => location.pathname === item.route || location.pathname.startsWith(item.route + "/"),
+    ) ?? NAV_ITEMS[0];
 
   return (
     <>
@@ -37,7 +44,7 @@ const MerchantNav = ({ merchantId }: MerchantNavProps) => {
             to={item.route}
             className={cn(
               "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors",
-              "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
             activeClassName="bg-primary/10 text-primary font-semibold"
           >
@@ -47,29 +54,18 @@ const MerchantNav = ({ merchantId }: MerchantNavProps) => {
         ))}
       </aside>
 
-      {/* Mobile bottom nav — with pill active state */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border/50 shadow-card">
-        <div className="flex justify-around px-1 py-1.5">
-          {NAV_ITEMS.map((item) => {
-            const isActive = location.pathname === item.route || location.pathname.startsWith(item.route + "/");
-            return (
-              <NavLink
-                key={item.route}
-                to={item.route}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[9px] font-medium transition-all min-w-0",
-                  isActive
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <item.icon size={18} className={isActive ? "text-primary" : ""} />
-                <span className="truncate">{item.label}</span>
-              </NavLink>
-            );
-          })}
-        </div>
-      </nav>
+      {/* Mobile floating pill nav */}
+      <div className="lg:hidden">
+        <FloatingBottomNav
+          items={NAV_ITEMS.map((item) => ({
+            key: item.route,
+            label: item.label,
+            icon: item.icon,
+            onClick: () => navigate(item.route),
+          }))}
+          activeKey={activeItem.route}
+        />
+      </div>
     </>
   );
 };
