@@ -1,61 +1,346 @@
 
+## Plan: Kick off high-fidelity PerkBack SaaS loyalty prototypes
 
-I need to inspect the uploaded zip first to see the prototype designs before I can plan a redesign. I can't unzip in plan mode, so the plan below is a two-stage approach.
+### Goal
 
-## Stage 1 — Unzip & catalog the prototype designs
+Create a polished, modern, classy prototype system for PerkBack that includes:
 
-1. Copy `user-uploads://Perkback.zip` → `/tmp/Perkback.zip`
-2. Unzip to `/tmp/perkback_unzip/`
-3. List tree, identify file types (PNG/JPG mockups, Figma export, PDF, HTML, etc.)
-4. View every image / parse every doc
-5. Extract design tokens: color palette, typography, spacing, corner radius, shadows, button styles, card styles, iconography, illustration style, motion cues
-6. Map each prototype screen to existing PerkBack pages (Home, Pricing, Auth, Customer Card, Merchant Dashboard, etc.)
-7. Save a reference doc to `/mnt/documents/perkback-redesign-spec.md` and copy reusable images to `src/assets/redesign/`
+- Interactive clickable prototypes inside the app
+- Mobile-first customer and merchant flows
+- Desktop SaaS marketing and dashboard views
+- Downloadable PNG/PDF prototype boards
+- No disruption to existing auth, dashboards, routing, or backend logic
 
-Then I pause and present **Stage 2** with the concrete redesign plan based on what's actually in the zip.
+The prototype will be built as a separate presentation layer so it can guide the full redesign without breaking the current production app.
 
-## Stage 2 — Site-wide redesign (preview of approach)
+---
 
-Once tokens are extracted, the redesign will roll out in this order to keep the app working at every step:
+## Deliverables
 
-**A. Design system foundation (no visual change yet)**
-- Update `src/index.css` HSL tokens (`--primary`, `--accent`, surfaces, gradients, shadows) to match prototype palette
-- Update `tailwind.config.ts` (font family, radius, custom shadows, animation curves)
-- Add new font via `index.html` preconnect + `<link>` if prototype uses something other than DM Sans
-- All existing components automatically pick up new tokens — no per-component edits for color
+### 1. Interactive prototype route
 
-**B. Shared primitives (shadcn variants)**
-- Restyle `Button`, `Card`, `Input`, `Badge`, `Tabs`, `Dialog` variants to match prototype
-- Update `Header` and `Footer` layouts to prototype structure
-- Update `HeroSection`, `BenefitsSection`, `HowItWorks`, `RewardsShowcase`, `Testimonials` on the landing page
+Add a hidden public route:
 
-**C. Auth & onboarding**
-- Restyle `GetStarted`, `ChooseRole`, `ResetPassword`
+```text
+/prototype
+```
 
-**D. Customer surfaces**
-- `AccessCard` (card visual is the hero of the prototype — biggest visual change)
-- `ExploreTab`, `MerchantPreview`, `ReceiptDetail`, `StampCardProgress`
+This route will include:
 
-**E. Merchant surfaces**
-- `MerchantDashboard` KPI cards, `MerchantNav`, all `Merchant*` pages
-- Reuse the new shared primitives so changes are mostly token-driven
+- Mobile / Desktop device switcher
+- Customer / Merchant / Marketing flow switcher
+- Clickable screen navigation
+- High-fidelity device frames
+- Screen thumbnails or step indicators
+- Polished PerkBack SaaS styling using the current navy, blue, gold, white, rounded-card design system
 
-**F. Admin & secondary pages**
-- `AdminPanel`, `Pricing`, `AboutUs`, `Blog`, `BlogPost`, `ContactUs`, `TestimonialsPage`, `PrivacyPolicy`, `NotFound`
+This route will not be added to the main navigation unless requested later.
 
-**G. Motion & polish**
-- Update `ScrollReveal` defaults, `animate-*` keyframes in `index.css` to match prototype motion language
-- Replace decorative shapes / blobs with prototype's illustration style
+---
 
-### Out of scope (until you ask)
-- No content/copy changes
-- No new pages or routes
-- No DB or auth logic changes
-- Mobile-shell + Capacitor work (separate prototype previously discussed) stays paused unless you want to combine
+### 2. Mobile-first customer prototype screens
 
-### What Stage 1 delivers back to you
-A short summary of:
-- Extracted color palette + typography
-- Number of prototype screens and which existing pages they map to
-- A flagged list of any prototype screens that don't have an equivalent in PerkBack today (so you decide: build new, skip, or repurpose)
+Create attractive mobile screens for the customer experience:
 
+1. Splash / brand intro
+2. Onboarding
+3. Login / signup
+4. Customer home
+5. Digital loyalty card
+6. Rewards and offers
+7. Explore nearby merchants
+8. Receipt / transaction detail
+9. Profile / settings
+
+Design direction:
+
+- Premium digital wallet feel
+- Large points balance hero card
+- Floating bottom navigation
+- Gold reward highlights
+- Card-style loyalty identity
+- Barcode / QR-style visual zones
+- Clean SaaS polish with strong mobile usability
+
+---
+
+### 3. Mobile-first merchant prototype screens
+
+Create attractive mobile screens for merchant operations:
+
+1. Merchant login
+2. Dashboard overview
+3. Add points
+4. Scan customer card / QR
+5. Customers list
+6. Campaign builder
+7. Insights snapshot
+8. Settings / plan management
+
+Design direction:
+
+- Compact SaaS dashboard cards
+- KPI tiles for loyalty ROI
+- Quick action grid
+- Customer activity feed
+- Campaign suggestion cards
+- Clear business-friendly copy
+- Mobile-first workflows for fast in-store use
+
+---
+
+### 4. Desktop SaaS prototype screens
+
+Create desktop frames for the broader platform:
+
+1. Marketing homepage
+2. Pricing section
+3. Customer dashboard
+4. Merchant dashboard
+5. Merchant analytics / reports
+6. Admin-style platform overview
+
+Design direction:
+
+- Spacious modern SaaS layout
+- Premium hero section
+- Rounded cards and soft shadows
+- Strong conversion CTAs
+- Desktop dashboards with KPI cards, charts, and side navigation
+- Consistent visual language between public site and logged-in dashboards
+
+---
+
+## Implementation approach
+
+### A. Add prototype data model
+
+Create a typed screen registry:
+
+```text
+src/lib/prototypeScreens.ts
+```
+
+It will define:
+
+- Screen IDs
+- Titles
+- Flow type
+- Device type
+- Step order
+- Descriptions
+- CTA target screen
+- Component mapping
+
+This keeps the prototype scalable and easy to expand.
+
+---
+
+### B. Add reusable prototype components
+
+Create a new prototype component folder:
+
+```text
+src/components/prototype/
+```
+
+Likely components:
+
+```text
+PrototypeShell.tsx
+PrototypeNav.tsx
+DeviceFrame.tsx
+PrototypeScreenCard.tsx
+MobileCustomerPrototype.tsx
+MobileMerchantPrototype.tsx
+DesktopMarketingPrototype.tsx
+DesktopDashboardPrototype.tsx
+PrototypeControls.tsx
+```
+
+These components will be presentational only and will reuse existing PerkBack UI primitives where appropriate.
+
+---
+
+### C. Add prototype page
+
+Create:
+
+```text
+src/pages/Prototype.tsx
+```
+
+Then add a lazy-loaded route in:
+
+```text
+src/App.tsx
+```
+
+New route:
+
+```text
+/prototype
+```
+
+The page will be public, hidden, and non-invasive.
+
+---
+
+### D. Build mobile prototypes first
+
+Start with the mobile customer and merchant flows because the approved direction is mobile-first.
+
+Priority order:
+
+1. Mobile customer wallet flow
+2. Mobile merchant dashboard/add-points flow
+3. Mobile navigation and clickable transitions
+4. Desktop SaaS views
+5. Downloadable boards
+
+---
+
+### E. Generate downloadable design boards
+
+Create downloadable files in:
+
+```text
+/mnt/documents/
+```
+
+Planned outputs:
+
+```text
+perkback-mobile-prototype-board.png
+perkback-desktop-prototype-board.png
+perkback-saas-loyalty-prototypes.pdf
+```
+
+The PDF will include:
+
+1. Cover page
+2. Mobile customer flow
+3. Mobile merchant flow
+4. Desktop SaaS flow
+5. Visual design system summary
+
+---
+
+## Visual style
+
+The prototypes will follow a modern SaaS loyalty-platform aesthetic:
+
+- Deep navy trust base
+- PerkBack blue for primary actions
+- Gold/yellow for rewards and premium moments
+- White and soft neutral cards
+- DM Sans typography
+- Large rounded surfaces
+- Soft shadows
+- Floating mobile navigation
+- Clean dashboard spacing
+- Minimal but premium iconography from `lucide-react`
+- Business-friendly merchant copy
+- Friendly customer-facing reward language
+
+---
+
+## Files to add
+
+```text
+src/pages/Prototype.tsx
+src/lib/prototypeScreens.ts
+src/components/prototype/PrototypeShell.tsx
+src/components/prototype/PrototypeNav.tsx
+src/components/prototype/DeviceFrame.tsx
+src/components/prototype/PrototypeScreenCard.tsx
+src/components/prototype/PrototypeControls.tsx
+src/components/prototype/MobileCustomerPrototype.tsx
+src/components/prototype/MobileMerchantPrototype.tsx
+src/components/prototype/DesktopMarketingPrototype.tsx
+src/components/prototype/DesktopDashboardPrototype.tsx
+```
+
+---
+
+## Files to modify
+
+```text
+src/App.tsx
+```
+
+Possibly minor additions to:
+
+```text
+src/index.css
+```
+
+Only if prototype-specific utility styles are needed.
+
+---
+
+## What will not change
+
+- No database schema changes
+- No authentication logic changes
+- No role-routing changes
+- No production dashboard behavior changes
+- No existing customer or merchant flows removed
+- No backend functions changed
+- No public navigation changes unless requested later
+
+---
+
+## QA checklist
+
+After implementation, verify:
+
+- `/prototype` loads successfully
+- Mobile screens look polished at 390–440px widths
+- Desktop screens look polished at 1280–1440px widths
+- Device switcher works
+- Flow switcher works
+- Clickable prototype navigation works
+- Existing production routes still load
+- Existing auth routes remain unchanged
+- No TypeScript or import errors
+- Downloadable PNG/PDF artifacts are generated
+- Each generated artifact is visually inspected for:
+  - clipped text
+  - overlapping cards
+  - bad spacing
+  - low contrast
+  - broken alignment
+  - incorrect ordering
+
+---
+
+## Kick-off sequence
+
+### Step 1
+
+Build the `/prototype` route and reusable prototype shell.
+
+### Step 2
+
+Build the mobile customer prototype screens.
+
+### Step 3
+
+Build the mobile merchant prototype screens.
+
+### Step 4
+
+Add desktop marketing and dashboard prototype screens.
+
+### Step 5
+
+Generate PNG and PDF design boards.
+
+### Step 6
+
+Perform visual QA and fix layout issues.
+
+### Step 7
+
+Deliver the interactive route and downloadable artifacts.
