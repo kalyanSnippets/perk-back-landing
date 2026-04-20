@@ -1,10 +1,10 @@
-import { type LucideIcon } from "lucide-react";
+import { type ElementType } from "react";
 import { cn } from "@/lib/utils";
 
 export interface FloatingBottomNavItem<K extends string = string> {
   key: K;
   label: string;
-  icon: LucideIcon;
+  icon: ElementType;
   onClick?: () => void;
   href?: string;
 }
