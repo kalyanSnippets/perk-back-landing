@@ -23,6 +23,8 @@ import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import FloatingBottomNav from "@/components/shared/FloatingBottomNav";
+import { Gift, CreditCard as CreditCardIcon, Compass } from "lucide-react";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
 import {
