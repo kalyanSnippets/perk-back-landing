@@ -37,9 +37,19 @@ const MerchantSettings = React.lazy(() => import("./pages/MerchantSettings.tsx")
 const AdminPanel = React.lazy(() => import("./pages/AdminPanel.tsx"));
 const ReviewPage = React.lazy(() => import("./pages/ReviewPage.tsx"));
 
-const LazyFallback = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <p className="text-muted-foreground text-sm animate-pulse">Loading...</p>
+// Lightweight skeleton page — avoids the blank-screen flash that the
+// previous full-screen "Loading..." caused on every route transition.
+const PageSkeleton = () => (
+  <div className="min-h-screen bg-background pt-16 sm:pt-20">
+    <div className="container mx-auto px-4 lg:px-8 py-8 space-y-6">
+      <div className="h-8 w-48 rounded-md bg-muted animate-pulse" />
+      <div className="h-4 w-72 max-w-full rounded-md bg-muted/70 animate-pulse" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-40 rounded-2xl bg-muted animate-pulse" />
+        ))}
+      </div>
+    </div>
   </div>
 );
 
@@ -48,13 +58,14 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
       <BrowserRouter>
         <ScrollToTop />
         <DeferredClientWidgets />
         <AuthProvider>
-          <Suspense fallback={<LazyFallback />}>
+          {/* Toasters mounted inside router so they aren't in the initial critical path */}
+          <Toaster />
+          <Sonner />
+          <Suspense fallback={<PageSkeleton />}>
             <Routes>
               {/* Public pages */}
               <Route path="/" element={<Index />} />
