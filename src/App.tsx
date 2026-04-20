@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 import DeferredClientWidgets from "@/components/DeferredClientWidgets";
+import FirstVisitGate from "@/components/onboarding/FirstVisitGate";
 import React, { Suspense } from "react";
 
 // Eagerly loaded landing + auth entry (critical for first paint)
@@ -62,6 +63,7 @@ const App = () => (
         <ScrollToTop />
         <DeferredClientWidgets />
         <AuthProvider>
+          <FirstVisitGate />
           {/* Toasters mounted inside router so they aren't in the initial critical path */}
           <Toaster />
           <Sonner />
