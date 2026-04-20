@@ -1170,6 +1170,19 @@ const AccessCard = () => {
       onOpenChange={setShowDeleteAccountDialog}
       accountType="customer"
     />
+
+    {/* Mobile floating bottom nav (drives the same activeMainTab state) */}
+    <div className="sm:hidden">
+      <FloatingBottomNav
+        items={[
+          { key: "my-rewards", label: "Rewards", icon: Gift },
+          { key: "my-card", label: "Card", icon: CreditCardIcon },
+          { key: "explore", label: "Explore", icon: Compass },
+        ]}
+        activeKey={activeMainTab}
+        onChange={(k) => setActiveMainTab(k as typeof activeMainTab)}
+      />
+    </div>
     </>
   );
 };
