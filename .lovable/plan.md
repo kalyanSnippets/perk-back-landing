@@ -1,49 +1,96 @@
 
 
-## Goals
-1. Eliminate header CTA flicker on public routes (caused by deferred auth) with a subtle skeleton placeholder.
-2. Address the video section in the hero — confirm whether it hurts performance, and if so, remove it and rebalance the hero so it stays visually strong.
+## Why mobile feels stuck for 5–10s
 
-## Investigation summary
+After auditing the codebase and assets, the slowness is mostly caused by **broken/oversized image assets blocking every page**, plus a few heavy patterns in dashboard pages. Code-splitting work done previously was correct, but it's being undermined by these issues.
 
-**Header flicker root cause**
-- `AuthContext` now defers `getSession()` on public routes until idle, so on first render `user` is `null` and `loading` is forced to `false`.
-- `Header.tsx` immediately renders the "Sign Up / Sign In" pill. ~1–2s later, when auth hydrates, it swaps to Dashboard / My Card / Logout — visible flicker.
-- Fix: while `loading` is true OR auth hasn't hydrated yet on a deferred route, render a neutral skeleton (same width/height as the CTA cluster) instead of either state. Once hydrated, swap to the real CTA.
+### Root causes found
 
-**Hero video section impact**
-- Current hero shows a static `video-thumbnail.webp` (1280x720) inside a clickable card. The actual `<video>` only mounts when the user clicks Play (lightbox). So the video itself is **not** loaded on first paint.
-- However the thumbnail is a sizeable above-the-fold image competing with the loyalty card image for LCP. On a 440px viewport (current viewport), both stack and the thumbnail adds weight + decode cost.
-- Verdict: the *video* is fine (deferred), but the *thumbnail card* is non-essential weight on mobile and creates a cluttered hero. Removing it simplifies the hero, reduces image bytes, and improves LCP focus on the loyalty card (the brand hero asset).
+1. **Critical: broken header logo files (0 bytes)**
+   `src/assets/perkback-logo-224.webp` and `perkback-logo-448.webp` are **empty (0 bytes)**. The Header preloads these with `fetchPriority="high"` on every single page. The browser repeatedly tries to fetch a corrupt image as the highest-priority resource — this stalls FCP on every navigation.
+
+2. **Critical: broken hero image**
+   `src/assets/loyalty-card-v2.webp` is **17 bytes (corrupt)**. Hero falls back/retries.
+
+3. **Huge favicon and source assets**
+   `public/favicon.png` is **349 KB**. `loyalty-card-v2.png` is **397 KB**, `perkback-logo-1024.png` is **634 KB** — all bundled even if unused. Mobile data + decode is expensive.
+
+4. **`ScrollReveal` everywhere with a ref-forwarding bug**
+   The console shows "Function components cannot be given refs" — Lazy chunks load but emit React warnings, and every section spawns a new IntersectionObserver. On lower-end phones this adds main-thread work and TBT.
+
+5. **Dashboard pages do unbounded queries on mount**
+   - `MerchantDashboard` runs `select("customer_id, points_awarded, purchase_amount, transaction_date")` for **all transactions ever** to compute KPIs in JS.
+   - `AccessCard` subscribes to 4 realtime channels and re-runs full `fetchData()` on every transaction insert.
+   - Both block the page until network completes — appears as 5–10s on slow mobile.
+
+6. **`next-themes` loaded eagerly via Sonner toaster**
+   Pulled into the initial bundle for a theme system that isn't actually used. `<Toaster>` is also mounted before the router so it's in the critical path.
+
+7. **`BackToTopButton` / `PWAInstallPrompt` use `forwardRef` incorrectly**
+   The console errors mean React is doing extra work and the Suspense fallback is firing more often than needed.
+
+8. **Realtime channel on `AccessCard` triggers full re-fetch on every event**
+   Causes input lag and stutter when navigating in/out.
 
 ## Plan
 
-### 1. Header CTA skeleton (no flicker)
-- In `Header.tsx`, import `Skeleton` from `@/components/ui/skeleton`.
-- Track an `authReady` signal: render skeleton when `loading === true` OR (`user === null` AND auth hasn't yet completed its first detection on a deferred route).
-- Simplest robust approach: expose an `authReady` boolean from `AuthContext` that flips true only after the first `detectRole` call resolves (whether user exists or not). Until then, Header renders a neutral pill-shaped skeleton sized to match the signed-out CTA (~140x40 desktop, full-width on mobile).
-- Skeleton uses the existing `bg-muted` animate-pulse — matches brand, no layout shift.
+### Phase 1 — Asset fixes (biggest single win, ~3–5s improvement on mobile)
 
-### 2. Remove hero video thumbnail card + rebalance hero
-- In `HeroSection.tsx`:
-  - Remove the entire video thumbnail block AND the `videoOpen` lightbox state/modal (no longer needed).
-  - Drop the `Play`, `X` lucide imports and `useState` for video.
-  - Convert the two-column grid into a single centered showcase featuring the loyalty card mockup as the visual anchor (larger, more prominent).
-  - Keep floating `+50 Points` and `5/10 Stamps` badges — they reinforce the value prop and are cheap.
-  - Add one extra trust/visual element to keep the hero feeling rich without being heavy: a small inline row of merchant industry icons (Coffee / Retail / Restaurant emoji or lucide icons) under the CTAs with copy like "Trusted by cafes, retailers & restaurants across Australia". Pure CSS/text — zero image cost.
-- Net effect: lighter hero, faster LCP, brand-forward (loyalty card stays the star), still attractive.
+- **Regenerate the two broken logo files** (`perkback-logo-224.webp`, `perkback-logo-448.webp`) from the existing `perkback-logo.webp` (26 KB) source.
+- **Regenerate** `loyalty-card-v2.webp` from `loyalty-card-v2.png`.
+- **Shrink `public/favicon.png`** from 349 KB → ~5 KB by replacing it with a 48×48 PNG (keep `favicon.ico` as legacy).
+- **Delete unused heavy source assets** that aren't imported anywhere: `loyalty-card-v2.png`, `loyalty-card.png`, `perkback-logo-1024.png`, `perkback-wordmark.png`, `perkback-hero.jpg`, `wallet-hero-banner.jpg` (verify imports first; remove only those not referenced).
+- Drop the unused `/videos/perkback-intro.mp4` (no longer rendered).
 
-### 3. Files touched
-- `src/contexts/AuthContext.tsx` — add `authReady` flag to context.
-- `src/components/Header.tsx` — render skeleton until `authReady`.
-- `src/components/HeroSection.tsx` — remove video thumbnail, lightbox, related state/imports; recenter loyalty card; add lightweight trust row.
+### Phase 2 — Eliminate forwardRef warnings (removes Suspense-fallback flicker)
 
-### Out of scope
-- No changes to colors, fonts, copy of headline/subhead, or CTA labels.
-- The intro video file itself (`/videos/perkback-intro.mp4`) and thumbnail asset can be left in `public/` — not loaded anymore, removable later if desired.
+- Wrap `BackToTopButton`, `PWAInstallPrompt`, and `ScrollReveal` in `React.forwardRef` (or change the parent to not pass refs). Removes the dev warnings and stops React from re-mounting these subtrees.
 
-### Why this is safe
-- Skeleton is visual-only, identical footprint to current CTA → zero CLS.
-- Hero video was a click-to-play lightbox; removing it loses no critical content (the homepage doesn't depend on video for conversion — CTAs remain).
-- All existing routing, auth, and brand identity preserved.
+### Phase 3 — Strip unused libs from initial bundle
+
+- Replace `next-themes`-based `Sonner` wrapper with a static `<Toaster />` that doesn't import `useTheme`. Drops `next-themes` from the entry chunk.
+- Move `<Toaster>` and `<Sonner>` *inside* `<BrowserRouter>` so they're not in the critical path.
+- Remove duplicate logo source paths in `srcSet` once both files are valid (already correct, will work after Phase 1).
+
+### Phase 4 — Faster public-page navigation
+
+- Add **route prefetch on hover/touch** for the public nav links in `Header.tsx`. This warms the lazy chunk before the user clicks, so mobile taps feel instant.
+- Add a tiny shared **page skeleton** as the `Suspense` fallback in `App.tsx` (instead of full-screen "Loading...") so each page-to-page transition shows the new layout immediately.
+
+### Phase 5 — Faster dashboard pages
+
+- `MerchantDashboard`: replace the full-table KPI fetch with **two scoped queries** (`count` + an aggregated date-filtered fetch). Capped result set; uses `head: true, count: 'exact'` for total customers and a today-range filter for revenue.
+- `AccessCard`:
+  - Throttle realtime handler so multiple inserts in <1 s collapse into a single refetch.
+  - Lazy-split the heavy `ExploreTab` and `Carousel`/`Dialog` blocks already imported eagerly.
+  - Stop re-fetching everything on a single point update (we already have the new value in the realtime payload).
+
+### Phase 6 — Cheap rendering polish
+
+- Replace per-element `IntersectionObserver` in `ScrollReveal` with a **single shared observer** (module-level). Drops dozens of observer instances per page on Pricing/Blog/Testimonials.
+- Remove `backdrop-blur-sm` from the merchant dashboard banner (per known-issue note: backdrop-blur on animated content is expensive on mobile).
+
+### Phase 7 — Caching / network
+
+- Verify `public/_headers` covers the published site (Lovable hosting ignores `_headers` per docs — confirmed). Move long-lived caching expectation to Vercel/CDN if migration happens; otherwise rely on Vite's content-hashed asset URLs.
+- Keep `loading="lazy"` on all below-the-fold images (already mostly done).
+
+### Out of scope (not changing)
+
+- No design/copy/brand changes.
+- No routing structure changes.
+- No new dependencies.
+
+### Expected impact (mobile)
+
+| Phase | Estimated time saved |
+|---|---|
+| 1. Asset fixes | 2–4 s on every navigation |
+| 2. forwardRef | 200–500 ms TBT |
+| 3. Bundle trim | 150–300 ms FCP |
+| 4. Prefetch + skeleton | feels instant on tap |
+| 5. Dashboard fetch fix | 1–3 s on dashboards |
+| 6. Single observer | 100–200 ms TBT |
+
+Combined: page-to-page should drop from 5–10s to **under 1s on mobile** for public pages, and **1–2s** for dashboards (network-bound).
 
