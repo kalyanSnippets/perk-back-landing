@@ -102,13 +102,13 @@
     --card-foreground: 220 50% 96%;
     --popover: 219 42% 16%;
     --popover-foreground: 220 50% 96%;
-    --primary: 215 60% 55%;             /* #4a7fd1 lighter navy for dark */
+    --primary: 215 65% 62%;             /* lifted for contrast on dark */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 215 70% 70%;
-    --secondary: 215 67% 54%;
+    --primary-glow: 210 90% 78%;        /* much lighter so blue text reads on navy */
+    --secondary: 215 70% 62%;
     --secondary-foreground: 0 0% 100%;
     --muted: 219 35% 20%;
-    --muted-foreground: 218 22% 64%;    /* #8a98b4 */
+    --muted-foreground: 218 28% 76%;    /* lifted for readable secondary copy */
     --accent: 41 100% 70%;
     --accent-foreground: 222 82% 23%;
     --success: 162 60% 47%;
@@ -255,6 +255,11 @@
   filter: blur(60px);
   pointer-events: none;
   opacity: 0.5;
+}
+.dark .gradient-blob,
+.dark .floating-circle,
+.dark .floating-dot {
+  opacity: 0.18;
 }
 .shimmer-card {
   background: linear-gradient(90deg, transparent 0%, hsl(var(--primary-foreground) / 0.05) 50%, transparent 100%);

@@ -11,10 +11,11 @@ const getInitialTheme = (): Theme => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
     if (stored === "light" || stored === "dark") return stored;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   } catch {
-    return "light";
+    /* ignore */
   }
+  // Default to light — only honor explicit user opt-in to dark.
+  return "light";
 };
 
 const applyTheme = (theme: Theme) => {
