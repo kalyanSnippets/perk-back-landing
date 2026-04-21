@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CustomerJoinPrototype } from "@/components/prototype/CustomerJoinPrototype";
 import { DesktopDashboardPrototype } from "@/components/prototype/DesktopDashboardPrototype";
 import { DesktopMarketingPrototype } from "@/components/prototype/DesktopMarketingPrototype";
 import { MerchantTabletPrototype } from "@/components/prototype/MerchantTabletPrototype";
@@ -7,6 +8,7 @@ import { PrototypeShell } from "@/components/prototype/PrototypeShell";
 import { getPrototypeScreenById, getPrototypeScreens, type PrototypeDevice, type PrototypeFlow } from "@/lib/prototypeScreens";
 
 const flowDefaults: Record<PrototypeFlow, string> = {
+  "customer-join": "join-qr-poster",
   "customer-mobile": "customer-invite",
   "merchant-tablet": "merchant-tablet-counter",
   "merchant-desktop": "merchant-desktop-dashboard",
@@ -14,6 +16,7 @@ const flowDefaults: Record<PrototypeFlow, string> = {
 };
 
 const flowDevices: Record<PrototypeFlow, PrototypeDevice> = {
+  "customer-join": "mobile",
   "customer-mobile": "mobile",
   "merchant-tablet": "tablet",
   "merchant-desktop": "desktop",
@@ -21,7 +24,7 @@ const flowDevices: Record<PrototypeFlow, PrototypeDevice> = {
 };
 
 const Prototype = () => {
-  const [flow, setFlow] = useState<PrototypeFlow>("customer-mobile");
+  const [flow, setFlow] = useState<PrototypeFlow>("customer-join");
   const device = flowDevices[flow];
   const [activeScreenId, setActiveScreenId] = useState(flowDefaults[flow]);
 
@@ -34,6 +37,7 @@ const Prototype = () => {
   };
 
   const renderScreen = () => {
+    if (flow === "customer-join") return <CustomerJoinPrototype screenId={activeScreen.id} />;
     if (flow === "customer-mobile") return <MobileCustomerPrototype screenId={activeScreen.id} />;
     if (flow === "merchant-tablet") return <MerchantTabletPrototype screenId={activeScreen.id} />;
     if (flow === "merchant-desktop") return <DesktopDashboardPrototype screenId={activeScreen.id} />;
