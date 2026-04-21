@@ -36,6 +36,7 @@ interface MerchantData {
   industry_type: string | null;
   profile_image_url: string | null;
   logo_url: string | null;
+  slug: string | null;
 }
 
 const MerchantSettings = () => {
