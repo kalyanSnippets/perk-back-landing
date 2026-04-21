@@ -152,10 +152,10 @@ const MerchantDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-background">
       <Header />
       <div className="fixed inset-0 -z-10">
-        <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-[440px] bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 py-6 pt-20 sm:pt-24 pb-24 lg:pb-8">
@@ -165,22 +165,20 @@ const MerchantDashboard = () => {
 
             {/* Industry-themed Banner */}
             <ScrollReveal>
-              <div className="relative overflow-hidden rounded-2xl shadow-card-hover">
+              <div className="relative overflow-hidden rounded-[2rem] shadow-hero">
                 {/* Industry background image */}
                 <div
                   className="absolute inset-0 bg-cover bg-center"
                   style={{ backgroundImage: `url(${getIndustryImage(merchant.industry_type)})` }}
                 />
                 {/* Brand gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/85 via-primary/75 to-secondary/80" />
-                {/* Floating decorative shapes */}
-                <div className="floating-circle w-20 h-20 border border-primary-foreground/15 -top-6 -right-6" style={{ animationDelay: "0s" }} />
-                <div className="floating-circle w-14 h-14 border border-primary-foreground/10 -bottom-4 -left-4" style={{ animationDelay: "1s" }} />
-                <div className="floating-dot w-4 h-4 bg-accent/40 top-4 right-[30%]" style={{ animationDelay: "2s" }} />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/78 to-secondary/82" />
+                <div className="absolute -right-14 -top-14 h-48 w-48 rounded-full border border-primary-foreground/15" />
+                <div className="absolute -bottom-10 -left-10 h-36 w-36 rounded-full border border-primary-foreground/10" />
 
                 <div className="relative z-10 p-5 sm:p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-foreground/20 flex items-center justify-center overflow-hidden border-2 border-primary-foreground/30 shrink-0 shadow-lg">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.5rem] bg-primary-foreground/20 flex items-center justify-center overflow-hidden border-2 border-primary-foreground/30 shrink-0 shadow-lg backdrop-blur-md">
                       {merchant.logo_url ? (
                         <img src={merchant.logo_url} alt={merchant.store_name} className="w-full h-full object-cover" />
                       ) : (
@@ -188,8 +186,8 @@ const MerchantDashboard = () => {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-primary-foreground/70 text-[10px] uppercase tracking-[0.15em]">Merchant Dashboard</p>
-                      <h1 className="text-xl sm:text-2xl font-bold text-primary-foreground truncate drop-shadow-sm">{merchant.store_name}</h1>
+                      <p className="text-primary-foreground/70 text-[10px] font-bold uppercase tracking-[0.15em]">Merchant Dashboard</p>
+                      <h1 className="text-2xl sm:text-3xl font-black text-primary-foreground truncate drop-shadow-sm">{merchant.store_name}</h1>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         {merchant.industry_type && (
                           <span className="text-[10px] bg-primary-foreground/25 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary-foreground/20">
@@ -227,10 +225,10 @@ const MerchantDashboard = () => {
                 {kpiCards.map((kpi, i) => (
                   <div
                     key={i}
-                    className="bg-card rounded-2xl p-5 shadow-card border border-border/50 hover:-translate-y-0.5 hover:shadow-card-hover transition-all duration-200"
+                    className="bg-card rounded-[1.5rem] p-5 shadow-card border border-border/60 hover:-translate-y-0.5 hover:shadow-card-hover transition-all duration-200"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-10 h-10 rounded-full ${KPI_STYLES[i].iconBg} flex items-center justify-center`}>
+                      <div className={`w-10 h-10 rounded-2xl ${KPI_STYLES[i].iconBg} flex items-center justify-center`}>
                         <kpi.icon size={18} className={KPI_STYLES[i].iconColor} />
                       </div>
                     </div>

@@ -18,12 +18,12 @@ const PLAN_COLORS: Record<PlanTier, string> = {
   pro: "bg-primary/15 text-primary",
 };
 
-const ACCENT_BORDERS = [
-  "border-l-secondary",
-  "border-l-coral",
-  "border-l-accent",
-  "border-l-teal",
-  "border-l-emerald-accent",
+const ACCENT_BARS = [
+  "before:bg-secondary",
+  "before:bg-coral",
+  "before:bg-accent",
+  "before:bg-teal",
+  "before:bg-emerald-accent",
 ];
 
 const DashboardFeatureCard = ({
@@ -49,20 +49,20 @@ const DashboardFeatureCard = ({
   };
 
   // Deterministic accent border based on label
-  const accentIdx = label.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % ACCENT_BORDERS.length;
-  const accentBorder = ACCENT_BORDERS[accentIdx];
+  const accentIdx = label.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % ACCENT_BARS.length;
+  const accentBar = ACCENT_BARS[accentIdx];
 
   return (
     <button
       onClick={handleClick}
-      className={`relative flex flex-col items-start gap-2 p-4 rounded-2xl border-l-4 border transition-all duration-200 text-left w-full ${
+      className={`relative flex min-h-[150px] flex-col items-start justify-between gap-3 p-4 rounded-[1.5rem] border transition-all duration-200 text-left w-full ${
         isLocked
-          ? "bg-muted/30 border-border/30 border-l-border opacity-70 cursor-pointer hover:opacity-80"
-          : `bg-card border-border/50 ${accentBorder} shadow-card hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer`
+          ? "bg-muted/30 border-border/30 opacity-70 cursor-pointer hover:opacity-80"
+          : `bg-card border-border/60 shadow-card hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer before:absolute before:inset-x-4 before:top-0 before:h-1 before:rounded-full before:content-[''] ${accentBar}`
       }`}
     >
       <div className="flex items-center justify-between w-full">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
           isLocked ? "bg-muted/60" : "bg-gradient-to-br from-primary/10 to-secondary/10"
         }`}>
           <Icon size={18} className={isLocked ? "text-muted-foreground" : "text-secondary"} />
