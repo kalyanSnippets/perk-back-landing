@@ -327,6 +327,11 @@ const MerchantSettings = () => {
                 </div>
               </TabsContent>
 
+              {/* Counter QR */}
+              <TabsContent value="qr">
+                <CounterQrPoster storeName={merchant.store_name} slug={merchant.slug} logoUrl={merchant.logo_url} />
+              </TabsContent>
+
               {/* Password */}
               <TabsContent value="password">
                 <form onSubmit={handlePasswordChange} className="bg-card rounded-2xl p-6 shadow-card border border-border/50 space-y-4">
