@@ -67,12 +67,12 @@ const MerchantSettings = () => {
 
     const { data: m } = await supabase
       .from("merchants")
-      .select("id, store_name, address, contact_number, industry_type, profile_image_url, logo_url")
+      .select("id, store_name, address, contact_number, industry_type, profile_image_url, logo_url, slug")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (!m) { navigate("/get-started"); return; }
-    setMerchant(m);
+    setMerchant(m as MerchantData);
     setBizForm({
       store_name: m.store_name || "",
       address: m.address || "",
