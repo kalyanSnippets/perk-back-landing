@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Upload, CreditCard, Check, Trash2, ArrowUpRight, AlertTriangle, Image,
+  Phone, MapPin, Upload, CreditCard, Check, Trash2, ArrowUpRight, AlertTriangle, Image, QrCode,
 } from "lucide-react";
+import CounterQrPoster from "@/components/merchant/CounterQrPoster";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
