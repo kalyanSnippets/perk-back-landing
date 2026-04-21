@@ -3,47 +3,6 @@ import App from "./App.tsx";
 import "./index.css";
 import { initTheme } from "./components/shared/ThemeToggle";
 
-const MODULE_LOAD_ERROR_RE = /Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module/i;
-const CHUNK_RELOAD_KEY = "perkback:chunk-reload-attempted";
-
-const getErrorMessage = (value: unknown) => {
-  if (typeof value === "string") return value;
-  if (value instanceof Error) return value.message;
-  if (typeof value === "object" && value && "message" in value) {
-    return String((value as { message?: unknown }).message ?? "");
-  }
-  return "";
-};
-
-const reloadForModuleLoadFailure = () => {
-  try {
-    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1") return;
-    sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
-  } catch {
-    return;
-  }
-
-  window.location.reload();
-};
-
-window.addEventListener("vite:preloadError", (event) => {
-  event.preventDefault();
-  reloadForModuleLoadFailure();
-});
-
-window.addEventListener("error", (event) => {
-  if (MODULE_LOAD_ERROR_RE.test(getErrorMessage(event.error ?? event.message))) {
-    reloadForModuleLoadFailure();
-  }
-});
-
-window.addEventListener("unhandledrejection", (event) => {
-  if (MODULE_LOAD_ERROR_RE.test(getErrorMessage(event.reason))) {
-    event.preventDefault();
-    reloadForModuleLoadFailure();
-  }
-});
-
 // Apply persisted theme as early as possible to avoid first-paint flash.
 initTheme();
 
@@ -78,9 +37,3 @@ if (typeof idle === "function") {
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
-
-try {
-  sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-} catch {
-  // Ignore storage access issues in restricted environments.
-}
