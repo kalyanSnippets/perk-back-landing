@@ -344,8 +344,11 @@ const CardReady = ({ identity, onOpen }: { identity: CardIdentity; onOpen: () =>
       </div>
     </div>
 
-    <div className="mt-5 rounded-2xl bg-primary-foreground/10 p-4 text-center backdrop-blur-md">
+    <div className="mt-5 rounded-2xl bg-primary-foreground/10 p-4 text-center backdrop-blur-md space-y-1">
       <p className="text-sm">You're now earning at <span className="font-black">{identity.merchant_name}</span></p>
+      <p className="text-[11px] uppercase tracking-[0.2em] text-primary-foreground/70 font-bold">
+        Joined via {identity.merchant_name} QR
+      </p>
     </div>
 
     <div className="mt-auto pt-6 space-y-2">
