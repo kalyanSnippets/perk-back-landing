@@ -428,11 +428,11 @@ const AccessCard = () => {
           <>
             {/* Loyalty Card */}
             <ScrollReveal>
-              <div className="relative rounded-3xl overflow-hidden shadow-card-hover">
+              <div className="relative overflow-hidden rounded-[2rem] shadow-hero">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
-                <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-primary-foreground/10" />
-                <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full border border-primary-foreground/8" />
+                <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full border border-primary-foreground/10" />
+                <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full border border-primary-foreground/10" />
                 <div className="relative z-10 p-5 sm:p-6 pb-4 sm:pb-5">
                   <div className="flex items-start justify-between mb-4 sm:mb-5">
                     <div>
@@ -461,7 +461,7 @@ const AccessCard = () => {
                       <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
                     </div>
                   </div>
-                  <div className="bg-primary-foreground rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-center gap-3 overflow-hidden">
+                  <div className="rounded-[1.5rem] bg-primary-foreground p-3 flex flex-col sm:flex-row items-center justify-center gap-3 overflow-hidden shadow-card">
                     <Barcode value={customer.loyalty_card_number || ""} height={55} />
                     <QRCodeDisplay value={customer.loyalty_card_number || ""} size={80} />
                   </div>
@@ -552,32 +552,30 @@ const AccessCard = () => {
 
         {/* Points Balance — Vibrant — TOP */}
         <ScrollReveal>
-          <div className="relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
-            {/* Decorative floating shapes */}
-            <div className="floating-dot w-6 h-6 bg-accent/15 -top-1 right-[15%]" style={{ animationDelay: "0s" }} />
-            <div className="floating-dot w-4 h-4 bg-coral/10 bottom-2 left-[10%]" style={{ animationDelay: "1.5s" }} />
-
-            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3 relative z-10">
+          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-hero p-5 text-primary-foreground shadow-hero sm:p-6">
+            <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full border border-primary-foreground/10" />
+            <div className="absolute -bottom-8 -left-8 h-28 w-28 rounded-full border border-primary-foreground/10" />
+            <p className="relative z-10 mb-3 text-[11px] font-bold uppercase tracking-[0.15em] text-primary-foreground/65">
               {selectedMerchant ? `${selectedMerchant.store_name} Points` : "Total Points Balance"}
             </p>
-            <div className={`flex items-center justify-center gap-3 transition-all duration-700 relative z-10 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center">
-                <Star className="text-accent fill-accent" size={24} />
+            <div className={`relative z-10 flex items-center justify-between gap-3 transition-all duration-700 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+              <span className="text-5xl font-black tabular-nums sm:text-6xl">{displayPoints}</span>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground shadow-button sm:h-16 sm:w-16">
+                <Star className="fill-current" size={26} />
               </div>
-              <span className="text-5xl sm:text-6xl font-bold text-foreground tabular-nums">{displayPoints}</span>
             </div>
             {nearestReward && nearestReward.points_required > displayPoints ? (
               <div className="mt-4 space-y-2 relative z-10">
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>Next: <span className="font-semibold text-foreground">{nearestReward.title}</span></span>
+                <div className="flex items-center justify-between text-[11px] text-primary-foreground/70">
+                  <span>Next: <span className="font-semibold text-primary-foreground">{nearestReward.title}</span></span>
                   <span>{nearestReward.points_required - displayPoints} pts to go</span>
                 </div>
                 <Progress value={nearestProgress} className="h-2" />
               </div>
             ) : (
-              <p className="text-muted-foreground text-xs mt-3 relative z-10">Keep earning to unlock exclusive rewards!</p>
+              <p className="relative z-10 mt-3 text-xs text-primary-foreground/70">Keep earning to unlock exclusive rewards!</p>
             )}
-            <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors relative z-10">
+            <button onClick={() => setShowClaimInfo(true)} className="relative z-10 mx-auto mt-3 flex items-center gap-1 text-[10px] text-primary-foreground/80 transition-colors hover:text-primary-foreground">
               <Info size={10} /> How to earn points
             </button>
           </div>
