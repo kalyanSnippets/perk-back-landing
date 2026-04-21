@@ -18,12 +18,12 @@ const PLAN_COLORS: Record<PlanTier, string> = {
   pro: "bg-primary/15 text-primary",
 };
 
-const ACCENT_BORDERS = [
-  "border-l-secondary",
-  "border-l-coral",
-  "border-l-accent",
-  "border-l-teal",
-  "border-l-emerald-accent",
+const ACCENT_BARS = [
+  "before:bg-secondary",
+  "before:bg-coral",
+  "before:bg-accent",
+  "before:bg-teal",
+  "before:bg-emerald-accent",
 ];
 
 const DashboardFeatureCard = ({
@@ -49,8 +49,8 @@ const DashboardFeatureCard = ({
   };
 
   // Deterministic accent border based on label
-  const accentIdx = label.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % ACCENT_BORDERS.length;
-  const accentBorder = ACCENT_BORDERS[accentIdx];
+  const accentIdx = label.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % ACCENT_BARS.length;
+  const accentBar = ACCENT_BARS[accentIdx];
 
   return (
     <button
@@ -58,7 +58,7 @@ const DashboardFeatureCard = ({
       className={`relative flex min-h-[150px] flex-col items-start justify-between gap-3 p-4 rounded-[1.5rem] border transition-all duration-200 text-left w-full ${
         isLocked
           ? "bg-muted/30 border-border/30 opacity-70 cursor-pointer hover:opacity-80"
-          : `bg-card border-border/60 shadow-card hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer before:absolute before:inset-x-4 before:top-0 before:h-1 before:rounded-full ${accentBorder}`
+          : `bg-card border-border/60 shadow-card hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer before:absolute before:inset-x-4 before:top-0 before:h-1 before:rounded-full before:content-[''] ${accentBar}`
       }`}
     >
       <div className="flex items-center justify-between w-full">
