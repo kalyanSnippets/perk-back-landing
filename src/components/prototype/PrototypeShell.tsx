@@ -16,6 +16,7 @@ interface PrototypeShellProps {
 }
 
 const flowLabels: Record<PrototypeFlow, string> = {
+  "customer-join": "Customer First-Touch",
   "customer-mobile": "Customer Mobile",
   "merchant-tablet": "Merchant Tablet",
   "merchant-desktop": "Merchant Desktop",

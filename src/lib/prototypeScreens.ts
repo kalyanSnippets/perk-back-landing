@@ -36,6 +36,18 @@ export interface PrototypeScreen {
 }
 
 export const prototypeScreens: PrototypeScreen[] = [
+  // Customer first-touch (QR → wallet)
+  { id: "join-qr-poster", title: "QR Poster", flow: "customer-join", device: "mobile", step: 1, description: "Counter-top sign at the merchant store with the scannable PerkBack QR.", ctaLabel: "Scan", ctaTarget: "join-splash", icon: QrCode },
+  { id: "join-splash", title: "Splash", flow: "customer-join", device: "mobile", step: 2, description: "PerkBack brand splash — animated logo bloom on the hero gradient.", ctaLabel: "Next", ctaTarget: "join-merchant-welcome", icon: Sparkles },
+  { id: "join-merchant-welcome", title: "Merchant Welcome", flow: "customer-join", device: "mobile", step: 3, description: "Branded intro with merchant logo, store name, and lifestyle photography.", ctaLabel: "Get started", ctaTarget: "join-onboarding-1", icon: Store },
+  { id: "join-onboarding-1", title: "Onboarding · Scan", flow: "customer-join", device: "mobile", step: 4, description: "Slide 1 — show your card at any participating store.", ctaLabel: "Continue", ctaTarget: "join-onboarding-2", icon: ScanLine },
+  { id: "join-onboarding-2", title: "Onboarding · Rewards", flow: "customer-join", device: "mobile", step: 5, description: "Slide 2 — free coffees, perks and treats from real local places.", ctaLabel: "Continue", ctaTarget: "join-onboarding-3", icon: Gift },
+  { id: "join-onboarding-3", title: "Onboarding · Discover", flow: "customer-join", device: "mobile", step: 6, description: "Slide 3 — find perks near you in a local marketplace.", ctaLabel: "Create wallet", ctaTarget: "join-quick-questions", icon: MapPin },
+  { id: "join-quick-questions", title: "Quick Questions", flow: "customer-join", device: "mobile", step: 7, description: "Name, phone and DOB — with a clear reason for each.", ctaLabel: "Continue", ctaTarget: "join-create-wallet", icon: UserRound },
+  { id: "join-create-wallet", title: "Create Wallet", flow: "customer-join", device: "mobile", step: 8, description: "Email, password and Google / Apple sign-up.", ctaLabel: "Create", ctaTarget: "join-card-ready", icon: WalletCards },
+  { id: "join-card-ready", title: "Card Ready", flow: "customer-join", device: "mobile", step: 9, description: "Celebration moment with CRN and loyalty number revealed.", ctaLabel: "Open wallet", ctaTarget: "join-wallet-home", icon: CheckCircle2 },
+  { id: "join-wallet-home", title: "Wallet Home", flow: "customer-join", device: "mobile", step: 10, description: "Where the customer lands — points, store, and next reward.", ctaTarget: "join-qr-poster", icon: WalletCards },
+
   { id: "customer-invite", title: "Invite", flow: "customer-mobile", device: "mobile", step: 1, description: "Reward-led entry from a merchant QR, SMS, email, or wallet link.", ctaLabel: "Start", ctaTarget: "customer-splash", icon: Sparkles },
   { id: "customer-splash", title: "Splash", flow: "customer-mobile", device: "mobile", step: 2, description: "Premium brand intro for the PerkBack wallet.", ctaLabel: "Next", ctaTarget: "customer-onboarding", icon: Sparkles },
   { id: "customer-onboarding", title: "Onboarding", flow: "customer-mobile", device: "mobile", step: 3, description: "One loyalty wallet for favourite local places.", ctaLabel: "Create account", ctaTarget: "customer-auth", icon: Home },
