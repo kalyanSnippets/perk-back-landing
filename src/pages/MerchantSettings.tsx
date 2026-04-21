@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Upload, CreditCard, Check, Trash2, ArrowUpRight, AlertTriangle, Image,
+  Phone, MapPin, Upload, CreditCard, Check, Trash2, ArrowUpRight, AlertTriangle, Image, QrCode,
 } from "lucide-react";
+import CounterQrPoster from "@/components/merchant/CounterQrPoster";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -35,6 +36,7 @@ interface MerchantData {
   industry_type: string | null;
   profile_image_url: string | null;
   logo_url: string | null;
+  slug: string | null;
 }
 
 const MerchantSettings = () => {
@@ -65,12 +67,12 @@ const MerchantSettings = () => {
 
     const { data: m } = await supabase
       .from("merchants")
-      .select("id, store_name, address, contact_number, industry_type, profile_image_url, logo_url")
+      .select("id, store_name, address, contact_number, industry_type, profile_image_url, logo_url, slug")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (!m) { navigate("/get-started"); return; }
-    setMerchant(m);
+    setMerchant(m as MerchantData);
     setBizForm({
       store_name: m.store_name || "",
       address: m.address || "",
@@ -204,6 +206,7 @@ const MerchantSettings = () => {
               <TabsList className="w-full justify-start overflow-x-auto flex-wrap">
                 <TabsTrigger value="business">Business</TabsTrigger>
                 <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="qr">Counter QR</TabsTrigger>
                 <TabsTrigger value="password">Password</TabsTrigger>
                 <TabsTrigger value="pos">POS</TabsTrigger>
                 <TabsTrigger value="subscription">Plan</TabsTrigger>
@@ -322,6 +325,11 @@ const MerchantSettings = () => {
                     <p className="text-xs text-muted-foreground">{merchant.industry_type || "Business"}</p>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Counter QR */}
+              <TabsContent value="qr">
+                <CounterQrPoster storeName={merchant.store_name} slug={merchant.slug} logoUrl={merchant.logo_url} />
               </TabsContent>
 
               {/* Password */}
