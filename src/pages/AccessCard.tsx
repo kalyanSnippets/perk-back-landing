@@ -371,22 +371,29 @@ const AccessCard = () => {
 
   return (
     <>
-    <div className="min-h-screen bg-muted/20 pb-24 sm:pb-0">
+    <div className="min-h-screen bg-background pb-24 sm:pb-0">
       <Header />
       <div className="fixed inset-0 -z-10">
-        <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
-        <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
+        <div className="absolute top-0 left-0 right-0 h-[520px] bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-lg space-y-5 pb-20 pt-20 sm:pt-24">
 
         {/* ─── Greeting ─── */}
         <ScrollReveal>
-          <div className="text-center">
-            <h1 className="text-lg sm:text-xl font-bold text-foreground">
-              {getGreeting()}, {customer.full_name?.split(" ")[0] || "there"} 👋
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1">
+          <div className="rounded-[1.75rem] border border-border/60 bg-card/90 p-4 shadow-card backdrop-blur-md">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="eyebrow">{getGreeting()}</p>
+                <h1 className="truncate text-2xl font-black text-foreground">
+                  {customer.full_name?.split(" ")[0] || "Your wallet"}
+                </h1>
+              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-button">
+                <Sparkles size={20} />
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
               {new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}
             </p>
           </div>
@@ -395,19 +402,20 @@ const AccessCard = () => {
         {/* ─── Main Tab Switcher — Pill Segmented Control (desktop / tablet) ─── */}
         <div className="hidden sm:flex gap-1 bg-card rounded-full p-1 border border-border/50 shadow-card">
           {[
-            { key: "my-rewards" as const, label: "🎁 My Rewards" },
-            { key: "my-card" as const, label: "💳 My Card" },
-            { key: "explore" as const, label: "🔍 Explore" },
+            { key: "my-rewards" as const, label: "My Rewards", icon: Gift },
+            { key: "my-card" as const, label: "My Card", icon: CreditCardIcon },
+            { key: "explore" as const, label: "Explore", icon: Compass },
           ].map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveMainTab(tab.key)}
-              className={`flex-1 py-2.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-semibold transition-all duration-300 ${
                 activeMainTab === tab.key
                   ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-button"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
+              <tab.icon size={13} />
               {tab.label}
             </button>
           ))}
