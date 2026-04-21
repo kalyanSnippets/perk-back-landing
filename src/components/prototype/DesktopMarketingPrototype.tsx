@@ -15,6 +15,6 @@ const DesktopCustomer = () => <><BrowserTop /><section className="grid gap-6 px-
 
 export const DesktopMarketingPrototype = ({ screenId }: DesktopMarketingPrototypeProps) => {
   if (screenId === "marketing-pricing") return <Pricing />;
-  if (screenId === "desktop-customer") return <DesktopCustomer />;
+  if (screenId === "marketing-customer") return <DesktopCustomer />;
   return <Homepage />;
 };

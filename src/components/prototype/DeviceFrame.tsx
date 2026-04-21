@@ -22,6 +22,17 @@ export const DeviceFrame = ({ device, children, className }: DeviceFrameProps) =
     );
   }
 
+  if (device === "tablet") {
+    return (
+      <section className={cn("mx-auto w-full max-w-[900px] rounded-[2rem] border border-border bg-card p-4 shadow-hero", className)}>
+        <div className="relative overflow-hidden rounded-[1.5rem] border border-border bg-background">
+          <div className="absolute left-1/2 top-3 z-10 h-2 w-24 -translate-x-1/2 rounded-full bg-foreground/80" />
+          <div className="min-h-[680px] pt-6">{children}</div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className={cn("mx-auto w-full max-w-[390px] rounded-[2.5rem] border border-border bg-card p-3 shadow-hero", className)}>
       <div className="relative overflow-hidden rounded-[2rem] border border-border bg-background">

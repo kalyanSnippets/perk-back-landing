@@ -1,42 +1,42 @@
 import { useMemo, useState } from "react";
 import { DesktopDashboardPrototype } from "@/components/prototype/DesktopDashboardPrototype";
 import { DesktopMarketingPrototype } from "@/components/prototype/DesktopMarketingPrototype";
+import { MerchantTabletPrototype } from "@/components/prototype/MerchantTabletPrototype";
 import { MobileCustomerPrototype } from "@/components/prototype/MobileCustomerPrototype";
-import { MobileMerchantPrototype } from "@/components/prototype/MobileMerchantPrototype";
 import { PrototypeShell } from "@/components/prototype/PrototypeShell";
 import { getPrototypeScreenById, getPrototypeScreens, type PrototypeDevice, type PrototypeFlow } from "@/lib/prototypeScreens";
 
 const flowDefaults: Record<PrototypeFlow, string> = {
-  customer: "customer-splash",
-  merchant: "merchant-login",
-  marketing: "marketing-home",
+  "customer-mobile": "customer-invite",
+  "merchant-tablet": "merchant-tablet-counter",
+  "merchant-desktop": "merchant-desktop-dashboard",
+  "marketing-desktop": "marketing-home",
+};
+
+const flowDevices: Record<PrototypeFlow, PrototypeDevice> = {
+  "customer-mobile": "mobile",
+  "merchant-tablet": "tablet",
+  "merchant-desktop": "desktop",
+  "marketing-desktop": "desktop",
 };
 
 const Prototype = () => {
-  const [device, setDevice] = useState<PrototypeDevice>("mobile");
-  const [flow, setFlow] = useState<PrototypeFlow>("customer");
-  const [activeScreenId, setActiveScreenId] = useState(flowDefaults.customer);
+  const [flow, setFlow] = useState<PrototypeFlow>("customer-mobile");
+  const device = flowDevices[flow];
+  const [activeScreenId, setActiveScreenId] = useState(flowDefaults[flow]);
 
   const screens = useMemo(() => getPrototypeScreens(device, flow), [device, flow]);
   const activeScreen = getPrototypeScreenById(activeScreenId) ?? screens[0];
 
-  const handleDeviceChange = (nextDevice: PrototypeDevice) => {
-    const nextFlow = nextDevice === "desktop" ? "marketing" : flow === "marketing" ? "customer" : flow;
-    setDevice(nextDevice);
-    setFlow(nextFlow);
-    setActiveScreenId(flowDefaults[nextFlow]);
-  };
-
   const handleFlowChange = (nextFlow: PrototypeFlow) => {
     setFlow(nextFlow);
-    setDevice(nextFlow === "marketing" ? "desktop" : "mobile");
     setActiveScreenId(flowDefaults[nextFlow]);
   };
 
   const renderScreen = () => {
-    if (flow === "customer") return <MobileCustomerPrototype screenId={activeScreen.id} />;
-    if (flow === "merchant") return <MobileMerchantPrototype screenId={activeScreen.id} />;
-    if (["desktop-merchant", "desktop-analytics", "desktop-admin"].includes(activeScreen.id)) return <DesktopDashboardPrototype screenId={activeScreen.id} />;
+    if (flow === "customer-mobile") return <MobileCustomerPrototype screenId={activeScreen.id} />;
+    if (flow === "merchant-tablet") return <MerchantTabletPrototype screenId={activeScreen.id} />;
+    if (flow === "merchant-desktop") return <DesktopDashboardPrototype screenId={activeScreen.id} />;
     return <DesktopMarketingPrototype screenId={activeScreen.id} />;
   };
 
@@ -46,7 +46,6 @@ const Prototype = () => {
       flow={flow}
       screens={screens}
       activeScreen={activeScreen}
-      onDeviceChange={handleDeviceChange}
       onFlowChange={handleFlowChange}
       onScreenChange={setActiveScreenId}
     >
