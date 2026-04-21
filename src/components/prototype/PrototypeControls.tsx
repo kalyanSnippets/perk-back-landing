@@ -1,4 +1,4 @@
-import { Monitor, Smartphone } from "lucide-react";
+import { Monitor, Smartphone, Tablet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PrototypeDevice, PrototypeFlow } from "@/lib/prototypeScreens";
@@ -6,42 +6,34 @@ import type { PrototypeDevice, PrototypeFlow } from "@/lib/prototypeScreens";
 interface PrototypeControlsProps {
   device: PrototypeDevice;
   flow: PrototypeFlow;
-  onDeviceChange: (device: PrototypeDevice) => void;
   onFlowChange: (flow: PrototypeFlow) => void;
 }
 
-const flows: { key: PrototypeFlow; label: string; devices: PrototypeDevice[] }[] = [
-  { key: "customer", label: "Customer", devices: ["mobile"] },
-  { key: "merchant", label: "Merchant", devices: ["mobile"] },
-  { key: "marketing", label: "SaaS Desktop", devices: ["desktop"] },
+const flows: { key: PrototypeFlow; label: string; device: PrototypeDevice; icon: typeof Smartphone }[] = [
+  { key: "customer-mobile", label: "Customer Mobile", device: "mobile", icon: Smartphone },
+  { key: "merchant-tablet", label: "Merchant Tablet", device: "tablet", icon: Tablet },
+  { key: "merchant-desktop", label: "Merchant Desktop", device: "desktop", icon: Monitor },
+  { key: "marketing-desktop", label: "Marketing Desktop", device: "desktop", icon: Monitor },
 ];
 
-export const PrototypeControls = ({ device, flow, onDeviceChange, onFlowChange }: PrototypeControlsProps) => (
-  <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-card lg:flex-row lg:items-center lg:justify-between">
-    <div className="flex rounded-full bg-muted p-1">
-      <Button type="button" size="sm" variant={device === "mobile" ? "default" : "ghost"} className="rounded-full" onClick={() => onDeviceChange("mobile")}>
-        <Smartphone className="h-4 w-4" /> Mobile
-      </Button>
-      <Button type="button" size="sm" variant={device === "desktop" ? "default" : "ghost"} className="rounded-full" onClick={() => onDeviceChange("desktop")}>
-        <Monitor className="h-4 w-4" /> Desktop
-      </Button>
-    </div>
-    <div className="grid grid-cols-3 gap-2">
-      {flows.map((item) => (
-        <Button
-          key={item.key}
-          type="button"
-          size="sm"
-          variant={flow === item.key ? "secondary" : "outline"}
-          className={cn("rounded-full px-3", !item.devices.includes(device) && "opacity-60")}
-          onClick={() => {
-            if (!item.devices.includes(device)) onDeviceChange(item.devices[0]);
-            onFlowChange(item.key);
-          }}
-        >
-          {item.label}
-        </Button>
-      ))}
+export const PrototypeControls = ({ device, flow, onFlowChange }: PrototypeControlsProps) => (
+  <div className="rounded-2xl border border-border bg-card p-3 shadow-card">
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      {flows.map((item) => {
+        const Icon = item.icon;
+        return (
+          <Button
+            key={item.key}
+            type="button"
+            size="sm"
+            variant={flow === item.key ? "default" : "outline"}
+            className={cn("min-h-11 rounded-full px-3", device === item.device && flow !== item.key && "border-primary/40")}
+            onClick={() => onFlowChange(item.key)}
+          >
+            <Icon className="h-4 w-4" /> {item.label}
+          </Button>
+        );
+      })}
     </div>
   </div>
 );
