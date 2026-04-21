@@ -21,7 +21,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 export type PrototypeDevice = "mobile" | "tablet" | "desktop";
-export type PrototypeFlow = "customer-mobile" | "merchant-tablet" | "merchant-desktop" | "marketing-desktop";
+export type PrototypeFlow = "customer-join" | "customer-mobile" | "merchant-tablet" | "merchant-desktop" | "marketing-desktop";
 
 export interface PrototypeScreen {
   id: string;
