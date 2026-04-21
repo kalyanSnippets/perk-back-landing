@@ -206,6 +206,7 @@ const MerchantSettings = () => {
               <TabsList className="w-full justify-start overflow-x-auto flex-wrap">
                 <TabsTrigger value="business">Business</TabsTrigger>
                 <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="qr">Counter QR</TabsTrigger>
                 <TabsTrigger value="password">Password</TabsTrigger>
                 <TabsTrigger value="pos">POS</TabsTrigger>
                 <TabsTrigger value="subscription">Plan</TabsTrigger>
