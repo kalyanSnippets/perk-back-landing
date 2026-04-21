@@ -189,6 +189,7 @@ export type Database = {
           last_visit_at: string | null
           merchant_id: string
           points_balance: number
+          source: string | null
           total_spend: number
           updated_at: string
           visit_count: number
@@ -201,6 +202,7 @@ export type Database = {
           last_visit_at?: string | null
           merchant_id: string
           points_balance?: number
+          source?: string | null
           total_spend?: number
           updated_at?: string
           visit_count?: number
@@ -213,6 +215,7 @@ export type Database = {
           last_visit_at?: string | null
           merchant_id?: string
           points_balance?: number
+          source?: string | null
           total_spend?: number
           updated_at?: string
           visit_count?: number
@@ -684,6 +687,7 @@ export type Database = {
           longitude: number | null
           points_per_dollar: number
           profile_image_url: string | null
+          slug: string | null
           store_name: string
           updated_at: string
           user_id: string
@@ -699,6 +703,7 @@ export type Database = {
           longitude?: number | null
           points_per_dollar?: number
           profile_image_url?: string | null
+          slug?: string | null
           store_name: string
           updated_at?: string
           user_id: string
@@ -714,6 +719,7 @@ export type Database = {
           longitude?: number | null
           points_per_dollar?: number
           profile_image_url?: string | null
+          slug?: string | null
           store_name?: string
           updated_at?: string
           user_id?: string
@@ -1463,12 +1469,26 @@ export type Database = {
           loyalty_card_number: string
         }[]
       }
+      get_merchant_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          address: string
+          id: string
+          industry_type: string
+          logo_url: string
+          store_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      join_merchant_by_slug: {
+        Args: { _slug: string; _source?: string }
+        Returns: Json
       }
       move_to_dlq: {
         Args: {
