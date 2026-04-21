@@ -38,6 +38,7 @@ const MerchantPoints = React.lazy(() => import("./pages/MerchantPoints.tsx"));
 const MerchantSettings = React.lazy(() => import("./pages/MerchantSettings.tsx"));
 const AdminPanel = React.lazy(() => import("./pages/AdminPanel.tsx"));
 const ReviewPage = React.lazy(() => import("./pages/ReviewPage.tsx"));
+const CustomerJoin = React.lazy(() => import("./pages/CustomerJoin.tsx"));
 
 // Lightweight skeleton page — avoids the blank-screen flash that the
 // previous full-screen "Loading..." caused on every route transition.
@@ -85,6 +86,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/reviews" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
               <Route path="/prototype" element={<Prototype />} />
+              <Route path="/join/:merchantSlug" element={<CustomerJoin />} />
 
               {/* Role Chooser */}
               <Route path="/choose-role" element={<ProtectedRoute><ChooseRole /></ProtectedRoute>} />
