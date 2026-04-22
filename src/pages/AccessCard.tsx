@@ -9,14 +9,14 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2,
   Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin, LogOut
+  CheckCircle, XCircle, Ticket, Info, Store, MapPin, LogOut
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
-import { getIndustryImage } from "@/lib/industryImages";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
+import StoreFilterBar from "@/components/customer/StoreFilterBar";
 import StampCardProgress from "@/components/customer/StampCardProgress";
 import MerchantStatusCard from "@/components/customer/MerchantStatusCard";
 import NfcTapButton from "@/components/customer/NfcTapButton";
@@ -359,6 +359,12 @@ const AccessCard = () => {
   const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
   const filteredTransactions = selectedMerchantId ? transactions.filter(t => t.merchant_id === selectedMerchantId) : transactions;
   const filteredRedemptions = selectedMerchantId ? redemptions.filter(r => r.merchant_id === selectedMerchantId) : redemptions;
+  const selectedMerchantNextReward = selectedMerchant
+    ? filteredRewards
+        .filter((reward) => reward.points_required > displayPoints)
+        .sort((a, b) => a.points_required - b.points_required)[0] ?? null
+    : null;
+  const recentTransactionsPreview = filteredTransactions.slice(0, 3);
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
@@ -619,6 +625,23 @@ const AccessCard = () => {
             <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3 relative z-10">
               {selectedMerchant ? `${selectedMerchant.store_name} Points` : "Total Points Balance"}
             </p>
+            {selectedMerchant && (
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-2 relative z-10">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-background/80 px-3 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur">
+                  <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-border/40 bg-muted">
+                    {selectedMerchant.logo_url ? (
+                      <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Store size={11} className="text-secondary" />
+                    )}
+                  </span>
+                  {selectedMerchant.store_name}
+                </span>
+                <span className="rounded-full bg-background/70 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+                  {filteredOffers.length} offers · {filteredCampaigns.length} campaigns
+                </span>
+              </div>
+            )}
             <div className={`flex items-center justify-center gap-3 transition-all duration-700 relative z-10 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center">
                 <Star className="text-accent fill-accent" size={24} />
@@ -639,6 +662,18 @@ const AccessCard = () => {
             <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors relative z-10">
               <Info size={10} /> How to earn points
             </button>
+            {selectedMerchant && selectedMerchantNextReward && (
+              <div className="mt-4 grid grid-cols-2 gap-2 text-left relative z-10">
+                <div className="rounded-xl border border-border/30 bg-background/75 px-3 py-2.5 shadow-sm backdrop-blur">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Next reward</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground line-clamp-1">{selectedMerchantNextReward.title}</p>
+                </div>
+                <div className="rounded-xl border border-border/30 bg-background/75 px-3 py-2.5 shadow-sm backdrop-blur">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">To unlock</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">{Math.max(selectedMerchantNextReward.points_required - displayPoints, 0)} pts</p>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollReveal>
 
@@ -646,121 +681,62 @@ const AccessCard = () => {
         {customerMerchants.length > 0 && (
           <ScrollReveal delay={15}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Store size={16} className="text-secondary" /> My Stores
-                </h3>
-                {selectedMerchantId && (
-                  <button onClick={() => setSelectedMerchantId(null)} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
-                    <ArrowLeft size={12} /> All Stores
-                  </button>
-                )}
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Store size={16} className="text-secondary" /> My Stores
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Switch merchants without leaving your rewards dashboard.
+                  </p>
+                </div>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-                {customerMerchants.map(cm => {
-                  const isSelected = selectedMerchantId === cm.merchant_id;
-                  const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
-                  return (
-                    <button
-                      key={cm.merchant_id}
-                      onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
-                      className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-card text-left ${
-                        isSelected
-                          ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
-                          : 'border border-border/50 hover:shadow-card'
-                      }`}
-                    >
-                      {/* Industry-themed image header (image only, no text overlay) */}
-                      <div className="relative h-20 overflow-hidden">
-                        <img
-                          src={getIndustryImage(cm.industry_type)}
-                          alt={cm.industry_type || "Store"}
-                          loading="lazy"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} mix-blend-multiply opacity-60`} />
-                      </div>
-                      {/* Clean content area below image */}
-                      <div className="p-3.5 space-y-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border/50 -mt-8 relative z-10 shadow-md">
-                            {cm.logo_url ? (
-                              <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Store size={18} className={colors.text} />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm text-foreground truncate leading-tight">{cm.store_name}</p>
-                            {cm.industry_type && (
-                              <p className="text-[10px] text-muted-foreground truncate">{cm.industry_type}</p>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-2xl font-bold text-primary tabular-nums leading-none">{cm.points_balance} <span className="text-xs font-normal text-muted-foreground">pts</span></p>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span>{cm.visit_count} visits</span>
-                          <span className="text-muted-foreground/30">·</span>
-                          <span>${cm.total_spend.toFixed(0)} spent</span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <StoreFilterBar
+                merchants={customerMerchants}
+                selectedMerchantId={selectedMerchantId}
+                onSelect={setSelectedMerchantId}
+              />
             </div>
           </ScrollReveal>
         )}
 
         {selectedMerchant && (
           <ScrollReveal delay={25}>
-            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-card">
-              <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${INDUSTRY_COLORS[selectedMerchant.industry_type || ""]?.bg || "from-secondary/15 via-primary/10 to-accent/10"}`} />
-              <div className="relative p-5 sm:p-6 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-14 w-14 rounded-2xl border border-border/50 bg-background shadow-sm overflow-hidden flex items-center justify-center shrink-0">
-                      {selectedMerchant.logo_url ? (
-                        <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
-                      ) : (
-                        <Store size={22} className={INDUSTRY_COLORS[selectedMerchant.industry_type || ""]?.text || "text-secondary"} />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Exclusive store section</p>
-                      <h3 className="text-xl font-bold text-foreground truncate">{selectedMerchant.store_name}</h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                        {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
-                        {selectedMerchant.address && (
-                          <span className="inline-flex items-center gap-1 min-w-0"><MapPin size={11} /> <span className="truncate">{selectedMerchant.address}</span></span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setSelectedMerchantId(null)}>
-                    <ArrowLeft size={12} /> All Stores
-                  </Button>
+            <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Latest visits and points earned at {selectedMerchant.store_name}.
+                  </p>
                 </div>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                  {filteredTransactions.length} visits
+                </span>
+              </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    { label: "Points", value: `${selectedMerchant.points_balance}` },
-                    { label: "Rewards", value: `${filteredRewards.length}` },
-                    { label: "Offers", value: `${filteredOffers.length}` },
-                    { label: "Visits", value: `${selectedMerchant.visit_count}` },
-                  ].map((item) => (
-                    <div key={item.label} className="rounded-xl border border-border/40 bg-background/80 px-3 py-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                      <p className="mt-1 text-lg font-bold text-foreground">{item.value}</p>
+              {recentTransactionsPreview.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-center">
+                  <p className="text-sm font-medium text-foreground">No recent activity yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Your latest transactions at this store will appear here.</p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-2.5">
+                  {recentTransactionsPreview.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 px-3 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{transaction.merchant_name}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {new Date(transaction.transaction_date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} · ${transaction.purchase_amount.toFixed(2)} spent
+                        </p>
+                      </div>
+                      <span className="rounded-lg bg-accent/15 px-2.5 py-1 text-sm font-bold text-accent-foreground">
+                        +{transaction.points_awarded}
+                      </span>
                     </div>
                   ))}
                 </div>
-
-                <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Everything below is now filtered just for {selectedMerchant.store_name}.</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Rewards, campaigns, offers, stamp progress, redemptions, and recent activity are all exclusive to this store view.</p>
-                </div>
-              </div>
+              )}
             </div>
           </ScrollReveal>
         )}
@@ -855,6 +831,38 @@ const AccessCard = () => {
                 </div>
               )}
             </Carousel>
+          </ScrollReveal>
+        )}
+
+        {/* Monthly Offers */}
+        {filteredOffers.length > 0 && (
+          <ScrollReveal delay={70}>
+            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                <CalendarDays size={16} className="text-accent" /> Monthly Offers
+              </h3>
+              <div className="space-y-3">
+                {filteredOffers.map((o) => (
+                  <div key={o.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
+                      <CalendarDays size={16} className="text-accent-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-xs sm:text-sm text-foreground">{o.title}</p>
+                      {o.description && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">{o.description}</p>}
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] text-muted-foreground/60">{o.store_name}</span>
+                        {o.valid_to && (
+                          <span className="text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                            <Clock size={8} /> Ends in {daysUntil(o.valid_to)} days
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </ScrollReveal>
         )}
 
@@ -977,38 +985,6 @@ const AccessCard = () => {
                 customerId={customer.id}
                 customerCardNumber={customer.loyalty_card_number || ""}
               />
-            </div>
-          </ScrollReveal>
-        )}
-
-        {/* Monthly Offers */}
-        {filteredOffers.length > 0 && (
-          <ScrollReveal delay={125}>
-            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                <CalendarDays size={16} className="text-accent" /> Monthly Offers
-              </h3>
-              <div className="space-y-3">
-                {filteredOffers.map((o) => (
-                  <div key={o.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
-                      <CalendarDays size={16} className="text-accent-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-xs sm:text-sm text-foreground">{o.title}</p>
-                      {o.description && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">{o.description}</p>}
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] text-muted-foreground/60">{o.store_name}</span>
-                        {o.valid_to && (
-                          <span className="text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                            <Clock size={8} /> Ends in {daysUntil(o.valid_to)} days
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </ScrollReveal>
         )}
