@@ -596,49 +596,6 @@ const AccessCard = () => {
               </div>
             </ScrollReveal>
 
-            {/* Account Settings */}
-            <ScrollReveal delay={100}>
-              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Shield size={16} className="text-muted-foreground" /> Account Settings
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Permanently delete your Perk Back account and all your loyalty data.
-                </p>
-                <button
-                  onClick={() => setShowDeleteAccountDialog(true)}
-                  className="text-xs font-semibold text-destructive hover:text-destructive/80 transition-colors flex items-center gap-1.5"
-                >
-                  <XCircle size={12} /> Delete my account
-                </button>
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal delay={125}>
-              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Info size={16} className="text-muted-foreground" /> More
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: "About Us", href: "/about?web=1" },
-                    { label: "Pricing", href: "/pricing?web=1" },
-                    { label: "Testimonials", href: "/testimonials?web=1" },
-                    { label: "Blog", href: "/blog?web=1" },
-                    { label: "Contact", href: "/contact?web=1" },
-                    { label: "Privacy", href: "/privacy?web=1" },
-                  ].map((item) => (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </ScrollReveal>
           </>
         ) : (
         <>
