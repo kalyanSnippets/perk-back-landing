@@ -414,9 +414,12 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
       {/* Browse Merchants */}
       <ScrollReveal delay={60}>
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Store size={16} className="text-secondary" /> Browse Merchants
-          </h3>
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Store size={16} className="text-secondary" /> Browse Merchants
+            </h3>
+            <p className="text-xs text-muted-foreground">A simple directory list is a better fit here so customers can scan stores faster and open details quickly.</p>
+          </div>
           <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} industries={uniqueIndustries} />
           {filteredMerchants.length === 0 ? (
             <div className="text-center py-8">
@@ -424,7 +427,7 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
               <p className="text-sm text-muted-foreground">No merchants found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               {filteredMerchants.map((m, idx) => {
                 const rewardCount = merchantRewardCounts.get(m.id) || 0;
                 const isMember = customerMerchantIds.includes(m.id);
@@ -432,7 +435,6 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                   ? haversineDistance(userLocation.latitude, userLocation.longitude, m.latitude, m.longitude)
                   : null;
                 const colors = INDUSTRY_COLORS[m.industry_type || ""] || { accent: "from-secondary to-primary", badge: "bg-secondary/10 text-secondary" };
-                const cardGradients = ["from-primary/5 to-secondary/5", "from-secondary/5 to-accent/5", "from-accent/5 to-primary/5", "from-amber-50 to-orange-50"];
                 return (
                   <div
                     key={m.id}
@@ -440,90 +442,82 @@ const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
                     tabIndex={0}
                     onClick={() => setPreviewMerchantId(m.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPreviewMerchantId(m.id); } }}
-                    className="rounded-2xl border border-border/30 bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="group rounded-[24px] border border-border/30 bg-card p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    {/* Industry-themed image header */}
-                    <div className="relative h-28 overflow-hidden">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl">
                       <img
                         src={getIndustryImage(m.industry_type)}
                         alt={m.industry_type || "Store"}
                         loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                      {/* Lazy map preview revealed on hover when coordinates exist */}
-                      {m.latitude != null && m.longitude != null ? (
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                          <MapPreview latitude={m.latitude} longitude={m.longitude} zoom={14} className="w-full h-full" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none flex items-end p-2.5">
-                          <div className="bg-background/90 backdrop-blur-sm rounded-lg px-2 py-1.5 border border-border/40 shadow-sm w-full">
-                            <p className="text-[9px] text-foreground font-medium flex items-center gap-1 truncate">
-                              <MapPin size={9} className="text-secondary shrink-0" />
-                              {m.address || "Address not set"}
-                            </p>
-                            <p className="text-[8px] text-muted-foreground mt-0.5">Map unavailable</p>
-                          </div>
-                        </div>
-                      )}
-                      {/* Logo overlay */}
-                      <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-xl bg-background border-2 border-background shadow-lg flex items-center justify-center overflow-hidden z-10">
+                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
+                      <div className="absolute left-2 top-2 h-10 w-10 overflow-hidden rounded-xl border border-background/30 bg-background/90 shadow-card">
                         {m.logo_url ? (
                           <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
                         ) : (
                           <Store size={18} className="text-secondary" />
                         )}
                       </div>
-                      {/* Member badge */}
                       {isMember && (
-                        <span className="absolute top-2 right-2 text-[8px] font-bold text-accent-foreground bg-accent px-2 py-0.5 rounded-full shadow-md z-10">MEMBER</span>
+                        <span className="absolute bottom-2 left-2 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground shadow-card">MEMBER</span>
                       )}
-                      {/* Industry badge */}
-                      {m.industry_type && (
-                        <span className={`absolute top-2 left-2 text-[9px] font-semibold ${colors.badge} px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm z-10`}>
-                          {m.industry_type}
-                        </span>
-                      )}
-                      {/* Directions button — opens Google Maps */}
-                      {(m.latitude != null && m.longitude != null) || m.address ? (
-                        <a
-                          href={
-                            m.latitude != null && m.longitude != null
-                              ? `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`
-                              : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(m.address || "")}`
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Get directions to ${m.store_name}`}
-                          title="Get directions"
-                          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm border border-border/40 shadow-md flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-colors z-20"
-                        >
-                          <Navigation size={14} />
-                        </a>
-                      ) : null}
-                    </div>
-                    {/* Accent strip */}
-                    <div className={`h-1 bg-gradient-to-r ${colors.accent}`} />
-                    {/* Content */}
-                    <div className="p-3 pt-5">
-                      <p className="font-bold text-sm text-foreground truncate">{m.store_name}</p>
-                      {m.address && (
-                        <p className="text-[9px] text-muted-foreground/70 flex items-center gap-0.5 mt-1 truncate">
-                          <MapPin size={8} /> {m.address}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {rewardCount > 0 && (
-                          <span className="text-[9px] text-accent font-semibold">{rewardCount} reward{rewardCount > 1 ? "s" : ""}</span>
-                        )}
-                        {dist !== null && (
-                          <span className="text-[9px] text-primary flex items-center gap-0.5 font-medium">
-                            <MapPin size={7} /> {formatDistance(dist)}
-                          </span>
-                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm font-bold text-foreground">{m.store_name}</p>
+                              {m.industry_type && (
+                                <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${colors.badge}`}>
+                                  {m.industry_type}
+                                </span>
+                              )}
+                            </div>
+                            {m.address && (
+                              <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground line-clamp-1">
+                                <MapPin size={9} /> {m.address}
+                              </p>
+                            )}
+                          </div>
+                          {(m.latitude != null && m.longitude != null) || m.address ? (
+                            <a
+                              href={
+                                m.latitude != null && m.longitude != null
+                                  ? `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`
+                                  : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(m.address || "")}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`Get directions to ${m.store_name}`}
+                              title="Get directions"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/40 bg-background text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                            >
+                              <Navigation size={14} />
+                            </a>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {rewardCount > 0 && (
+                            <span className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent-foreground">
+                              {rewardCount} reward{rewardCount > 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {dist !== null && (
+                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+                              {formatDistance(dist)} away
+                            </span>
+                          )}
+                          {isMember && (
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                              Joined
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

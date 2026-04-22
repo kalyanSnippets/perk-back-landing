@@ -25,6 +25,8 @@ interface CampaignData {
   description: string | null;
   image_url: string | null;
   merchant_id: string;
+  ai_generated?: boolean | null;
+  target_segment?: string | null;
   store_name?: string;
 }
 
@@ -39,6 +41,7 @@ interface MonthlyOfferData {
 
 interface TransactionData {
   id: string;
+  merchant_id: string | null;
   merchant_name: string;
   purchase_amount: number;
   points_awarded: number;
