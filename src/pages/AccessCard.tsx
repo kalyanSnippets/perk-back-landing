@@ -9,7 +9,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2,
   Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin
+  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin, LogOut
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import { getIndustryImage } from "@/lib/industryImages";
@@ -23,8 +23,6 @@ import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import FloatingBottomNav from "@/components/shared/FloatingBottomNav";
-import { CreditCard as CreditCardIcon, Compass } from "lucide-react";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -79,7 +77,7 @@ const AccessCard = () => {
   const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, logout } = useAuth();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
@@ -92,7 +90,7 @@ const AccessCard = () => {
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore">("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
 
