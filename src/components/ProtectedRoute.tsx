@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
@@ -7,7 +7,17 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  const location = useLocation();
   const { user, loading, isCustomer, isMerchant, isAdmin } = useAuth();
+  const isMobileViewport = typeof window !== "undefined"
+    ? window.matchMedia("(max-width: 767px)").matches
+    : false;
+
+  const intendedPath = `${location.pathname}${location.search}${location.hash}`;
+  const loginTarget = `/get-started?${new URLSearchParams({
+    ...(isMobileViewport ? { app: "1" } : {}),
+    next: intendedPath,
+  }).toString()}`;
 
   if (loading) {
     return (
@@ -18,7 +28,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   }
 
   if (!user) {
-    return <Navigate to="/get-started" replace />;
+    return <Navigate to={loginTarget} replace />;
   }
 
   if (requiredRole === "customer" && !isCustomer) {

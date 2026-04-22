@@ -9,7 +9,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2,
   Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin
+  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin, LogOut
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import { getIndustryImage } from "@/lib/industryImages";
@@ -23,8 +23,6 @@ import NfcTapButton from "@/components/customer/NfcTapButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import FloatingBottomNav from "@/components/shared/FloatingBottomNav";
-import { CreditCard as CreditCardIcon, Compass } from "lucide-react";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -79,7 +77,7 @@ const AccessCard = () => {
   const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, logout } = useAuth();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
@@ -92,7 +90,7 @@ const AccessCard = () => {
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore">("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
 
@@ -268,6 +266,12 @@ const AccessCard = () => {
     else { navigator.clipboard.writeText(shareData.text || ""); toast.success("Card details copied to clipboard"); }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    toast.success("Logged out successfully");
+    navigate("/get-started", { replace: true });
+  };
+
   const [walletLoading, setWalletLoading] = useState<string | null>(null);
   const deviceType = getDeviceType();
   const isMobile = useIsMobile();
@@ -394,17 +398,19 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* ─── Main Tab Switcher — Pill Segmented Control (desktop / tablet) ─── */}
-        <div className="hidden sm:flex gap-1 bg-card rounded-full p-1 border border-border/50 shadow-card">
+        {/* ─── Main Tab Switcher — Top navigation for all breakpoints ─── */}
+        <div className="sticky top-3 z-20 rounded-2xl border border-border/50 bg-background/95 p-2 shadow-card backdrop-blur-md">
+          <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted/40 p-1">
           {[
-            { key: "my-rewards" as const, label: "🎁 My Rewards" },
-            { key: "my-card" as const, label: "💳 My Card" },
-            { key: "explore" as const, label: "🔍 Explore" },
+            { key: "my-rewards" as const, label: "Rewards" },
+            { key: "my-card" as const, label: "Card" },
+            { key: "explore" as const, label: "Explore" },
+            { key: "profile" as const, label: "Profile" },
           ].map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveMainTab(tab.key)}
-              className={`flex-1 py-2.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+              className={`min-w-0 rounded-xl px-2 py-3 text-[11px] font-semibold transition-all duration-300 sm:text-xs ${
                 activeMainTab === tab.key
                   ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-button"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -413,10 +419,78 @@ const AccessCard = () => {
               {tab.label}
             </button>
           ))}
+          </div>
         </div>
 
         {activeMainTab === "explore" ? (
           <ExploreTab customerMerchantIds={customerMerchants.map(cm => cm.merchant_id)} />
+        ) : activeMainTab === "profile" ? (
+          <>
+            <ScrollReveal>
+              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <User size={16} className="text-secondary" /> Profile
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { label: "Full Name", value: customer.full_name || "—", icon: User },
+                    { label: "CRN", value: customer.crn || "—", icon: Hash },
+                    { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/20 last:border-0 gap-3">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5"><item.icon size={12} /> {item.label}</span>
+                      <span className="text-xs font-semibold text-foreground font-mono text-right break-all">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={50}>
+              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Shield size={16} className="text-muted-foreground" /> Account Settings
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Manage your session and account controls from one place.</p>
+                </div>
+                <div className="grid gap-2">
+                  <Button variant="outline" size="sm" className="justify-start gap-2 h-10" onClick={handleLogout}>
+                    <LogOut size={14} /> Log out
+                  </Button>
+                  <Button variant="ghost" size="sm" className="justify-start gap-2 h-10 text-destructive hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
+                    <XCircle size={14} /> Delete my account
+                  </Button>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={100}>
+              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Info size={16} className="text-muted-foreground" /> Pages
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: "About Us", href: "/about?web=1" },
+                    { label: "Pricing", href: "/pricing?web=1" },
+                    { label: "Testimonials", href: "/testimonials?web=1" },
+                    { label: "Blog", href: "/blog?web=1" },
+                    { label: "Contact", href: "/contact?web=1" },
+                    { label: "Privacy", href: "/privacy?web=1" },
+                  ].map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
+          </>
         ) : activeMainTab === "my-card" ? (
           /* ─── My Card Tab ─── */
           <>
@@ -522,49 +596,6 @@ const AccessCard = () => {
               </div>
             </ScrollReveal>
 
-            {/* Account Settings */}
-            <ScrollReveal delay={100}>
-              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Shield size={16} className="text-muted-foreground" /> Account Settings
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Permanently delete your Perk Back account and all your loyalty data.
-                </p>
-                <button
-                  onClick={() => setShowDeleteAccountDialog(true)}
-                  className="text-xs font-semibold text-destructive hover:text-destructive/80 transition-colors flex items-center gap-1.5"
-                >
-                  <XCircle size={12} /> Delete my account
-                </button>
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal delay={125}>
-              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Info size={16} className="text-muted-foreground" /> More
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: "About Us", href: "/about?web=1" },
-                    { label: "Pricing", href: "/pricing?web=1" },
-                    { label: "Testimonials", href: "/testimonials?web=1" },
-                    { label: "Blog", href: "/blog?web=1" },
-                    { label: "Contact", href: "/contact?web=1" },
-                    { label: "Privacy", href: "/privacy?web=1" },
-                  ].map((item) => (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </ScrollReveal>
           </>
         ) : (
         <>
@@ -1199,18 +1230,6 @@ const AccessCard = () => {
       accountType="customer"
     />
 
-    {/* Mobile floating bottom nav (drives the same activeMainTab state) */}
-    <div className="sm:hidden">
-      <FloatingBottomNav
-        items={[
-          { key: "my-rewards", label: "Rewards", icon: Gift },
-          { key: "my-card", label: "Card", icon: CreditCardIcon },
-          { key: "explore", label: "Explore", icon: Compass },
-        ]}
-        activeKey={activeMainTab}
-        onChange={(k) => setActiveMainTab(k as typeof activeMainTab)}
-      />
-    </div>
     </>
   );
 };
