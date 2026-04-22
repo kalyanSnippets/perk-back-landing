@@ -32,15 +32,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { getIndustryImage } from "@/lib/industryImages";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -440,6 +434,25 @@ const AccessCard = () => {
       ?? filteredRewards.find((reward) => reward.image_url)?.image_url
       ?? null
     : null;
+  const merchantCards = customerMerchants
+    .map((merchant) => {
+      const merchantRewards = rewards.filter((reward) => reward.merchant_id === merchant.merchant_id);
+      const merchantOffers = monthlyOffers.filter((offer) => offer.merchant_id === merchant.merchant_id);
+      const merchantCampaignImage = campaigns.find((campaign) => campaign.merchant_id === merchant.merchant_id && campaign.image_url)?.image_url;
+      const merchantRewardImage = merchantRewards.find((reward) => reward.image_url)?.image_url;
+
+      return {
+        ...merchant,
+        rewardCount: merchantRewards.length,
+        offerCount: merchantOffers.length,
+        bannerImage: merchantCampaignImage ?? merchantRewardImage ?? getIndustryImage(merchant.industry_type),
+      };
+    })
+    .sort((a, b) => {
+      if (selectedMerchantId && a.merchant_id === selectedMerchantId) return -1;
+      if (selectedMerchantId && b.merchant_id === selectedMerchantId) return 1;
+      return b.points_balance - a.points_balance;
+    });
   const selectedMerchantMapUrl = selectedMerchant?.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedMerchant.address)}`
     : null;
@@ -510,7 +523,7 @@ const AccessCard = () => {
         <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 py-6 max-w-lg space-y-5 pb-20 pt-6 sm:pt-24">
+      <div className="container mx-auto max-w-lg space-y-4 px-4 pb-20 pt-6 sm:space-y-5 sm:pt-24">
 
         {/* ─── Greeting ─── */}
         <ScrollReveal>
@@ -525,7 +538,7 @@ const AccessCard = () => {
         </ScrollReveal>
 
         {/* ─── Main Tab Switcher — Top navigation for all breakpoints ─── */}
-        <div className="sticky top-3 z-20 rounded-2xl border border-border/50 bg-background/95 p-2 shadow-card backdrop-blur-md">
+        <div className="sticky top-3 z-20 rounded-[28px] border border-border/40 bg-background/95 p-2 shadow-card backdrop-blur-md">
           <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted/40 p-1">
           {[
             { key: "my-rewards" as const, label: "Rewards" },
@@ -739,7 +752,7 @@ const AccessCard = () => {
         <ScrollReveal>
           <div
             ref={pointsSectionRef}
-            className={`relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border text-center transition-all duration-500 ${
+            className={`relative overflow-hidden rounded-[30px] border bg-card p-5 text-center shadow-card transition-all duration-500 sm:p-6 ${
               highlightedSection === "points" ? "border-primary/50 shadow-hero" : "border-border/50"
             }`}
           >
@@ -773,78 +786,123 @@ const AccessCard = () => {
           </div>
         </ScrollReveal>
 
-        {/* My Store */}
+        {/* My Stores */}
         {customerMerchants.length > 0 && (
           <ScrollReveal delay={15}>
-            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 space-y-4">
+            <div className="space-y-4 rounded-[28px] border border-border/40 bg-card p-5 shadow-card sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <Store size={16} className="text-secondary" /> My Store
+                    <Store size={16} className="text-secondary" /> My Stores
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Switch stores anytime to filter your rewards, offers, activity, and progress.
+                    Tap a store card to focus your rewards, offers, points, and progress.
                   </p>
                 </div>
                 {selectedMerchant && (
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs shrink-0" onClick={() => handleMerchantSelection(null)}>
+                  <Button variant="ghost" size="sm" className="h-8 shrink-0 px-2 text-xs" onClick={() => handleMerchantSelection(null)}>
                     View All
                   </Button>
                 )}
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                <Select
-                  value={selectedMerchantId ?? "all"}
-                  onOpenChange={(open) => {
-                    if (open) trackStoreSwitcherEvent("customer_store_switcher_opened", selectedMerchant);
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    trackStoreSwitcherEvent("customer_store_switcher_opened", selectedMerchant);
+                    handleMerchantSelection(null);
                   }}
-                  onValueChange={(value) => handleMerchantSelection(value === "all" ? null : value)}
+                  className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
+                    !selectedMerchant
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-border/60 bg-background">
-                    <SelectValue placeholder="Choose a store" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Stores</SelectItem>
-                    {customerMerchants.map((merchant) => (
-                      <SelectItem key={merchant.merchant_id} value={merchant.merchant_id}>
-                        {merchant.store_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  All Stores
+                </button>
+                {merchantCards.map((merchant) => {
+                  const isActive = selectedMerchantId === merchant.merchant_id;
+                  return (
+                    <button
+                      key={merchant.merchant_id}
+                      onClick={() => {
+                        trackStoreSwitcherEvent("customer_store_switcher_opened", selectedMerchant);
+                        handleMerchantSelection(merchant.merchant_id);
+                      }}
+                      className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
+                        isActive
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {merchant.store_name}
+                    </button>
+                  );
+                })}
+              </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleMerchantSelection(null)}
-                    className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
-                      !selectedMerchant
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    All Stores
-                  </button>
-                  {customerMerchants.slice(0, 2).map((merchant) => {
+              <div className="overflow-x-auto pb-1 -mx-1 px-1">
+                <div className="flex gap-4 min-w-max">
+                  {merchantCards.map((merchant) => {
                     const isActive = selectedMerchantId === merchant.merchant_id;
                     return (
                       <button
                         key={merchant.merchant_id}
                         onClick={() => handleMerchantSelection(merchant.merchant_id)}
-                        className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
-                          isActive
-                            ? "border-primary/40 bg-primary/10 text-primary"
-                            : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground"
+                        className={`w-[286px] overflow-hidden rounded-[30px] border bg-background text-left shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover ${
+                          isActive ? "border-primary/40 ring-2 ring-primary/15" : "border-border/40"
                         }`}
                       >
-                        {merchant.store_name}
+                        <div className="relative h-36 overflow-hidden">
+                          <img src={merchant.bannerImage} alt={merchant.store_name} className="h-full w-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                        </div>
+                        <div className="relative px-4 pb-5 pt-4">
+                          <div className="absolute -top-7 left-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-border/30 bg-background shadow-card">
+                            {merchant.logo_url ? (
+                              <img src={merchant.logo_url} alt={merchant.store_name} className="h-full w-full object-cover" />
+                            ) : (
+                              <Store size={20} className="text-secondary" />
+                            )}
+                          </div>
+                          <div className="pt-5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h4 className="truncate text-lg font-bold text-foreground">{merchant.store_name}</h4>
+                                <p className="text-sm text-muted-foreground">{merchant.industry_type || "Business"}</p>
+                              </div>
+                              {isActive && <Badge className="bg-primary text-primary-foreground">Active</Badge>}
+                            </div>
+                            <div className="mt-4 flex items-end gap-2">
+                              <span className="text-5xl font-bold leading-none text-primary tabular-nums">{merchant.points_balance}</span>
+                              <span className="pb-1 text-2xl font-medium text-muted-foreground">pts</span>
+                            </div>
+                            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <span>{merchant.visit_count} visits</span>
+                              <span>·</span>
+                              <span>${merchant.total_spend.toFixed(0)} spent</span>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {merchant.rewardCount > 0 && (
+                                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+                                  {merchant.rewardCount} rewards
+                                </span>
+                              )}
+                              {merchant.offerCount > 0 && (
+                                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-semibold text-foreground">
+                                  {merchant.offerCount} offers
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-border/40 bg-muted/20 p-4 sm:p-5">
+              <div className="rounded-[24px] border border-border/40 bg-muted/15 p-4 sm:p-5">
                 {isSummaryLoading ? (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
@@ -942,7 +1000,7 @@ const AccessCard = () => {
                       ))}
                     </div>
 
-                    <div className="rounded-xl border border-border/40 bg-background p-3.5 space-y-3">
+                    <div className="rounded-[20px] border border-border/40 bg-background p-3.5 space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Reward focus</p>
@@ -996,7 +1054,7 @@ const AccessCard = () => {
                       <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">All stores overview</p>
                       <h4 className="text-base font-bold text-foreground">Your rewards network at a glance</h4>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Browse everything across your connected stores, or choose one store above for a focused view.
+                        Browse everything across your connected stores, or tap a store card above to return to the old focused experience.
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1028,7 +1086,7 @@ const AccessCard = () => {
 
         {/* Your Status — slim bar, only when merchant has gamification enabled */}
         {customerMerchants.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-2 pt-1">
             {(selectedMerchantId
               ? customerMerchants.filter(cm => cm.merchant_id === selectedMerchantId)
               : customerMerchants
