@@ -737,7 +737,12 @@ const AccessCard = () => {
 
         {/* Points Balance — Vibrant — TOP */}
         <ScrollReveal>
-          <div className="relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50 text-center">
+          <div
+            ref={pointsSectionRef}
+            className={`relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border text-center transition-all duration-500 ${
+              highlightedSection === "points" ? "border-primary/50 shadow-hero" : "border-border/50"
+            }`}
+          >
             {/* Decorative floating shapes */}
             <div className="floating-dot w-6 h-6 bg-accent/15 -top-1 right-[15%]" style={{ animationDelay: "0s" }} />
             <div className="floating-dot w-4 h-4 bg-coral/10 bottom-2 left-[10%]" style={{ animationDelay: "1.5s" }} />
@@ -864,25 +869,61 @@ const AccessCard = () => {
                   </div>
                 ) : selectedMerchant ? (
                   <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="h-12 w-12 rounded-2xl border border-border/50 bg-background shadow-sm overflow-hidden flex items-center justify-center shrink-0">
-                        {selectedMerchant.logo_url ? (
-                          <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
-                        ) : (
-                          <Store size={20} className={INDUSTRY_COLORS[selectedMerchant.industry_type || ""]?.text || "text-secondary"} />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Selected store</p>
-                        <h4 className="text-base font-bold text-foreground truncate">{selectedMerchant.store_name}</h4>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
-                          {selectedMerchant.address && (
-                            <span className="inline-flex min-w-0 items-center gap-1">
-                              <MapPin size={11} />
-                              <span className="truncate">{selectedMerchant.address}</span>
-                            </span>
-                          )}
+                    <div className={`relative overflow-hidden rounded-[20px] border ${selectedMerchantAccent?.border || "border-border/40"}`}>
+                      {selectedMerchantSpotlightImage ? (
+                        <>
+                          <img src={selectedMerchantSpotlightImage} alt={selectedMerchant.store_name} className="absolute inset-0 h-full w-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-tr from-background/95 via-background/70 to-background/20" />
+                        </>
+                      ) : (
+                        <div className={`absolute inset-0 bg-gradient-to-br ${selectedMerchantAccent?.bg || "from-primary/20 via-primary/10 to-secondary/10"}`} />
+                      )}
+
+                      <div className="pointer-events-none absolute -top-12 right-[-18px] h-32 w-32 rounded-full border border-background/20" />
+                      <div className="pointer-events-none absolute -bottom-10 left-[-22px] h-24 w-24 rounded-full bg-background/10" />
+
+                      <div className="relative z-10 p-4 sm:p-5">
+                        <div className="flex items-start gap-3">
+                          <div className="h-14 w-14 rounded-2xl border border-background/30 bg-background/90 shadow-sm overflow-hidden flex items-center justify-center shrink-0">
+                            {selectedMerchant.logo_url ? (
+                              <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
+                            ) : (
+                              <Store size={22} className={selectedMerchantAccent?.text || "text-secondary"} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary" className="bg-background/80 text-foreground hover:bg-background/80">Selected store</Badge>
+                              {selectedMerchantReadyReward && <Badge className="bg-accent text-accent-foreground">Reward ready</Badge>}
+                              {!selectedMerchantReadyReward && selectedMerchantTopReward && (
+                                <Badge variant="outline" className="border-background/30 bg-background/60 text-foreground">
+                                  {Math.max(selectedMerchantTopReward.points_required - selectedMerchant.points_balance, 0)} pts to go
+                                </Badge>
+                              )}
+                            </div>
+                            <h4 className="mt-3 text-lg font-bold text-foreground truncate">{selectedMerchant.store_name}</h4>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-foreground/75">
+                              {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
+                              {selectedMerchant.address && (
+                                <span className="inline-flex min-w-0 items-center gap-1">
+                                  <MapPin size={11} />
+                                  <span className="truncate">{selectedMerchant.address}</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-4 flex items-end justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] uppercase tracking-[0.16em] text-foreground/60">Store points</p>
+                                <p className="mt-1 text-3xl font-bold text-foreground">{selectedMerchant.points_balance}</p>
+                              </div>
+                              <div className="rounded-2xl border border-background/25 bg-background/80 px-3 py-2 text-right">
+                                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Reward focus</p>
+                                <p className="mt-1 text-sm font-semibold text-foreground">
+                                  {selectedMerchantTopReward ? selectedMerchantTopReward.title : "No store rewards yet"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -918,7 +959,7 @@ const AccessCard = () => {
                           ? selectedMerchantTopReward.description || `Track your next reward from ${selectedMerchant.store_name}.`
                           : `This store has no active rewards right now. Check back soon for new offers and perks.`}
                       </p>
-                      <div className="grid gap-2 sm:grid-cols-3">
+                      <div className="grid gap-2 sm:grid-cols-2">
                         <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleViewOffers}>
                           <CalendarDays size={14} /> View offers
                         </Button>
@@ -928,6 +969,24 @@ const AccessCard = () => {
                         <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleCheckPoints}>
                           <Star size={14} /> Check points
                         </Button>
+                        {selectedMerchantMapUrl ? (
+                          <Button variant="outline" size="sm" className="h-10 justify-start" asChild>
+                            <a href={selectedMerchantMapUrl} target="_blank" rel="noreferrer">
+                              <MapPin size={14} /> Get directions
+                            </a>
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" className="h-10 justify-start" onClick={() => setShowStoreDetails(true)}>
+                            <Info size={14} /> Store details
+                          </Button>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-dashed border-border/40 bg-muted/20 p-3 text-xs text-muted-foreground">
+                        {selectedMerchantReadyReward
+                          ? `Best next step: redeem ${selectedMerchantReadyReward.title} while it’s ready.`
+                          : selectedMerchantTopReward
+                            ? `You’re ${Math.max(selectedMerchantTopReward.points_required - selectedMerchant.points_balance, 0)} points away from ${selectedMerchantTopReward.title}.`
+                            : `No rewards or offers are live yet for ${selectedMerchant.store_name}, so keep earning and check back soon.`}
                       </div>
                     </div>
                   </div>
