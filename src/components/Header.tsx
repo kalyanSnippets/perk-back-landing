@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Map of public route → dynamic import. Triggered on hover/touchstart so the
 // lazy chunk + its dependencies are warm by the time the user actually clicks.
@@ -44,8 +45,11 @@ const Header = () => {
   const { user, isAdmin, isMerchant, isCustomer, authReady, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const isCustomerPage = location.pathname.startsWith("/customer/");
+  const isJoinPage = location.pathname.startsWith("/join/");
+  const hideMobileHeader = isMobile && (isCustomerPage || isJoinPage || location.pathname === "/get-started");
   const filteredNavLinks = isCustomerPage
     ? navLinks.filter(l => l.label !== "Pricing")
     : navLinks;
@@ -56,6 +60,8 @@ const Header = () => {
     setMobileOpen(false);
     navigate("/");
   };
+
+  if (hideMobileHeader) return null;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border/30 shadow-sm">
