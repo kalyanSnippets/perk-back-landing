@@ -462,6 +462,8 @@ const AccessCard = () => {
   const selectedMerchantReadyReward = selectedMerchant
     ? filteredRewards.find((reward) => reward.points_required <= selectedMerchant.points_balance) ?? null
     : null;
+  const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
+  const dashboardInnerBlock = "rounded-[22px] border border-border/30 bg-background/70";
   const handleCheckPoints = () => {
     focusRewardsSection("points");
     setPointsVisible(false);
@@ -745,7 +747,7 @@ const AccessCard = () => {
 
           </>
         ) : (
-        <>
+        <div className="space-y-4">
         {/* ─── MY REWARDS TAB ─── */}
 
         {/* Points Balance — Vibrant — TOP */}
@@ -789,7 +791,7 @@ const AccessCard = () => {
         {/* My Stores */}
         {customerMerchants.length > 0 && (
           <ScrollReveal delay={15}>
-            <div className="space-y-4 rounded-[28px] border border-border/40 bg-card p-5 shadow-card sm:p-6">
+            <div className={`${dashboardSectionShell} space-y-4 p-5 sm:p-6`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -902,7 +904,7 @@ const AccessCard = () => {
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-border/40 bg-muted/15 p-4 sm:p-5">
+              <div className={`${dashboardInnerBlock} p-4 sm:p-5`}>
                 {isSummaryLoading ? (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
@@ -1181,7 +1183,7 @@ const AccessCard = () => {
         <ScrollReveal delay={75}>
           <div
             ref={rewardsSectionRef}
-            className={`bg-card rounded-2xl p-5 sm:p-6 shadow-card border transition-all duration-500 ${
+            className={`${dashboardSectionShell} p-5 transition-all duration-500 sm:p-6 ${
               highlightedSection === "rewards" ? "border-accent/50 shadow-hero" : "border-border/50"
             }`}
           >
@@ -1319,7 +1321,7 @@ const AccessCard = () => {
           <ScrollReveal delay={125}>
             <div
               ref={offersSectionRef}
-              className={`bg-card rounded-2xl p-5 sm:p-6 shadow-card border transition-all duration-500 ${
+              className={`${dashboardSectionShell} p-5 transition-all duration-500 sm:p-6 ${
                 highlightedSection === "offers" ? "border-secondary/50 shadow-hero" : "border-border/50"
               }`}
             >
@@ -1353,7 +1355,7 @@ const AccessCard = () => {
 
         {/* Points History (collapsed) */}
         <ScrollReveal delay={150}>
-          <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
+          <div className={`${dashboardSectionShell} overflow-hidden`}>
             <button onClick={() => setShowTransactions(!showTransactions)} className="w-full flex items-center justify-between p-5 sm:p-6 text-left">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <Shield size={16} className="text-secondary" /> Points Earned
@@ -1393,7 +1395,7 @@ const AccessCard = () => {
         {/* Redemption History — Collapsible */}
         {filteredRedemptions.length > 0 && (
           <ScrollReveal delay={175}>
-            <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
+            <div className={`${dashboardSectionShell} overflow-hidden`}>
               <Collapsible>
                 <CollapsibleTrigger className="w-full flex items-center justify-between p-5 sm:p-6 text-left hover:bg-muted/20 transition-colors group">
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -1460,7 +1462,7 @@ const AccessCard = () => {
             </Link>
           </ScrollReveal>
         )}
-        </>
+        </div>
         )}
       </div>
 
