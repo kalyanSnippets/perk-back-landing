@@ -12,7 +12,6 @@ import {
   CheckCircle, XCircle, Ticket, Info, Store, MapPin, LogOut
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
-import { getIndustryImage } from "@/lib/industryImages";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -626,6 +625,23 @@ const AccessCard = () => {
             <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3 relative z-10">
               {selectedMerchant ? `${selectedMerchant.store_name} Points` : "Total Points Balance"}
             </p>
+            {selectedMerchant && (
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-2 relative z-10">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-background/80 px-3 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur">
+                  <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-border/40 bg-muted">
+                    {selectedMerchant.logo_url ? (
+                      <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Store size={11} className="text-secondary" />
+                    )}
+                  </span>
+                  {selectedMerchant.store_name}
+                </span>
+                <span className="rounded-full bg-background/70 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+                  {filteredOffers.length} offers · {filteredCampaigns.length} campaigns
+                </span>
+              </div>
+            )}
             <div className={`flex items-center justify-center gap-3 transition-all duration-700 relative z-10 ${pointsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center">
                 <Star className="text-accent fill-accent" size={24} />
@@ -646,6 +662,18 @@ const AccessCard = () => {
             <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors relative z-10">
               <Info size={10} /> How to earn points
             </button>
+            {selectedMerchant && selectedMerchantNextReward && (
+              <div className="mt-4 grid grid-cols-2 gap-2 text-left relative z-10">
+                <div className="rounded-xl border border-border/30 bg-background/75 px-3 py-2.5 shadow-sm backdrop-blur">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Next reward</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground line-clamp-1">{selectedMerchantNextReward.title}</p>
+                </div>
+                <div className="rounded-xl border border-border/30 bg-background/75 px-3 py-2.5 shadow-sm backdrop-blur">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">To unlock</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">{Math.max(selectedMerchantNextReward.points_required - displayPoints, 0)} pts</p>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollReveal>
 
@@ -806,6 +834,38 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
+        {/* Monthly Offers */}
+        {filteredOffers.length > 0 && (
+          <ScrollReveal delay={70}>
+            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                <CalendarDays size={16} className="text-accent" /> Monthly Offers
+              </h3>
+              <div className="space-y-3">
+                {filteredOffers.map((o) => (
+                  <div key={o.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
+                      <CalendarDays size={16} className="text-accent-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-xs sm:text-sm text-foreground">{o.title}</p>
+                      {o.description && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">{o.description}</p>}
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] text-muted-foreground/60">{o.store_name}</span>
+                        {o.valid_to && (
+                          <span className="text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                            <Clock size={8} /> Ends in {daysUntil(o.valid_to)} days
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
         {/* Available Rewards - Enhanced */}
         <ScrollReveal delay={75}>
           <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
@@ -925,38 +985,6 @@ const AccessCard = () => {
                 customerId={customer.id}
                 customerCardNumber={customer.loyalty_card_number || ""}
               />
-            </div>
-          </ScrollReveal>
-        )}
-
-        {/* Monthly Offers */}
-        {filteredOffers.length > 0 && (
-          <ScrollReveal delay={125}>
-            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                <CalendarDays size={16} className="text-accent" /> Monthly Offers
-              </h3>
-              <div className="space-y-3">
-                {filteredOffers.map((o) => (
-                  <div key={o.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
-                      <CalendarDays size={16} className="text-accent-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-xs sm:text-sm text-foreground">{o.title}</p>
-                      {o.description && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">{o.description}</p>}
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] text-muted-foreground/60">{o.store_name}</span>
-                        {o.valid_to && (
-                          <span className="text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                            <Clock size={8} /> Ends in {daysUntil(o.valid_to)} days
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </ScrollReveal>
         )}
