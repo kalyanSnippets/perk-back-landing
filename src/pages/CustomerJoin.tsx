@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowRight, Check, ChevronRight, CreditCard, Gift, Loader2, MapPin, ScanLine, Sparkles, WalletCards } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowRight, CreditCard, Loader2, Sparkles, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,20 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
 import perkbackLogo from "@/assets/perkback-logo-224.webp";
 import merchantHero from "@/assets/prototype/merchant-welcome-hero.jpg";
-import slideScan from "@/assets/prototype/onboarding-scan.jpg";
-import slideRewards from "@/assets/prototype/onboarding-rewards.jpg";
-import slideDiscover from "@/assets/prototype/onboarding-discover.jpg";
+import introImage from "@/assets/prototype/onboarding-scan.jpg";
 
-type Step =
-  | "splash"
-  | "welcome"
-  | "onboarding"
-  | "questions"
-  | "wallet"
-  | "ready";
+type Step = "splash" | "intro" | "questions" | "wallet" | "ready";
 
 interface MerchantInfo {
   id: string;
@@ -40,6 +31,8 @@ interface CardIdentity {
   merchant_name: string;
 }
 
+const SPLASH_DURATION_MS = 2200;
+
 const profileSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required").max(60),
   phone: z.string().trim().min(6, "Mobile number is required").max(20),
@@ -51,23 +44,21 @@ const credentialsSchema = z.object({
   password: z.string().min(8, "Use at least 8 characters").max(72),
 });
 
-/* ───────── Mobile frame (centered on desktop) ───────── */
 const MobileFrame = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen bg-muted/30 flex items-stretch justify-center">
-    <div className="w-full max-w-[420px] min-h-screen bg-background shadow-floating-nav flex flex-col">
+  <div className="min-h-[100dvh] bg-muted/30 flex items-stretch justify-center overflow-hidden">
+    <div className="w-full max-w-[420px] min-h-[100dvh] max-h-[100dvh] bg-background shadow-floating-nav flex flex-col overflow-hidden">
       {children}
     </div>
   </div>
 );
 
-/* ───────── Splash ───────── */
 const Splash = () => (
-  <div className="flex-1 bg-gradient-hero flex flex-col items-center justify-center text-primary-foreground">
+  <div className="flex-1 bg-gradient-hero flex flex-col items-center justify-center px-6 text-primary-foreground">
     <div className="flex h-28 w-28 items-center justify-center rounded-[2rem] bg-primary-foreground/10 backdrop-blur-md shadow-hero animate-pop-in">
-      <img src={perkbackLogo} alt="PerkBack" className="h-16 w-16" />
+      <img src={perkbackLogo} alt="PerkBack" className="h-16 w-16 object-contain" />
     </div>
     <h1 className="mt-5 text-3xl font-black tracking-tight">PerkBack</h1>
-    <p className="mt-2 text-xs font-bold uppercase tracking-[0.25em] text-primary-foreground/70">
+    <p className="mt-2 text-xs font-bold uppercase tracking-[0.25em] text-primary-foreground/70 text-center">
       One wallet · every local perk
     </p>
     <div className="mt-10 flex gap-1.5">
@@ -78,38 +69,66 @@ const Splash = () => (
   </div>
 );
 
-/* ───────── Welcome ───────── */
-const Welcome = ({ merchant, onJoin, onSignIn }: { merchant: MerchantInfo; onJoin: () => void; onSignIn: () => void }) => (
-  <div className="flex-1 flex flex-col px-5 pb-8 pt-6">
-    <div className="overflow-hidden rounded-[2rem] shadow-hero">
+const Intro = ({
+  merchant,
+  onJoin,
+  onSignIn,
+}: {
+  merchant: MerchantInfo;
+  onJoin: () => void;
+  onSignIn: () => void;
+}) => (
+  <div className="flex-1 flex flex-col px-5 pt-5 pb-6 overflow-hidden">
+    <div className="overflow-hidden rounded-[2rem] border border-border/50 bg-card shadow-card">
       <div className="relative h-44">
         <img src={merchantHero} alt={merchant.store_name} className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-        <div className="absolute -bottom-6 left-1/2 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-2xl bg-card shadow-card overflow-hidden">
-          {merchant.logo_url ? (
-            <img src={merchant.logo_url} alt={merchant.store_name} className="h-12 w-12 object-contain" />
-          ) : (
-            <span className="text-xl font-black text-primary">
-              {merchant.store_name.charAt(0)}
-            </span>
-          )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/15 to-transparent" />
+        <div className="absolute left-1/2 bottom-4 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-background/90 px-3 py-2 shadow-card backdrop-blur-md">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-card shadow-card">
+            {merchant.logo_url ? (
+              <img src={merchant.logo_url} alt={merchant.store_name} className="h-9 w-9 object-contain" />
+            ) : (
+              <span className="text-lg font-black text-primary">{merchant.store_name.charAt(0)}</span>
+            )}
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              {merchant.industry_type ?? "Local merchant"}
+            </p>
+            <p className="text-sm font-black text-foreground">{merchant.store_name}</p>
+          </div>
         </div>
       </div>
-      <div className="bg-card px-5 pb-5 pt-10 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          {merchant.industry_type ?? "Local merchant"}
-        </p>
-        <h2 className="mt-2 text-2xl font-black leading-tight">
-          Welcome to<br />{merchant.store_name}
-        </h2>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Join PerkBack to start earning here — and at every local store on the network.
-        </p>
+
+      <div className="p-5 space-y-4">
+        <div className="text-center">
+          <h2 className="text-[1.85rem] font-black leading-tight text-foreground">Join in seconds</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Create your PerkBack wallet once, then scan and earn every time you visit {merchant.store_name}.
+          </p>
+        </div>
+
+        <div className="grid gap-3">
+          {[
+            "Your wallet works across participating stores.",
+            "Points and rewards show up instantly after each visit.",
+            "Already a member? Sign in and we’ll take you straight to your card.",
+          ].map((item) => (
+            <div key={item} className="rounded-2xl bg-muted/40 px-4 py-3 text-sm text-foreground">
+              {item}
+            </div>
+          ))}
+        </div>
+
+        <div className="overflow-hidden rounded-[1.5rem] shadow-card">
+          <img src={introImage} alt="Customer scanning a loyalty QR code" className="h-28 w-full object-cover" />
+        </div>
       </div>
     </div>
-    <div className="mt-auto pt-6 space-y-3">
+
+    <div className="mt-auto pt-5 space-y-3">
       <Button variant="hero" size="lg" className="w-full" onClick={onJoin}>
-        Join now <ArrowRight className="h-4 w-4" />
+        Continue <ArrowRight className="h-4 w-4" />
       </Button>
       <p className="text-center text-xs text-muted-foreground">
         Already on PerkBack?{" "}
@@ -121,53 +140,13 @@ const Welcome = ({ merchant, onJoin, onSignIn }: { merchant: MerchantInfo; onJoi
   </div>
 );
 
-/* ───────── Onboarding ───────── */
-const ONBOARDING_SLIDES = [
-  { image: slideScan, eyebrow: "SHOW YOUR CARD", title: "Scan once, earn every time", body: "Open your wallet at the counter — staff scans your code and your points land instantly." },
-  { image: slideRewards, eyebrow: "REAL REWARDS", title: "Free coffees, perks and treats", body: "Every visit moves you closer to rewards from the local places you already love." },
-  { image: slideDiscover, eyebrow: "DISCOVER", title: "Find new perks nearby", body: "See live offers from cafés, restaurants and shops around you — wherever you are." },
-];
-
-const Onboarding = ({ onDone }: { onDone: () => void }) => {
-  const [i, setI] = useState(0);
-  const slide = ONBOARDING_SLIDES[i];
-  const isLast = i === ONBOARDING_SLIDES.length - 1;
-  return (
-    <div className="flex-1 flex flex-col px-5 pb-8 pt-4">
-      <div className="flex justify-end">
-        <button onClick={onDone} className="text-sm font-bold text-muted-foreground hover:text-foreground">
-          Skip
-        </button>
-      </div>
-      <div className="mt-2 overflow-hidden rounded-[2rem] shadow-card">
-        <img src={slide.image} alt="" className="h-64 w-full object-cover" />
-      </div>
-      <div className="mt-6 text-center animate-fade-in-up" key={i}>
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{slide.eyebrow}</p>
-        <h2 className="mt-2 text-2xl font-black leading-tight">{slide.title}</h2>
-        <p className="mt-3 text-sm text-muted-foreground">{slide.body}</p>
-      </div>
-      <div className="mt-6 flex justify-center gap-2">
-        {ONBOARDING_SLIDES.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setI(idx)}
-            className={cn("h-1.5 rounded-full transition-all", idx === i ? "w-8 bg-primary" : "w-1.5 bg-border")}
-            aria-label={`Slide ${idx + 1}`}
-          />
-        ))}
-      </div>
-      <div className="mt-auto pt-6">
-        <Button variant="hero" size="lg" className="w-full" onClick={() => (isLast ? onDone() : setI(i + 1))}>
-          {isLast ? "Create my wallet" : "Continue"} <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-/* ───────── Quick Questions ───────── */
-const QuickQuestions = ({ initial, onContinue }: { initial: { firstName: string; phone: string; dob: string }; onContinue: (v: { firstName: string; phone: string; dob: string }) => void }) => {
+const QuickQuestions = ({
+  initial,
+  onContinue,
+}: {
+  initial: { firstName: string; phone: string; dob: string };
+  onContinue: (v: { firstName: string; phone: string; dob: string }) => void;
+}) => {
   const [firstName, setFirstName] = useState(initial.firstName);
   const [phone, setPhone] = useState(initial.phone);
   const [dob, setDob] = useState(initial.dob);
@@ -183,10 +162,12 @@ const QuickQuestions = ({ initial, onContinue }: { initial: { firstName: string;
   };
 
   return (
-    <form onSubmit={submit} className="flex-1 flex flex-col px-5 pb-8 pt-6">
-      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Step 1 of 2</p>
-      <h2 className="mt-2 text-2xl font-black">A few quick details</h2>
-      <p className="mt-1 text-sm text-muted-foreground">We use these to power your birthday rewards and SMS receipts.</p>
+    <form onSubmit={submit} className="flex-1 flex flex-col px-5 pt-6 pb-6">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Step 1 of 2</p>
+        <h2 className="mt-2 text-2xl font-black">A few quick details</h2>
+        <p className="mt-1 text-sm text-muted-foreground">We use these for your wallet, birthday perks and receipts.</p>
+      </div>
 
       <div className="mt-6 space-y-4">
         <div>
@@ -204,23 +185,28 @@ const QuickQuestions = ({ initial, onContinue }: { initial: { firstName: string;
       </div>
 
       <div className="mt-5 rounded-2xl bg-muted/50 p-4 text-xs text-muted-foreground">
-        <span className="font-bold text-foreground">Why we ask</span> — your birthday unlocks free perks, and your mobile keeps your receipts safe.
+        <span className="font-bold text-foreground">Why we ask</span> — your birthday unlocks rewards, and your mobile keeps your wallet linked to this merchant.
       </div>
 
       <div className="mt-auto pt-6">
         <Button type="submit" variant="hero" size="lg" className="w-full">
-          Continue <ChevronRight className="h-4 w-4" />
+          Continue <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
     </form>
   );
 };
 
-/* ───────── Create Wallet ───────── */
-const CreateWallet = ({ profile, merchantSlug, onCreated }: {
+const CreateWallet = ({
+  profile,
+  merchantSlug,
+  onCreated,
+  onSignIn,
+}: {
   profile: { firstName: string; phone: string; dob: string };
   merchantSlug: string;
   onCreated: () => void;
+  onSignIn: () => void;
 }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -233,6 +219,7 @@ const CreateWallet = ({ profile, merchantSlug, onCreated }: {
       toast.error("Please agree to the Terms and Privacy Policy");
       return;
     }
+
     const parsed = credentialsSchema.safeParse({ email, password });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
@@ -271,9 +258,12 @@ const CreateWallet = ({ profile, merchantSlug, onCreated }: {
   };
 
   return (
-    <form onSubmit={submit} className="flex-1 flex flex-col px-5 pb-8 pt-6">
-      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Step 2 of 2</p>
-      <h2 className="mt-2 text-2xl font-black">Create your PerkBack wallet</h2>
+    <form onSubmit={submit} className="flex-1 flex flex-col px-5 pt-6 pb-6">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Step 2 of 2</p>
+        <h2 className="mt-2 text-2xl font-black">Create your PerkBack wallet</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Use one login to access your card every time you open the app.</p>
+      </div>
 
       <div className="mt-6 space-y-4">
         <div>
@@ -290,14 +280,25 @@ const CreateWallet = ({ profile, merchantSlug, onCreated }: {
         <Checkbox checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} className="mt-0.5" />
         <span>
           I agree to PerkBack's{" "}
-          <a href="/privacy" target="_blank" className="font-bold text-foreground underline-offset-4 hover:underline">Terms</a>{" "}
+          <a href="/privacy" target="_blank" className="font-bold text-foreground underline-offset-4 hover:underline" rel="noreferrer">
+            Terms
+          </a>{" "}
           and{" "}
-          <a href="/privacy" target="_blank" className="font-bold text-foreground underline-offset-4 hover:underline">Privacy Policy</a>.
+          <a href="/privacy" target="_blank" className="font-bold text-foreground underline-offset-4 hover:underline" rel="noreferrer">
+            Privacy Policy
+          </a>
+          .
         </span>
       </label>
 
       <Button type="submit" variant="hero" size="lg" className="mt-5 w-full" disabled={loading}>
-        {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating wallet…</> : "Create my wallet"}
+        {loading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" /> Creating wallet…
+          </>
+        ) : (
+          "Create my wallet"
+        )}
       </Button>
 
       <div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -308,11 +309,17 @@ const CreateWallet = ({ profile, merchantSlug, onCreated }: {
         <Button type="button" variant="outline" size="lg" className="w-full" onClick={() => oauth("google")}>Continue with Google</Button>
         <Button type="button" variant="outline" size="lg" className="w-full" onClick={() => oauth("apple")}>Continue with Apple</Button>
       </div>
+
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        Already have an account?{" "}
+        <button type="button" onClick={onSignIn} className="font-bold text-foreground underline-offset-4 hover:underline">
+          Sign in
+        </button>
+      </p>
     </form>
   );
 };
 
-/* ───────── Card Ready ───────── */
 const CardReady = ({ identity, onOpen }: { identity: CardIdentity; onOpen: () => void }) => (
   <div className="flex-1 bg-gradient-hero flex flex-col px-5 pb-8 pt-8 text-primary-foreground">
     <div className="text-center">
@@ -328,11 +335,11 @@ const CardReady = ({ identity, onOpen }: { identity: CardIdentity; onOpen: () =>
     <div className="mt-6 rounded-[2rem] bg-primary-foreground/10 p-5 backdrop-blur-md shadow-hero animate-fade-in-up">
       <div className="flex items-center justify-between">
         <CreditCard className="h-7 w-7" />
-        <img src={perkbackLogo} alt="" className="h-7 w-7 opacity-90" />
+        <img src={perkbackLogo} alt="PerkBack" className="h-7 w-7 opacity-90" />
       </div>
       <p className="mt-10 text-[10px] font-bold uppercase tracking-[0.2em] text-primary-foreground/70">Cardholder</p>
       <p className="text-xl font-black">{identity.full_name ?? "Member"}</p>
-      <div className="mt-4 flex justify-between">
+      <div className="mt-4 flex justify-between gap-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/70">CRN</p>
           <p className="font-mono text-base font-black">{identity.crn}</p>
@@ -367,10 +374,8 @@ const CardReady = ({ identity, onOpen }: { identity: CardIdentity; onOpen: () =>
   </div>
 );
 
-/* ───────── Page Orchestrator ───────── */
 const CustomerJoin = () => {
   const { merchantSlug = "" } = useParams<{ merchantSlug: string }>();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, authReady } = useAuth();
 
@@ -381,15 +386,11 @@ const CustomerJoin = () => {
   const [identity, setIdentity] = useState<CardIdentity | null>(null);
   const [linking, setLinking] = useState(false);
 
-  // Splash auto-advance
   useEffect(() => {
-    if (step === "splash") {
-      const t = setTimeout(() => setStep("welcome"), 1300);
-      return () => clearTimeout(t);
-    }
-  }, [step]);
+    const timer = window.setTimeout(() => setStep("intro"), SPLASH_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-  // Load merchant
   useEffect(() => {
     let active = true;
     (async () => {
@@ -401,41 +402,53 @@ const CustomerJoin = () => {
       }
       setMerchant(data[0] as MerchantInfo);
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [merchantSlug]);
 
-  // If already signed in → link silently and go straight to wallet
   useEffect(() => {
-    if (!authReady || !user || !merchant || linking) return;
-    if (searchParams.get("step") === "ready") return; // OAuth-return path handled below
+    if (!authReady || !user || !merchant || linking || step === "splash") return;
+
     setLinking(true);
     (async () => {
-      const { data, error } = await supabase.rpc("join_merchant_by_slug", {
-        _slug: merchantSlug,
-        _source: "qr-poster",
-      });
-      if (!error && (data as any)?.success) {
-        toast.success(`You're now earning at ${(data as any).merchant_name}`);
+      try {
+        const { data, error } = await supabase.rpc("join_merchant_by_slug", {
+          _slug: merchantSlug,
+          _source: "qr-poster",
+        });
+
+        if (!error && (data as any)?.success) {
+          toast.success(`You're now earning at ${(data as any).merchant_name}`);
+        }
+      } finally {
+        navigate("/customer/access-card", { replace: true });
       }
-      navigate("/customer/access-card", { replace: true });
     })();
-  }, [authReady, user, merchant, merchantSlug, linking, navigate, searchParams]);
+  }, [authReady, linking, merchant, merchantSlug, navigate, step, user]);
+
+  const signInPath = `/get-started?app=1&next=${encodeURIComponent(`/join/${merchantSlug}`)}`;
 
   const handleWalletCreated = async () => {
-    // After signUp, session exists immediately (auto-confirm) or pending email.
-    const { data: { user: u } } = await supabase.auth.getUser();
-    if (!u) {
+    const {
+      data: { user: signedInUser },
+    } = await supabase.auth.getUser();
+
+    if (!signedInUser) {
       toast.success("Check your email to confirm your wallet");
       return;
     }
+
     const { data, error } = await supabase.rpc("join_merchant_by_slug", {
       _slug: merchantSlug,
       _source: "qr-poster",
     });
+
     if (error || !(data as any)?.success) {
       toast.error("Could not link to merchant");
       return;
     }
+
     const result = data as any;
     setIdentity({
       crn: result.crn,
@@ -460,21 +473,31 @@ const CustomerJoin = () => {
     if (step === "splash" || !merchant) return <Splash />;
 
     switch (step) {
-      case "welcome":
-        return <Welcome merchant={merchant} onJoin={() => setStep("onboarding")} onSignIn={() => navigate(`/get-started?next=/join/${merchantSlug}`)} />;
-      case "onboarding":
-        return <Onboarding onDone={() => setStep("questions")} />;
+      case "intro":
+        return (
+          <Intro
+            merchant={merchant}
+            onJoin={() => setStep("questions")}
+            onSignIn={() => navigate(signInPath)}
+          />
+        );
       case "questions":
-        return <QuickQuestions initial={profile} onContinue={(v) => { setProfile(v); setStep("wallet"); }} />;
+        return <QuickQuestions initial={profile} onContinue={(values) => { setProfile(values); setStep("wallet"); }} />;
       case "wallet":
-        return <CreateWallet profile={profile} merchantSlug={merchantSlug} onCreated={handleWalletCreated} />;
+        return (
+          <CreateWallet
+            profile={profile}
+            merchantSlug={merchantSlug}
+            onCreated={handleWalletCreated}
+            onSignIn={() => navigate(signInPath)}
+          />
+        );
       case "ready":
         return identity ? <CardReady identity={identity} onOpen={() => navigate("/customer/access-card")} /> : <Splash />;
       default:
         return <Splash />;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, merchant, merchantError, profile, identity, merchantSlug]);
+  }, [handleWalletCreated, identity, merchant, merchantError, merchantSlug, navigate, profile, signInPath, step]);
 
   return <MobileFrame>{content}</MobileFrame>;
 };

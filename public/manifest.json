@@ -2,7 +2,7 @@
   "name": "PerkBack",
   "short_name": "PerkBack",
   "description": "Different cards, Different apps, Different rules. Perk Back unifies it all.",
-  "start_url": "/",
+  "start_url": "/get-started?app=1",
   "display": "standalone",
   "theme_color": "#0A2463",
   "background_color": "#ffffff",
