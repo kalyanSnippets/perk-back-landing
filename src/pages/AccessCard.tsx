@@ -398,6 +398,12 @@ const AccessCard = () => {
       }, filteredRewards[0])
     : null;
   const nearestProgress = nearestReward ? Math.min((displayPoints / nearestReward.points_required) * 100, 100) : 0;
+  const featuredMerchant = selectedMerchant ?? lastViewedMerchant;
+  const storeViewRewards = selectedMerchant ? rewards.filter(r => r.merchant_id === selectedMerchant.merchant_id) : [];
+  const storeViewCampaigns = selectedMerchant ? campaigns.filter(c => c.merchant_id === selectedMerchant.merchant_id) : [];
+  const storeViewOffers = selectedMerchant ? monthlyOffers.filter(o => o.merchant_id === selectedMerchant.merchant_id) : [];
+  const storeViewTransactions = selectedMerchant ? transactions.filter(t => t.merchant_id === selectedMerchant.merchant_id) : [];
+  const storeViewRedemptions = selectedMerchant ? redemptions.filter(r => r.merchant_id === selectedMerchant.merchant_id) : [];
 
   return (
     <>
@@ -675,7 +681,7 @@ const AccessCard = () => {
                   <Store size={16} className="text-secondary" /> My Stores
                 </h3>
                 {selectedMerchantId && (
-                  <button onClick={() => setSelectedMerchantId(null)} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
+                  <button onClick={closeStoreView} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
                     <ArrowLeft size={12} /> All Stores
                   </button>
                 )}
@@ -687,7 +693,7 @@ const AccessCard = () => {
                   return (
                     <button
                       key={cm.merchant_id}
-                      onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
+                      onClick={() => (isSelected ? closeStoreView() : openStoreView(cm.merchant_id))}
                       className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-card text-left ${
                         isSelected
                           ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
@@ -736,6 +742,31 @@ const AccessCard = () => {
           </ScrollReveal>
         )}
 
+        {!selectedMerchant && featuredMerchant && (
+          <ScrollReveal delay={25}>
+            <button
+              type="button"
+              onClick={() => openStoreView(featuredMerchant.merchant_id)}
+              className="w-full rounded-2xl border border-border/50 bg-card p-5 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                    {lastViewedMerchant ? "Last used store" : "Continue with a store"}
+                  </p>
+                  <h3 className="mt-1 text-lg font-bold text-foreground">{featuredMerchant.store_name}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                    Open a rewards-first store page with active rewards, offers, and store details.
+                  </p>
+                </div>
+                <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                  <ArrowRight size={16} />
+                </div>
+              </div>
+            </button>
+          </ScrollReveal>
+        )}
+
         {selectedMerchant && (
           <ScrollReveal delay={25}>
             <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-card">
@@ -751,7 +782,7 @@ const AccessCard = () => {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Exclusive store section</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Store rewards</p>
                       <h3 className="text-xl font-bold text-foreground truncate">{selectedMerchant.store_name}</h3>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
@@ -761,7 +792,7 @@ const AccessCard = () => {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setSelectedMerchantId(null)}>
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={closeStoreView}>
                     <ArrowLeft size={12} /> All Stores
                   </Button>
                 </div>
@@ -781,8 +812,8 @@ const AccessCard = () => {
                 </div>
 
                 <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Everything below is now filtered just for {selectedMerchant.store_name}.</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Rewards, campaigns, offers, stamp progress, redemptions, and recent activity are all exclusive to this store view.</p>
+                  <p className="text-sm font-semibold text-foreground">Rewards and offers now open a focused store page for {selectedMerchant.store_name}.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">This view keeps reward discovery first, with offers and store details following the same pattern used by leading loyalty apps.</p>
                 </div>
               </div>
             </div>
