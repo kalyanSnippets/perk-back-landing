@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -400,36 +400,30 @@ const AccessCard = () => {
   const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
   const filteredTransactions = selectedMerchantId ? transactions.filter(t => t.merchant_id === selectedMerchantId) : transactions;
   const filteredRedemptions = selectedMerchantId ? redemptions.filter(r => r.merchant_id === selectedMerchantId) : redemptions;
-  const selectedMerchantTopReward = useMemo(() => {
-    if (!selectedMerchant) return null;
-
-    return filteredRewards
-      .slice()
-      .sort((a, b) => a.points_required - b.points_required)[0] ?? null;
-  }, [filteredRewards, selectedMerchant]);
-  const selectedMerchantReadyReward = useMemo(() => {
-    if (!selectedMerchant) return null;
-
-    return filteredRewards.find((reward) => reward.points_required <= selectedMerchant.points_balance) ?? null;
-  }, [filteredRewards, selectedMerchant]);
-  const handleCheckPoints = useCallback(() => {
+  const selectedMerchantTopReward = selectedMerchant
+    ? filteredRewards.slice().sort((a, b) => a.points_required - b.points_required)[0] ?? null
+    : null;
+  const selectedMerchantReadyReward = selectedMerchant
+    ? filteredRewards.find((reward) => reward.points_required <= selectedMerchant.points_balance) ?? null
+    : null;
+  const handleCheckPoints = () => {
     setActiveMainTab("my-rewards");
     setPointsVisible(false);
     window.setTimeout(() => setPointsVisible(true), 50);
-  }, []);
-  const handleViewOffers = useCallback(() => {
+  };
+  const handleViewOffers = () => {
     if (!selectedMerchant) return;
     setActiveMainTab("my-rewards");
     toast.success(`Showing offers for ${selectedMerchant.store_name}`);
-  }, [selectedMerchant]);
-  const handleQuickRedeem = useCallback(() => {
+  };
+  const handleQuickRedeem = () => {
     if (!selectedMerchantReadyReward) {
       toast.message("No reward is ready to redeem yet for this store.");
       return;
     }
 
     setSelectedReward(selectedMerchantReadyReward);
-  }, [selectedMerchantReadyReward]);
+  };
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
