@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
-  Gift, Coffee, Sparkles,
+  Gift,
   Tag, ArrowRight, Shield, Copy, Share2,
-  CheckCircle, XCircle, Ticket, Info, Store, MapPin, LogOut, Megaphone,
+  CheckCircle, XCircle, Info, Store, MapPin, LogOut, Megaphone,
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
@@ -22,7 +22,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getIndustryImage } from "@/lib/industryImages";
 import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
@@ -34,25 +33,9 @@ interface TransactionData { id: string; merchant_name: string; merchant_id: stri
 interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
 interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
-interface RedemptionData { id: string; reward_title: string; points_spent: number; redemption_code: string; status: string; expires_at: string; created_at: string; merchant_id: string; store_name?: string; }
 interface MerchantCardData extends CustomerMerchantData { rewardCount: number; offerCount: number; bannerImage: string; }
 
-const CAROUSEL_GRADIENTS = [
-  "from-primary via-primary/90 to-secondary",
-  "from-secondary via-secondary/90 to-primary",
-  "from-accent/90 via-accent/80 to-primary/80",
-];
-
-const REWARD_GRADIENTS = [
-  "from-primary/20 via-primary/10 to-secondary/10",
-  "from-secondary/20 via-secondary/10 to-accent/10",
-  "from-accent/20 via-accent/10 to-primary/10",
-  "from-primary/15 via-secondary/15 to-accent/15",
-];
-
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
-const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
-const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
 const getDirectionsUrl = (address?: string | null) => address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}` : null;
 
 const AccessCard = () => {
@@ -64,7 +47,6 @@ const AccessCard = () => {
   const [rewards, setRewards] = useState<RewardData[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [monthlyOffers, setMonthlyOffers] = useState<MonthlyOfferData[]>([]);
-  const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
   const { isAdmin, isMerchant, logout } = useAuth();
@@ -72,6 +54,7 @@ const AccessCard = () => {
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
+  const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
