@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { getIndustryImage } from "@/lib/industryImages";
 import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
@@ -28,11 +29,14 @@ import StoreRewardActionDialog from "@/components/customer/StoreRewardActionDial
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
+interface MerchantDirectoryData { merchant_id: string; store_name: string; logo_url: string | null; industry_type: string | null; address: string | null; latitude: number | null; longitude: number | null; profile_image_url: string | null; }
 interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
 interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
 interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
-interface MerchantCardData extends CustomerMerchantData { rewardCount: number; offerCount: number; bannerImage: string; }
+interface MerchantCardData extends CustomerMerchantData { rewardCount: number; offerCount: number; bannerImage: string; latitude?: number | null; longitude?: number | null; isJoined?: boolean; }
+type MainTab = "my-rewards" | "my-card" | "explore" | "profile";
+type StoreViewSource = "my-rewards" | "explore";
 
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const getDirectionsUrl = (address?: string | null) => address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}` : null;
@@ -41,7 +45,9 @@ const AccessCard = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [customerMerchants, setCustomerMerchants] = useState<CustomerMerchantData[]>([]);
+  const [merchantDirectory, setMerchantDirectory] = useState<MerchantDirectoryData[]>([]);
   const [activeStoreViewMerchantId, setActiveStoreViewMerchantId] = useState<string | null>(null);
+  const [activeStoreViewSource, setActiveStoreViewSource] = useState<StoreViewSource>("my-rewards");
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [rewards, setRewards] = useState<RewardData[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
@@ -53,19 +59,18 @@ const AccessCard = () => {
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
-  const pointsSectionRef = useRef<HTMLDivElement | null>(null);
 
-  const trackStoreSwitcherEvent = useCallback((eventName: string, merchant?: CustomerMerchantData | null) => {
+  const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
 
     const detail = {
       event: eventName,
-      merchantId: merchant?.merchant_id ?? null,
-      merchantName: merchant?.store_name ?? null,
-      source: "customer_my_store_switcher",
+      merchantId: merchantId ?? null,
+      merchantName: merchantName ?? null,
+      source: source ?? "customer_store_switcher",
       timestamp: new Date().toISOString(),
     };
 
@@ -76,19 +81,49 @@ const AccessCard = () => {
     }
   }, []);
 
-  const openStoreView = useCallback((merchantId: string) => {
-    const merchant = customerMerchants.find((item) => item.merchant_id === merchantId) ?? null;
+  const openStoreView = useCallback((merchantId: string, source: StoreViewSource) => {
+    const merchant = merchantDirectory.find((item) => item.merchant_id === merchantId)
+      ?? customerMerchants.find((item) => item.merchant_id === merchantId)
+      ?? null;
+
     setActiveStoreViewMerchantId(merchantId);
-    trackStoreSwitcherEvent("customer_store_selected", merchant);
-  }, [customerMerchants, trackStoreSwitcherEvent]);
+    setActiveStoreViewSource(source);
+    setActiveMainTab(source);
+    trackStoreSwitcherEvent("customer_store_selected", merchant?.store_name, merchantId, source);
+  }, [customerMerchants, merchantDirectory, trackStoreSwitcherEvent]);
 
   const closeStoreView = useCallback(() => {
-    const merchant = activeStoreViewMerchantId
-      ? customerMerchants.find((item) => item.merchant_id === activeStoreViewMerchantId) ?? null
-      : null;
+    const merchant = merchantDirectory.find((item) => item.merchant_id === activeStoreViewMerchantId)
+      ?? customerMerchants.find((item) => item.merchant_id === activeStoreViewMerchantId)
+      ?? null;
+
     setActiveStoreViewMerchantId(null);
-    trackStoreSwitcherEvent("customer_store_cleared", merchant);
-  }, [activeStoreViewMerchantId, customerMerchants, trackStoreSwitcherEvent]);
+    setActiveMainTab(activeStoreViewSource);
+    trackStoreSwitcherEvent("customer_store_cleared", merchant?.store_name, merchant?.merchant_id, activeStoreViewSource);
+  }, [activeStoreViewMerchantId, activeStoreViewSource, customerMerchants, merchantDirectory, trackStoreSwitcherEvent]);
+
+  const handleMainTabChange = useCallback((tab: MainTab) => {
+    setActiveMainTab(tab);
+    if (tab === "my-card" || tab === "profile") {
+      setActiveStoreViewMerchantId(null);
+      return;
+    }
+    if (tab !== activeStoreViewSource) {
+      setActiveStoreViewMerchantId(null);
+    }
+  }, [activeStoreViewSource]);
+
+  const fetchOffersData = useCallback(async () => {
+    const merchantMap = new Map(merchantDirectory.map((merchant) => [merchant.merchant_id, merchant.store_name]));
+    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
+      supabase.from("rewards").select("*").eq("active", true),
+      supabase.from("campaigns").select("*").eq("active", true),
+      supabase.from("monthly_offers").select("*").eq("active", true),
+    ]);
+    setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
+    setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
+    setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
+  }, [merchantDirectory]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -130,21 +165,7 @@ const AccessCard = () => {
       if (offersTimer) clearTimeout(offersTimer);
       supabase.removeChannel(channel);
     };
-  }, [customer?.id]);
-
-  const fetchOffersData = useCallback(async () => {
-    if (!customer) return;
-    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name");
-    const merchantMap = new Map((merchantsData || []).map((merchant) => [merchant.id, merchant.store_name]));
-    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
-      supabase.from("rewards").select("*").eq("active", true),
-      supabase.from("campaigns").select("*").eq("active", true),
-      supabase.from("monthly_offers").select("*").eq("active", true),
-    ]);
-    setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
-    setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
-    setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
-  }, [customer]);
+  }, [customer?.id, customer, fetchOffersData]);
 
   const fetchData = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -154,37 +175,52 @@ const AccessCard = () => {
     if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
     setCustomer(customerData);
 
-    const { data: cmData } = await supabase
-      .from("customer_merchants")
-      .select("merchant_id, points_balance, total_spend, visit_count, last_visit_at")
-      .eq("customer_id", customerData.id);
-
-    const { data: txData } = await supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false });
-    setTransactions(txData || []);
-    const { data: merchantsData } = await supabase.from("merchants").select("id, store_name, logo_url, industry_type, address");
-    const merchantMap = new Map((merchantsData || []).map((merchant) => [merchant.id, merchant.store_name]));
-    const merchantLogoMap = new Map((merchantsData || []).map((merchant) => [merchant.id, merchant.logo_url]));
-    const merchantIndustryMap = new Map((merchantsData || []).map((merchant) => [merchant.id, merchant.industry_type]));
-    const merchantAddressMap = new Map((merchantsData || []).map((merchant) => [merchant.id, merchant.address]));
-
-    const cmList: CustomerMerchantData[] = (cmData || []).map((merchant) => ({
-      merchant_id: merchant.merchant_id,
-      store_name: merchantMap.get(merchant.merchant_id) || "Store",
-      points_balance: merchant.points_balance,
-      total_spend: Number(merchant.total_spend),
-      visit_count: merchant.visit_count,
-      last_visit_at: merchant.last_visit_at,
-      logo_url: merchantLogoMap.get(merchant.merchant_id),
-      industry_type: merchantIndustryMap.get(merchant.merchant_id),
-      address: merchantAddressMap.get(merchant.merchant_id),
-    }));
-    setCustomerMerchants(cmList);
-
-    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
+    const [cmRes, txRes, merchantsRes, rewardsRes, campaignsRes, offersRes] = await Promise.all([
+      supabase
+        .from("customer_merchants")
+        .select("merchant_id, points_balance, total_spend, visit_count, last_visit_at")
+        .eq("customer_id", customerData.id),
+      supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false }),
+      supabase.from("merchants").select("id, store_name, logo_url, industry_type, address, latitude, longitude, profile_image_url"),
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
     ]);
+
+    setTransactions(txRes.data || []);
+
+    const merchantRows = merchantsRes.data || [];
+    const merchantDirectoryData: MerchantDirectoryData[] = merchantRows.map((merchant) => ({
+      merchant_id: merchant.id,
+      store_name: merchant.store_name,
+      logo_url: merchant.logo_url,
+      industry_type: merchant.industry_type,
+      address: merchant.address,
+      latitude: merchant.latitude,
+      longitude: merchant.longitude,
+      profile_image_url: merchant.profile_image_url,
+    }));
+    setMerchantDirectory(merchantDirectoryData);
+
+    const merchantMap = new Map(merchantDirectoryData.map((merchant) => [merchant.merchant_id, merchant.store_name]));
+    const merchantDataMap = new Map(merchantDirectoryData.map((merchant) => [merchant.merchant_id, merchant]));
+
+    const cmList: CustomerMerchantData[] = (cmRes.data || []).map((merchant) => {
+      const merchantRecord = merchantDataMap.get(merchant.merchant_id);
+      return {
+        merchant_id: merchant.merchant_id,
+        store_name: merchantRecord?.store_name || "Store",
+        points_balance: merchant.points_balance,
+        total_spend: Number(merchant.total_spend),
+        visit_count: merchant.visit_count,
+        last_visit_at: merchant.last_visit_at,
+        logo_url: merchantRecord?.logo_url,
+        industry_type: merchantRecord?.industry_type,
+        address: merchantRecord?.address,
+      };
+    });
+    setCustomerMerchants(cmList);
+
     setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
@@ -204,6 +240,8 @@ const AccessCard = () => {
         };
       });
       setGamificationByMerchant(map);
+    } else {
+      setGamificationByMerchant({});
     }
 
     setLoading(false);
@@ -314,70 +352,105 @@ const AccessCard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center animate-pulse">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary animate-pulse">
           <Star className="text-primary-foreground" size={24} />
         </div>
-        <p className="text-muted-foreground text-sm">Loading your rewards...</p>
+        <p className="text-sm text-muted-foreground">Loading your rewards...</p>
       </div>
     );
   }
 
   if (!customer) return null;
 
-  const activeStoreMerchant = activeStoreViewMerchantId
-    ? customerMerchants.find((merchant) => merchant.merchant_id === activeStoreViewMerchantId) ?? null
+  const rewardCountByMerchant = new Map<string, number>();
+  rewards.forEach((reward) => rewardCountByMerchant.set(reward.merchant_id, (rewardCountByMerchant.get(reward.merchant_id) || 0) + 1));
+
+  const offerCountByMerchant = new Map<string, number>();
+  monthlyOffers.forEach((offer) => offerCountByMerchant.set(offer.merchant_id, (offerCountByMerchant.get(offer.merchant_id) || 0) + 1));
+
+  const joinedMerchantMap = new Map(customerMerchants.map((merchant) => [merchant.merchant_id, merchant]));
+
+  const allMerchantCards: MerchantCardData[] = merchantDirectory
+    .map((merchant) => {
+      const joinedMerchant = joinedMerchantMap.get(merchant.merchant_id);
+      const merchantCampaignImage = campaigns.find((campaign) => campaign.merchant_id === merchant.merchant_id && campaign.image_url)?.image_url;
+      const merchantRewardImage = rewards.find((reward) => reward.merchant_id === merchant.merchant_id && reward.image_url)?.image_url;
+      return {
+        merchant_id: merchant.merchant_id,
+        store_name: merchant.store_name,
+        industry_type: merchant.industry_type,
+        logo_url: merchant.logo_url,
+        address: merchant.address,
+        points_balance: joinedMerchant?.points_balance ?? 0,
+        total_spend: joinedMerchant?.total_spend ?? 0,
+        visit_count: joinedMerchant?.visit_count ?? 0,
+        last_visit_at: joinedMerchant?.last_visit_at ?? null,
+        rewardCount: rewardCountByMerchant.get(merchant.merchant_id) || 0,
+        offerCount: offerCountByMerchant.get(merchant.merchant_id) || 0,
+        bannerImage: merchant.profile_image_url ?? merchantCampaignImage ?? merchantRewardImage ?? getIndustryImage(merchant.industry_type),
+        latitude: merchant.latitude,
+        longitude: merchant.longitude,
+        isJoined: !!joinedMerchant,
+      };
+    })
+    .sort((a, b) => Number(b.isJoined) - Number(a.isJoined) || b.rewardCount - a.rewardCount || a.store_name.localeCompare(b.store_name));
+
+  const merchantCards = allMerchantCards.filter((merchant) => merchant.isJoined).sort((a, b) => b.points_balance - a.points_balance);
+
+  const activeStoreCard = activeStoreViewMerchantId
+    ? allMerchantCards.find((merchant) => merchant.merchant_id === activeStoreViewMerchantId) ?? null
     : null;
+
   const storeRewards = activeStoreViewMerchantId ? rewards.filter((reward) => reward.merchant_id === activeStoreViewMerchantId) : [];
   const storeCampaigns = activeStoreViewMerchantId ? campaigns.filter((campaign) => campaign.merchant_id === activeStoreViewMerchantId) : [];
   const storeOffers = activeStoreViewMerchantId ? monthlyOffers.filter((offer) => offer.merchant_id === activeStoreViewMerchantId) : [];
   const storeTransactions = activeStoreViewMerchantId ? transactions.filter((transaction) => transaction.merchant_id === activeStoreViewMerchantId) : [];
-
-  const merchantCards: MerchantCardData[] = customerMerchants
-    .map((merchant) => {
-      const merchantRewards = rewards.filter((reward) => reward.merchant_id === merchant.merchant_id);
-      const merchantOffers = monthlyOffers.filter((offer) => offer.merchant_id === merchant.merchant_id);
-      const merchantCampaignImage = campaigns.find((campaign) => campaign.merchant_id === merchant.merchant_id && campaign.image_url)?.image_url;
-      const merchantRewardImage = merchantRewards.find((reward) => reward.image_url)?.image_url;
-
-      return {
-        ...merchant,
-        rewardCount: merchantRewards.length,
-        offerCount: merchantOffers.length,
-        bannerImage: merchantCampaignImage ?? merchantRewardImage ?? getIndustryImage(merchant.industry_type),
-      };
-    })
-    .sort((a, b) => b.points_balance - a.points_balance);
-
-  const activeStoreCard = activeStoreMerchant
-    ? merchantCards.find((merchant) => merchant.merchant_id === activeStoreMerchant.merchant_id) ?? null
-    : null;
 
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const displayPoints = customer.points_balance;
 
   const rewardMerchant = selectedReward
-    ? customerMerchants.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
+    ? allMerchantCards.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
     : null;
   const rewardDirectionsUrl = getDirectionsUrl(rewardMerchant?.address);
+
+  const rewardCards = rewards
+    .map((reward) => {
+      const merchant = allMerchantCards.find((item) => item.merchant_id === reward.merchant_id);
+      const pointsBalance = merchant?.points_balance ?? 0;
+      const remainingPoints = Math.max(reward.points_required - pointsBalance, 0);
+      return {
+        ...reward,
+        bannerImage: reward.image_url ?? merchant?.bannerImage ?? getIndustryImage(merchant?.industry_type),
+        merchant,
+        pointsBalance,
+        remainingPoints,
+        readyToRedeem: pointsBalance >= reward.points_required,
+        progress: reward.points_required > 0 ? Math.min((pointsBalance / reward.points_required) * 100, 100) : 0,
+      };
+    })
+    .sort((a, b) => Number(b.readyToRedeem) - Number(a.readyToRedeem) || a.remainingPoints - b.remainingPoints || Number(b.merchant?.isJoined) - Number(a.merchant?.isJoined));
+
+  const shouldShowStoreDetail = !!activeStoreCard && (activeMainTab === "my-rewards" || activeMainTab === "explore");
 
   return (
     <>
       <div className="min-h-screen bg-muted/20 pb-24 sm:pb-0">
         {!isMobile && <Header />}
         <div className="fixed inset-0 -z-10">
-          <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
-          <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
+          <div className="absolute left-0 right-0 top-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
+          <div className="absolute right-0 top-20 h-[300px] w-[300px] rounded-full bg-accent/5 blur-3xl" />
         </div>
 
         <div className="container mx-auto max-w-lg space-y-4 px-4 pb-20 pt-6 sm:space-y-5 sm:pt-24">
           <ScrollReveal>
             <div className="text-center">
-              <h1 className="text-lg sm:text-xl font-bold text-foreground">
+              <h1 className="text-lg font-bold text-foreground sm:text-xl">
                 {getGreeting()}, {customer.full_name?.split(" ")[0] || "there"} 👋
               </h1>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}
               </p>
             </div>
@@ -393,11 +466,11 @@ const AccessCard = () => {
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveMainTab(tab.key)}
+                  onClick={() => handleMainTabChange(tab.key)}
                   className={`min-w-0 rounded-xl px-2 py-3 text-[11px] font-semibold transition-all duration-300 sm:text-xs ${
                     activeMainTab === tab.key
                       ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-button"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                   }`}
                 >
                   {tab.label}
@@ -406,13 +479,11 @@ const AccessCard = () => {
             </div>
           </div>
 
-          {activeMainTab === "explore" ? (
-            <ExploreTab customerMerchantIds={customerMerchants.map((merchant) => merchant.merchant_id)} />
-          ) : activeMainTab === "profile" ? (
+          {activeMainTab === "profile" ? (
             <>
               <ScrollReveal>
-                <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
                     <User size={16} className="text-secondary" /> Profile
                   </h3>
                   <div className="space-y-2">
@@ -421,9 +492,9 @@ const AccessCard = () => {
                       { label: "CRN", value: customer.crn || "—", icon: Hash },
                       { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
                     ].map((item) => (
-                      <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/20 last:border-0 gap-3">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5"><item.icon size={12} /> {item.label}</span>
-                        <span className="text-xs font-semibold text-foreground font-mono text-right break-all">{item.value}</span>
+                      <div key={item.label} className="flex items-center justify-between gap-3 border-b border-border/20 py-2 last:border-0">
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><item.icon size={12} /> {item.label}</span>
+                        <span className="break-all text-right font-mono text-xs font-semibold text-foreground">{item.value}</span>
                       </div>
                     ))}
                   </div>
@@ -431,25 +502,25 @@ const AccessCard = () => {
               </ScrollReveal>
 
               <ScrollReveal delay={50}>
-                <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-4">
+                <div className="space-y-4 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
                   <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
                       <Shield size={16} className="text-muted-foreground" /> Account Settings
                     </h3>
                     <p className="text-xs text-muted-foreground">Manage your session and account controls from one place.</p>
                   </div>
                   <div className="grid gap-2">
                     {isMerchant && (
-                      <Button variant="outline" size="sm" className="justify-start gap-2 h-10" asChild>
+                      <Button variant="outline" size="sm" className="h-10 justify-start gap-2" asChild>
                         <Link to="/merchant/dashboard">
                           <Store size={14} /> Merchant Dashboard
                         </Link>
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="justify-start gap-2 h-10" onClick={handleLogout}>
+                    <Button variant="outline" size="sm" className="h-10 justify-start gap-2" onClick={handleLogout}>
                       <LogOut size={14} /> Log out
                     </Button>
-                    <Button variant="ghost" size="sm" className="justify-start gap-2 h-10 text-destructive hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
+                    <Button variant="ghost" size="sm" className="h-10 justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
                       <XCircle size={14} /> Delete my account
                     </Button>
                   </div>
@@ -457,8 +528,8 @@ const AccessCard = () => {
               </ScrollReveal>
 
               <ScrollReveal delay={100}>
-                <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
                     <Info size={16} className="text-muted-foreground" /> Pages
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
@@ -486,40 +557,40 @@ const AccessCard = () => {
           ) : activeMainTab === "my-card" ? (
             <>
               <ScrollReveal>
-                <div className="relative rounded-3xl overflow-hidden shadow-card-hover">
+                <div className="relative overflow-hidden rounded-3xl shadow-card-hover">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
-                  <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-primary-foreground/10" />
-                  <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full border border-primary-foreground/8" />
-                  <div className="relative z-10 p-5 sm:p-6 pb-4 sm:pb-5">
-                    <div className="flex items-start justify-between mb-4 sm:mb-5">
+                  <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-primary-foreground/10" />
+                  <div className="absolute -bottom-8 -left-8 h-36 w-36 rounded-full border border-primary-foreground/8" />
+                  <div className="relative z-10 p-5 pb-4 sm:p-6 sm:pb-5">
+                    <div className="mb-4 flex items-start justify-between sm:mb-5">
                       <div>
-                        <p className="text-primary-foreground/50 text-[10px] uppercase tracking-[0.2em] mb-0.5">Digital Loyalty Card</p>
-                        <img src={perkbackLogo} alt="Perk Back" className="h-6 sm:h-7 w-auto brightness-0 invert" />
+                        <p className="mb-0.5 text-[10px] uppercase tracking-[0.2em] text-primary-foreground/50">Digital Loyalty Card</p>
+                        <img src={perkbackLogo} alt="Perk Back" className="h-6 w-auto brightness-0 invert sm:h-7" />
                       </div>
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/90 flex items-center justify-center shadow-lg">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/90 shadow-lg sm:h-10 sm:w-10">
                         <Star className="text-accent-foreground" size={16} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-3 mb-4 sm:mb-5">
+                    <div className="mb-4 grid grid-cols-2 gap-x-3 gap-y-2.5 sm:mb-5 sm:gap-x-4 sm:gap-y-3">
                       <div>
-                        <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><User size={10} /> Name</p>
-                        <p className="text-primary-foreground font-semibold text-xs sm:text-sm truncate">{customer.full_name || "—"}</p>
+                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><User size={10} /> Name</p>
+                        <p className="truncate text-xs font-semibold text-primary-foreground sm:text-sm">{customer.full_name || "—"}</p>
                       </div>
                       <div className="group cursor-pointer" onClick={() => handleCopy("CRN", customer.crn || "")}>
-                        <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Hash size={10} /> CRN <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
-                        <p className="text-primary-foreground font-semibold font-mono text-xs sm:text-sm">{customer.crn}</p>
+                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><Hash size={10} /> CRN <Copy size={8} className="opacity-0 transition-opacity group-hover:opacity-100" /></p>
+                        <p className="font-mono text-xs font-semibold text-primary-foreground sm:text-sm">{customer.crn}</p>
                       </div>
                       <div className="group cursor-pointer" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
-                        <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><CreditCard size={10} /> Card No. <Copy size={8} className="opacity-0 group-hover:opacity-100 transition-opacity" /></p>
-                        <p className="text-primary-foreground font-semibold font-mono text-[11px] sm:text-xs tracking-wide">{customer.loyalty_card_number}</p>
+                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><CreditCard size={10} /> Card No. <Copy size={8} className="opacity-0 transition-opacity group-hover:opacity-100" /></p>
+                        <p className="font-mono text-[11px] font-semibold tracking-wide text-primary-foreground sm:text-xs">{customer.loyalty_card_number}</p>
                       </div>
                       <div>
-                        <p className="text-primary-foreground/40 text-[10px] uppercase tracking-wider flex items-center gap-1"><Calendar size={10} /> Issued</p>
-                        <p className="text-primary-foreground font-semibold text-xs sm:text-sm">{issuedDate}</p>
+                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><Calendar size={10} /> Issued</p>
+                        <p className="text-xs font-semibold text-primary-foreground sm:text-sm">{issuedDate}</p>
                       </div>
                     </div>
-                    <div className="bg-primary-foreground rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-center gap-3 overflow-hidden">
+                    <div className="flex flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl bg-primary-foreground p-3 sm:flex-row">
                       <Barcode value={customer.loyalty_card_number || ""} height={55} />
                       <QRCodeDisplay value={customer.loyalty_card_number || ""} size={80} />
                     </div>
@@ -529,19 +600,19 @@ const AccessCard = () => {
 
               <ScrollReveal delay={50}>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}> 
+                  <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 text-xs" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
                     <Copy size={13} /> Copy
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-9 border-border/50" onClick={handleShare}>
+                  <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 text-xs" onClick={handleShare}>
                     <Share2 size={13} /> Share
                   </Button>
                 </div>
-                <div className="flex gap-2 mt-2">
+                <div className="mt-2 flex gap-2">
                   {(deviceType === "ios" || deviceType === "desktop") && (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-1.5 text-xs h-10 border-border/50 bg-black text-white hover:bg-black/90 hover:text-white"
+                      className="h-10 flex-1 gap-1.5 border-border/50 text-xs bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-[hsl(var(--foreground)/0.9)] hover:text-[hsl(var(--background))]"
                       onClick={handleAddToAppleWallet}
                       disabled={walletLoading === "apple"}
                     >
@@ -552,7 +623,7 @@ const AccessCard = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-1.5 text-xs h-10 border-border/50"
+                      className="h-10 flex-1 gap-1.5 border-border/50 text-xs"
                       onClick={handleAddToGoogleWallet}
                       disabled={walletLoading === "google"}
                     >
@@ -563,8 +634,8 @@ const AccessCard = () => {
               </ScrollReveal>
 
               <ScrollReveal delay={75}>
-                <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
                     <CreditCard size={16} className="text-secondary" /> Card Details
                   </h3>
                   <div className="space-y-2">
@@ -575,86 +646,163 @@ const AccessCard = () => {
                       { label: "Issued Date", value: issuedDate, icon: Calendar },
                       { label: "Total Points", value: String(customer.points_balance), icon: Star },
                     ].map((item) => (
-                      <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/20 last:border-0">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5"><item.icon size={12} /> {item.label}</span>
-                        <span className="text-xs font-semibold text-foreground font-mono">{item.value}</span>
+                      <div key={item.label} className="flex items-center justify-between border-b border-border/20 py-2 last:border-0">
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><item.icon size={12} /> {item.label}</span>
+                        <span className="font-mono text-xs font-semibold text-foreground">{item.value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </ScrollReveal>
             </>
+          ) : shouldShowStoreDetail ? (
+            <StoreDetailView
+              merchant={activeStoreCard}
+              rewards={storeRewards}
+              campaigns={storeCampaigns}
+              offers={storeOffers}
+              transactions={storeTransactions}
+              customerId={customer.id}
+              loyaltyCardNumber={customer.loyalty_card_number || ""}
+              directionsUrl={getDirectionsUrl(activeStoreCard.address)}
+              gamification={gamificationByMerchant[activeStoreCard.merchant_id]}
+              onBack={closeStoreView}
+              onRewardSelect={setSelectedReward}
+              onCampaignSelect={(campaign) => setSelectedCampaign(campaign)}
+            />
+          ) : activeMainTab === "explore" ? (
+            <ExploreTab
+              merchants={allMerchantCards}
+              onOpenMerchant={(merchantId) => openStoreView(merchantId, "explore")}
+            />
           ) : (
             <div className="space-y-4">
-              {activeStoreCard ? (
-                <StoreDetailView
-                  merchant={activeStoreCard}
-                  rewards={storeRewards}
-                  campaigns={storeCampaigns}
-                  offers={storeOffers}
-                  transactions={storeTransactions}
-                  customerId={customer.id}
-                  loyaltyCardNumber={customer.loyalty_card_number || ""}
-                  directionsUrl={getDirectionsUrl(activeStoreCard.address)}
-                  gamification={gamificationByMerchant[activeStoreCard.merchant_id]}
-                  onBack={closeStoreView}
-                  onRewardSelect={setSelectedReward}
-                  onCampaignSelect={(campaign) => setSelectedCampaign(campaign)}
-                />
-              ) : (
-                <>
-                  <ScrollReveal>
-                    <div ref={pointsSectionRef} className={`${dashboardSectionShell} p-5 sm:p-6`}>
-                      <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Total Points</p>
-                      <div className="mt-3 flex items-end justify-between gap-4">
-                        <div className={`transition-all duration-700 ${pointsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
-                          <p className="text-5xl font-bold text-foreground tabular-nums sm:text-6xl">{displayPoints}</p>
-                          <p className="mt-2 text-xs text-muted-foreground">Your full balance across all joined stores.</p>
-                        </div>
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent/12">
-                          <Star className="fill-accent text-accent" size={24} />
-                        </div>
+              <ScrollReveal>
+                <div className={`${dashboardSectionShell} p-5 sm:p-6`}>
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Total Points</p>
+                  <div className="mt-3 flex items-end justify-between gap-4">
+                    <div className={`transition-all duration-700 ${pointsVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}>
+                      <p className="text-5xl font-bold tabular-nums text-foreground sm:text-6xl">{displayPoints}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">Your combined balance across PerkBack stores.</p>
+                    </div>
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent/12">
+                      <Star className="fill-accent text-accent" size={24} />
+                    </div>
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              {merchantCards.length > 0 && (
+                <ScrollReveal delay={15}>
+                  <div className={`${dashboardSectionShell} space-y-4 p-5 sm:p-6`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <Store size={16} className="text-secondary" /> My Stores
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Tap a store to open its full page with rewards, offers, visits, and directions.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                        {merchantCards.length} joined
+                      </span>
+                    </div>
+
+                    <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                      <div className="flex min-w-max gap-4">
+                        {merchantCards.map((merchant) => (
+                          <MyStoreCard key={merchant.merchant_id} merchant={merchant} onSelect={(merchantId) => openStoreView(merchantId, "my-rewards")} />
+                        ))}
                       </div>
                     </div>
-                  </ScrollReveal>
-
-                  {merchantCards.length > 0 && (
-                    <ScrollReveal delay={15}>
-                      <div className={`${dashboardSectionShell} space-y-4 p-5 sm:p-6`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                              <Store size={16} className="text-secondary" /> My Stores
-                            </h3>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Tap a store card to open its rewards, offers, directions, and loyalty details.
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                            {merchantCards.length} joined
-                          </span>
-                        </div>
-
-                        <div className="overflow-x-auto pb-1 -mx-1 px-1">
-                          <div className="flex gap-4 min-w-max">
-                            {merchantCards.map((merchant) => (
-                              <MyStoreCard key={merchant.merchant_id} merchant={merchant} onSelect={openStoreView} />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollReveal>
-                  )}
-
-                </>
+                  </div>
+                </ScrollReveal>
               )}
+
+              <ScrollReveal delay={30}>
+                <section className={`${dashboardSectionShell} p-5 sm:p-6`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
+                        <Star size={16} className="text-accent" /> All Rewards
+                      </h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Ready rewards appear first, followed by the closest rewards to unlock.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                      {rewardCards.length} live
+                    </span>
+                  </div>
+
+                  {rewardCards.length === 0 ? (
+                    <div className="mt-4 rounded-2xl border border-dashed border-border/50 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
+                      Rewards will appear here as merchants publish them.
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-3">
+                      {rewardCards.map((reward) => (
+                        <button
+                          key={reward.id}
+                          type="button"
+                          onClick={() => setSelectedReward(reward)}
+                          className="w-full overflow-hidden rounded-[24px] border border-border/30 bg-card text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+                        >
+                          <div className="relative h-40 overflow-hidden">
+                            <img src={reward.bannerImage} alt={reward.title} className="h-full w-full object-cover" loading="lazy" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/20 to-transparent" />
+                            {reward.readyToRedeem && (
+                              <span className="absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-accent-foreground">
+                                Ready
+                              </span>
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 p-4 text-primary-foreground">
+                              <p className="text-[11px] uppercase tracking-[0.14em] text-primary-foreground/72">{reward.store_name}</p>
+                              <h4 className="mt-1 text-lg font-bold leading-tight">{reward.title}</h4>
+                            </div>
+                          </div>
+                          <div className="space-y-3 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                {reward.description && <p className="line-clamp-2 text-xs text-muted-foreground">{reward.description}</p>}
+                                <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                                  <span className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">{reward.reward_type}</span>
+                                  {reward.merchant?.isJoined ? (
+                                    <span className="rounded-full bg-accent/10 px-2.5 py-1 font-semibold text-accent-foreground">Joined store</span>
+                                  ) : (
+                                    <span className="rounded-full bg-muted px-2.5 py-1 font-semibold text-muted-foreground">Discover store</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="shrink-0 rounded-full bg-muted/50 px-3 py-1 text-[11px] font-semibold text-foreground">
+                                {reward.points_required} pts
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="mb-1.5 flex items-center justify-between text-[11px]">
+                                <span className="text-muted-foreground">{reward.pointsBalance}/{reward.points_required} pts</span>
+                                <span className="font-semibold text-foreground">
+                                  {reward.readyToRedeem ? "Redeem now" : `${reward.remainingPoints} to go`}
+                                </span>
+                              </div>
+                              <Progress value={reward.progress} className="h-2" />
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </ScrollReveal>
 
               {isAdmin && (
                 <ScrollReveal>
                   <Link to="/admin" className="block">
-                    <div className="bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl p-5 sm:p-6 border border-accent/20 flex items-center justify-between hover:border-accent/40 transition-colors">
+                    <div className="flex items-center justify-between rounded-2xl border border-accent/20 bg-gradient-to-r from-accent/10 to-primary/10 p-5 transition-colors hover:border-accent/40 sm:p-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center"><Shield size={20} className="text-accent" /></div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20"><Shield size={20} className="text-accent" /></div>
                         <div>
                           <p className="text-sm font-semibold text-foreground">Admin Panel</p>
                           <p className="text-xs text-muted-foreground">Manage blogs, testimonials & messages</p>
@@ -681,19 +829,19 @@ const AccessCard = () => {
         />
 
         {showRedemptionModal && (
-          <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm flex items-center justify-center px-4" onClick={() => setShowRedemptionModal(null)}>
-            <div className="bg-card rounded-2xl p-6 shadow-card-hover w-full max-w-sm animate-fade-up text-center" onClick={(event) => event.stopPropagation()}>
-              <div className="w-16 h-16 rounded-full bg-accent/15 flex items-center justify-center mx-auto mb-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4 backdrop-blur-sm" onClick={() => setShowRedemptionModal(null)}>
+            <div className="w-full max-w-sm animate-fade-up rounded-2xl bg-card p-6 text-center shadow-card-hover" onClick={(event) => event.stopPropagation()}>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/15">
                 <CheckCircle size={32} className="text-accent" />
               </div>
-              <h2 className="text-lg font-bold text-foreground mb-1">Reward Redeemed! 🎉</h2>
-              <p className="text-sm text-muted-foreground mb-4">{showRedemptionModal.title}</p>
-              <div className="bg-muted/30 rounded-xl p-4 border border-border/50 mb-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Your Redemption Code</p>
-                <p className="font-mono text-3xl font-bold text-foreground tracking-[0.3em]">{showRedemptionModal.code}</p>
-                <p className="text-xs text-muted-foreground mt-2">Show this code to the merchant</p>
+              <h2 className="mb-1 text-lg font-bold text-foreground">Reward Redeemed! 🎉</h2>
+              <p className="mb-4 text-sm text-muted-foreground">{showRedemptionModal.title}</p>
+              <div className="mb-4 rounded-xl border border-border/50 bg-muted/30 p-4">
+                <p className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Your Redemption Code</p>
+                <p className="font-mono text-3xl font-bold tracking-[0.3em] text-foreground">{showRedemptionModal.code}</p>
+                <p className="mt-2 text-xs text-muted-foreground">Show this code to the merchant</p>
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+              <div className="mb-4 flex items-center justify-between text-xs text-muted-foreground">
                 <span>{showRedemptionModal.points} pts spent</span>
                 <span>Valid for 48 hours</span>
               </div>
@@ -709,15 +857,15 @@ const AccessCard = () => {
       </div>
 
       <Dialog open={!!selectedCampaign} onOpenChange={(open) => !open && setSelectedCampaign(null)}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden gap-0">
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
           {selectedCampaign && (() => {
-            const merchant = customerMerchants.find((item) => item.merchant_id === selectedCampaign.merchant_id);
+            const merchant = allMerchantCards.find((item) => item.merchant_id === selectedCampaign.merchant_id);
             return (
               <>
                 <div className="relative h-44 bg-gradient-to-br from-primary via-primary/90 to-secondary">
                   {selectedCampaign.image_url ? (
                     <>
-                      <img src={selectedCampaign.image_url} alt={selectedCampaign.title} className="w-full h-full object-cover" />
+                      <img src={selectedCampaign.image_url} alt={selectedCampaign.title} className="h-full w-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-foreground/75 via-foreground/20 to-transparent" />
                     </>
                   ) : (
@@ -726,10 +874,10 @@ const AccessCard = () => {
                     </div>
                   )}
                   <div className="absolute bottom-3 left-4 right-4">
-                    <span className="text-[10px] uppercase tracking-wider text-primary-foreground/80 bg-foreground/30 backdrop-blur px-2 py-0.5 rounded-full">Campaign</span>
+                    <span className="rounded-full bg-foreground/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary-foreground/80 backdrop-blur">Campaign</span>
                   </div>
                 </div>
-                <div className="p-5 space-y-4">
+                <div className="space-y-4 p-5">
                   <DialogHeader className="space-y-1.5 text-left">
                     <DialogTitle className="text-xl">{selectedCampaign.title}</DialogTitle>
                     <DialogDescription className="flex items-center gap-1.5 text-xs">
@@ -737,11 +885,11 @@ const AccessCard = () => {
                     </DialogDescription>
                   </DialogHeader>
                   {selectedCampaign.description && (
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{selectedCampaign.description}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{selectedCampaign.description}</p>
                   )}
                   {merchant?.address && (
-                    <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/40 rounded-xl p-3">
-                      <MapPin size={14} className="shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
+                      <MapPin size={14} className="mt-0.5 shrink-0" />
                       <span>{merchant.address}</span>
                     </div>
                   )}
@@ -753,7 +901,7 @@ const AccessCard = () => {
                         size="sm"
                         className="flex-1 gap-1.5"
                         onClick={() => {
-                          openStoreView(selectedCampaign.merchant_id);
+                          openStoreView(selectedCampaign.merchant_id, activeMainTab === "explore" ? "explore" : "my-rewards");
                           setSelectedCampaign(null);
                         }}
                       >

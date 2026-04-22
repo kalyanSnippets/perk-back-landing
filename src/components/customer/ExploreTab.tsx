@@ -1,580 +1,284 @@
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import {
-  Store, Gift, Megaphone, CalendarDays, MapPin, Sparkles, Clock, TrendingUp, Loader2, CheckCircle, Copy, Navigation,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeftRight, Compass, Gift, MapPin, Navigation, Search, Store } from "lucide-react";
 import { useUserLocation, haversineDistance, formatDistance } from "@/lib/geo";
-import { getIndustryImage } from "@/lib/industryImages";
 import IndustryFilter from "./IndustryFilter";
-import NearbyMerchants from "./NearbyMerchants";
-import MerchantPreview from "./MerchantPreview";
-import MapPreview from "./MapPreview";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Carousel, CarouselContent, CarouselItem, type CarouselApi,
 } from "@/components/ui/carousel";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
 
-interface MerchantRow {
-  id: string;
+interface ExploreMerchantCard {
+  merchant_id: string;
   store_name: string;
-  industry_type: string | null;
-  logo_url: string | null;
-  address: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  industry_type?: string | null;
+  logo_url?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  bannerImage: string;
+  rewardCount: number;
+  offerCount: number;
+  isJoined?: boolean;
 }
-interface RewardRow { id: string; title: string; description: string | null; points_required: number; reward_type: string; merchant_id: string; image_url: string | null; }
-interface CampaignRow { id: string; title: string; description: string | null; image_url: string | null; merchant_id: string; }
-interface OfferRow { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; }
 
 interface ExploreTabProps {
-  customerMerchantIds: string[];
+  merchants: ExploreMerchantCard[];
+  onOpenMerchant: (merchantId: string) => void;
 }
 
-const CAROUSEL_GRADIENTS = [
-  "from-primary via-primary/90 to-secondary",
-  "from-secondary via-secondary/90 to-primary",
-  "from-accent/90 via-accent/80 to-primary/80",
-];
+const getDirectionsUrl = (merchant: ExploreMerchantCard) => {
+  if (merchant.latitude != null && merchant.longitude != null) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${merchant.latitude},${merchant.longitude}`;
+  }
 
-const HOT_REWARD_COLORS = [
-  { bg: "from-amber-500/15 to-orange-400/10", border: "border-amber-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(245,158,11,0.3)]" },
-  { bg: "from-emerald-500/15 to-teal-400/10", border: "border-emerald-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(16,185,129,0.3)]" },
-  { bg: "from-violet-500/15 to-purple-400/10", border: "border-violet-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(139,92,246,0.3)]" },
-  { bg: "from-rose-500/15 to-pink-400/10", border: "border-rose-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(244,63,94,0.3)]" },
-  { bg: "from-cyan-500/15 to-sky-400/10", border: "border-cyan-400/30", glow: "hover:shadow-[0_0_20px_-4px_rgba(6,182,212,0.3)]" },
-];
-
-const INDUSTRY_COLORS: Record<string, { accent: string; badge: string }> = {
-  "Coffee Shop": { accent: "from-amber-500 to-orange-400", badge: "bg-amber-100 text-amber-700" },
-  "Retail": { accent: "from-blue-500 to-indigo-400", badge: "bg-blue-100 text-blue-700" },
-  "Restaurant": { accent: "from-emerald-500 to-teal-400", badge: "bg-emerald-100 text-emerald-700" },
+  return merchant.address
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(merchant.address)}`
+    : null;
 };
 
-const daysUntil = (dateStr: string) => {
-  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  return diff > 0 ? diff : 0;
-};
-
-const ExploreTab = ({ customerMerchantIds }: ExploreTabProps) => {
-  const [merchants, setMerchants] = useState<MerchantRow[]>([]);
-  const [rewards, setRewards] = useState<RewardRow[]>([]);
-  const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
-  const [offers, setOffers] = useState<OfferRow[]>([]);
-  const [loading, setLoading] = useState(true);
+const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
   const [industryFilter, setIndustryFilter] = useState<string | null>(null);
-  const [previewMerchantId, setPreviewMerchantId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [slideCount, setSlideCount] = useState(0);
-  const [hotApi, setHotApi] = useState<CarouselApi>();
-  const [hotSlide, setHotSlide] = useState(0);
-  const [hotCount, setHotCount] = useState(0);
-  const [customerId, setCustomerId] = useState<string | null>(null);
-  const [redeeming, setRedeeming] = useState<string | null>(null);
-  const [redemptionResult, setRedemptionResult] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
-
   const userLocation = useUserLocation();
 
   useEffect(() => {
-    fetchExploreData();
-  }, []);
+    if (!carouselApi) return;
+
+    const syncSlide = () => setCurrentSlide(carouselApi.selectedScrollSnap());
+    syncSlide();
+    carouselApi.on("select", syncSlide);
+    carouselApi.on("reInit", syncSlide);
+  }, [carouselApi]);
+
+  const uniqueIndustries = useMemo(
+    () => [...new Set(merchants.map((merchant) => merchant.industry_type).filter(Boolean) as string[])].sort(),
+    [merchants],
+  );
+
+  const filteredMerchants = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return merchants.filter((merchant) => {
+      const matchesIndustry = industryFilter ? merchant.industry_type === industryFilter : true;
+      const matchesSearch = normalizedQuery.length === 0
+        ? true
+        : [merchant.store_name, merchant.industry_type, merchant.address]
+            .filter(Boolean)
+            .some((value) => value?.toLowerCase().includes(normalizedQuery));
+
+      return matchesIndustry && matchesSearch;
+    });
+  }, [industryFilter, merchants, searchQuery]);
+
+  const merchantsWithDistance = useMemo(() => filteredMerchants.map((merchant) => {
+    const distance = userLocation.latitude && userLocation.longitude && merchant.latitude != null && merchant.longitude != null
+      ? haversineDistance(userLocation.latitude, userLocation.longitude, merchant.latitude, merchant.longitude)
+      : null;
+
+    return { ...merchant, distance };
+  }), [filteredMerchants, userLocation.latitude, userLocation.longitude]);
+
+  const featuredNearbyMerchant = useMemo(() => merchantsWithDistance
+    .filter((merchant) => merchant.distance !== null)
+    .sort((a, b) => (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY))[0] ?? null, [merchantsWithDistance]);
 
   useEffect(() => {
     if (!carouselApi) return;
-    setSlideCount(carouselApi.scrollSnapList().length);
-    setCurrentSlide(carouselApi.selectedScrollSnap());
-    carouselApi.on("select", () => setCurrentSlide(carouselApi.selectedScrollSnap()));
-    const interval = setInterval(() => carouselApi.scrollNext(), 5000);
-    return () => clearInterval(interval);
-  }, [carouselApi]);
+    carouselApi.reInit();
+    carouselApi.scrollTo(0);
+    setCurrentSlide(0);
+  }, [carouselApi, filteredMerchants.length]);
 
-  useEffect(() => {
-    if (!hotApi) return;
-    setHotCount(hotApi.scrollSnapList().length);
-    setHotSlide(hotApi.selectedScrollSnap());
-    hotApi.on("select", () => setHotSlide(hotApi.selectedScrollSnap()));
-    hotApi.on("reInit", () => {
-      setHotCount(hotApi.scrollSnapList().length);
-      setHotSlide(hotApi.selectedScrollSnap());
-    });
-  }, [hotApi]);
-
-  // Proximity suggestion — only when there are enough merchants to make filtering meaningful
-  useEffect(() => {
-    if (userLocation.loading || !userLocation.latitude || !userLocation.longitude) return;
-    if (merchants.length < 10) return;
-
-    const nearbyMerchant = merchants.find((m) => {
-      if (!m.latitude || !m.longitude) return false;
-      return haversineDistance(userLocation.latitude!, userLocation.longitude!, m.latitude, m.longitude) <= 0.5;
-    });
-
-    if (nearbyMerchant) {
-      const merchantReward = rewards.find((r) => r.merchant_id === nearbyMerchant.id);
-      const msg = merchantReward
-        ? `You're near ${nearbyMerchant.store_name}! They have: ${merchantReward.title}`
-        : `You're near ${nearbyMerchant.store_name}! Check out their deals.`;
-      toast.info(msg, { duration: 6000 });
-    }
-  }, [userLocation.loading, merchants.length, rewards.length]);
-
-  const fetchExploreData = async () => {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (authUser) {
-      const { data: customerData } = await supabase.from("customers").select("id").eq("user_id", authUser.id).maybeSingle();
-      if (customerData) setCustomerId(customerData.id);
-    }
-    const [merchantsRes, rewardsRes, campaignsRes, offersRes] = await Promise.all([
-      supabase.from("merchants").select("id, store_name, industry_type, logo_url, address, latitude, longitude"),
-      supabase.from("rewards").select("id, title, description, points_required, reward_type, merchant_id, image_url").eq("active", true),
-      supabase.from("campaigns").select("id, title, description, image_url, merchant_id").eq("active", true),
-      supabase.from("monthly_offers").select("id, title, description, valid_from, valid_to, merchant_id").eq("active", true),
-    ]);
-    setMerchants((merchantsRes.data as MerchantRow[]) || []);
-    setRewards((rewardsRes.data as RewardRow[]) || []);
-    setCampaigns((campaignsRes.data as CampaignRow[]) || []);
-    setOffers((offersRes.data as OfferRow[]) || []);
-    setLoading(false);
-  };
-
-  const handleRedeem = async (e: React.MouseEvent, rewardId: string) => {
-    e.stopPropagation();
-    if (!customerId) {
-      toast.error("Please sign in to redeem rewards");
-      return;
-    }
-    setRedeeming(rewardId);
-    try {
-      const { data, error } = await supabase.rpc("redeem_reward", { _customer_id: customerId, _reward_id: rewardId });
-      if (error) throw error;
-      const result = data as any;
-      if (!result.success) {
-        toast.error(result.error || "Redemption failed");
-        return;
-      }
-      setRedemptionResult({
-        code: result.redemption_code,
-        title: result.reward_title,
-        points: result.points_spent,
-        expires: result.expires_at,
-      });
-    } catch (err: any) {
-      toast.error(err.message || "Redemption failed");
-    } finally {
-      setRedeeming(null);
-    }
-  };
-
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code).then(() => toast.success("Code copied!")).catch(() => toast.error("Failed to copy"));
-  };
-
-  const merchantMap = useMemo(() => new Map(merchants.map((m) => [m.id, m])), [merchants]);
-
-  const uniqueIndustries = useMemo(
-    () => [...new Set(merchants.map(m => m.industry_type).filter(Boolean) as string[])].sort(),
-    [merchants]
-  );
-
-  const filteredMerchants = useMemo(
-    () => industryFilter ? merchants.filter((m) => m.industry_type === industryFilter) : merchants,
-    [merchants, industryFilter]
-  );
-
-  const merchantRewardCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    rewards.forEach((r) => counts.set(r.merchant_id, (counts.get(r.merchant_id) || 0) + 1));
-    return counts;
-  }, [rewards]);
-
-  const previewMerchant = previewMerchantId ? merchantMap.get(previewMerchantId) || null : null;
-
-  if (loading) {
+  if (merchants.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground text-sm">Loading deals...</p>
+      <div className="py-12 text-center">
+        <p className="text-sm text-muted-foreground">Stores will appear here once merchants go live.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      {/* Near You — only when there's a meaningful number of merchants to filter */}
-      {merchants.length >= 10 && userLocation.latitude && userLocation.longitude && (
-        <ScrollReveal>
-          <NearbyMerchants
-            merchants={filteredMerchants.map((m) => ({ ...m, reward_count: merchantRewardCounts.get(m.id) || 0 }))}
-            userLat={userLocation.latitude}
-            userLng={userLocation.longitude}
-            onMerchantClick={setPreviewMerchantId}
-          />
-        </ScrollReveal>
-      )}
-
-      {/* Featured Campaigns */}
-      {campaigns.length > 0 && (
-        <ScrollReveal delay={15}>
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Megaphone size={16} className="text-secondary" /> Featured Campaigns
-            </h3>
-            <Carousel setApi={setCarouselApi} opts={{ loop: true }} className="w-full">
-              <CarouselContent>
-                {campaigns.map((c, i) => {
-                  const merchant = merchantMap.get(c.merchant_id);
-                  return (
-                    <CarouselItem key={c.id}>
-                      <button
-                        onClick={() => setPreviewMerchantId(c.merchant_id)}
-                        className="w-full text-left relative rounded-2xl overflow-hidden min-h-[160px] flex flex-col justify-between"
-                      >
-                        {c.image_url ? (
-                          <>
-                            <img src={c.image_url} alt={c.title} className="absolute inset-0 w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/20" />
-                          </>
-                        ) : (
-                          <div className="absolute inset-0 bg-gradient-to-br" style={{ background: `linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))` }} />
-                        )}
-                        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
-                        {merchant?.logo_url && (
-                          <div className="absolute top-3 right-3 w-8 h-8 rounded-lg overflow-hidden bg-background/30 backdrop-blur-sm border border-primary-foreground/20">
-                            <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        )}
-                        <div className="relative z-10 p-5">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Megaphone size={13} className="text-primary-foreground/70" />
-                            <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">
-                              {merchant?.store_name || "Store"}
-                            </span>
-                          </div>
-                          <h4 className="text-primary-foreground font-bold text-lg leading-tight">{c.title}</h4>
-                          {c.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{c.description}</p>}
-                          <span className="mt-3 inline-flex items-center gap-1 text-[10px] bg-primary-foreground/20 text-primary-foreground px-2.5 py-1 rounded-full font-semibold">
-                            Learn More <TrendingUp size={9} />
-                          </span>
-                        </div>
-                      </button>
-                    </CarouselItem>
-                  );
-                })}
-              </CarouselContent>
-              {slideCount > 1 && (
-                <div className="flex justify-center gap-1.5 mt-3">
-                  {Array.from({ length: slideCount }).map((_, i) => (
-                    <button key={i} onClick={() => carouselApi?.scrollTo(i)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide ? "bg-primary w-5" : "bg-border"}`} />
-                  ))}
-                </div>
-              )}
-            </Carousel>
-          </div>
-        </ScrollReveal>
-      )}
-
-      {/* Hot Rewards */}
-      {rewards.length > 0 && (
-        <ScrollReveal delay={30}>
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Gift size={16} className="text-accent" /> Hot Rewards
-            </h3>
-            <Carousel setApi={setHotApi} opts={{ loop: false, align: "start" }} className="w-full">
-              <CarouselContent>
-                {rewards.slice(0, 10).map((r, idx) => {
-                  const merchant = merchantMap.get(r.merchant_id);
-                  const colorSet = HOT_REWARD_COLORS[idx % HOT_REWARD_COLORS.length];
-                  return (
-                    <CarouselItem key={r.id} className="basis-full">
-                      <div
-                        className={`w-full rounded-2xl ${colorSet.border} border overflow-hidden transition-all duration-300 ${colorSet.glow}`}
-                      >
-                        {/* Image or gradient header — clickable for merchant preview */}
-                        <button
-                          onClick={() => setPreviewMerchantId(r.merchant_id)}
-                          className="relative h-[180px] overflow-hidden block w-full text-left"
-                        >
-                          {r.image_url ? (
-                            <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${colorSet.bg}`}>
-                              <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/10 border border-background/20" />
-                            </div>
-                          )}
-                          {merchant?.logo_url && (
-                            <div className="absolute top-3 right-3 w-10 h-10 rounded-xl overflow-hidden bg-background/30 backdrop-blur-sm border border-white/20">
-                              <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
-                            </div>
-                          )}
-                          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent" />
-                        </button>
-
-                        {/* Content on solid background */}
-                        <div className={`p-4 bg-gradient-to-br ${colorSet.bg}`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            {merchant?.logo_url ? (
-                              <img src={merchant.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-border/30" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                                <Gift size={14} className="text-accent" />
-                              </div>
-                            )}
-                            <span className="text-[10px] text-muted-foreground truncate flex-1 font-medium">{merchant?.store_name || "Store"}</span>
-                          </div>
-                          <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{r.title}</p>
-                          {r.description && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{r.description}</p>}
-                          <div className="flex items-center justify-between mt-2.5 mb-3">
-                            <span className="text-xs font-bold text-primary">{r.points_required} pts</span>
-                            <button
-                              onClick={() => setPreviewMerchantId(r.merchant_id)}
-                              className="text-[10px] text-secondary font-semibold hover:underline"
-                            >
-                              View store →
-                            </button>
-                          </div>
-                          <Button
-                            onClick={(e) => handleRedeem(e, r.id)}
-                            disabled={redeeming === r.id}
-                            variant="hero"
-                            size="sm"
-                            className="w-full gap-1.5 text-xs"
-                          >
-                            {redeeming === r.id ? (
-                              <><Loader2 size={12} className="animate-spin" /> Redeeming…</>
-                            ) : (
-                              <><Gift size={12} /> Redeem Reward</>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </CarouselItem>
-                  );
-                })}
-              </CarouselContent>
-            </Carousel>
-            {hotCount > 1 && (
-              <div className="flex justify-center gap-1.5 mt-3">
-                {Array.from({ length: hotCount }).map((_, i) => (
-                  <button key={i} onClick={() => hotApi?.scrollTo(i)}
-                    className={`h-2 rounded-full transition-all duration-300 ${i === hotSlide ? 'bg-accent w-5' : 'bg-border w-2'}`} aria-label={`Go to reward ${i + 1}`} />
-                ))}
-              </div>
-            )}
-            <p className="text-[10px] text-center text-muted-foreground mt-2">Swipe to explore more →</p>
-          </div>
-        </ScrollReveal>
-      )}
-
-      {/* Monthly Offers */}
-      {offers.length > 0 && (
-        <ScrollReveal delay={45}>
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <CalendarDays size={16} className="text-primary" /> Monthly Offers
-            </h3>
-            <div className="space-y-2">
-              {offers.slice(0, 6).map((o) => {
-                const merchant = merchantMap.get(o.merchant_id);
-                return (
-                  <button
-                    key={o.id}
-                    onClick={() => setPreviewMerchantId(o.merchant_id)}
-                    className="w-full text-left bg-card rounded-xl border border-border/30 p-3.5 hover:shadow-card transition-all"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-                          <CalendarDays size={11} className="text-primary" />
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">{merchant?.store_name || "Store"}</span>
-                      </div>
-                      {o.valid_to && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                          <Clock size={9} /> {daysUntil(o.valid_to)}d left
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs font-semibold text-foreground">{o.title}</p>
-                    {o.description && <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{o.description}</p>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </ScrollReveal>
-      )}
-
-      {/* Browse Merchants */}
-      <ScrollReveal delay={60}>
-        <div className="space-y-3">
+      <ScrollReveal>
+        <div className="rounded-[28px] border border-border/35 bg-card/90 p-5 shadow-card backdrop-blur-sm">
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Store size={16} className="text-secondary" /> Browse Merchants
+            <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Compass size={16} className="text-secondary" /> Explore Stores
             </h3>
-            <p className="text-xs text-muted-foreground">A simple directory list is a better fit here so customers can scan stores faster and open details quickly.</p>
+            <p className="text-xs text-muted-foreground">
+              Browse one merchant at a time, then open the full store page for rewards, offers, and directions.
+            </p>
           </div>
-          <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} industries={uniqueIndustries} />
-          {filteredMerchants.length === 0 ? (
-            <div className="text-center py-8">
-              <Store size={28} className="mx-auto text-muted-foreground/30 mb-2" />
-              <p className="text-sm text-muted-foreground">No merchants found</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredMerchants.map((m, idx) => {
-                const rewardCount = merchantRewardCounts.get(m.id) || 0;
-                const isMember = customerMerchantIds.includes(m.id);
-                const dist = userLocation.latitude && userLocation.longitude && m.latitude && m.longitude
-                  ? haversineDistance(userLocation.latitude, userLocation.longitude, m.latitude, m.longitude)
-                  : null;
-                const colors = INDUSTRY_COLORS[m.industry_type || ""] || { accent: "from-secondary to-primary", badge: "bg-secondary/10 text-secondary" };
-                return (
-                  <div
-                    key={m.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setPreviewMerchantId(m.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPreviewMerchantId(m.id); } }}
-                    className="group rounded-[24px] border border-border/30 bg-card p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl">
-                      <img
-                        src={getIndustryImage(m.industry_type)}
-                        alt={m.industry_type || "Store"}
-                        loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
-                      <div className="absolute left-2 top-2 h-10 w-10 overflow-hidden rounded-xl border border-background/30 bg-background/90 shadow-card">
-                        {m.logo_url ? (
-                          <img src={m.logo_url} alt={m.store_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <Store size={18} className="text-secondary" />
-                        )}
-                      </div>
-                      {isMember && (
-                        <span className="absolute bottom-2 left-2 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground shadow-card">MEMBER</span>
-                      )}
-                      </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-bold text-foreground">{m.store_name}</p>
-                              {m.industry_type && (
-                                <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${colors.badge}`}>
-                                  {m.industry_type}
-                                </span>
-                              )}
-                            </div>
-                            {m.address && (
-                              <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground line-clamp-1">
-                                <MapPin size={9} /> {m.address}
-                              </p>
-                            )}
-                          </div>
-                          {(m.latitude != null && m.longitude != null) || m.address ? (
-                            <a
-                              href={
-                                m.latitude != null && m.longitude != null
-                                  ? `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`
-                                  : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(m.address || "")}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={`Get directions to ${m.store_name}`}
-                              title="Get directions"
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/40 bg-background text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-                            >
-                              <Navigation size={14} />
-                            </a>
-                          ) : null}
-                        </div>
+          <div className="relative mt-4">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search stores, industries, or locations"
+              className="h-11 rounded-xl border-border/50 bg-background pl-9"
+            />
+          </div>
 
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          {rewardCount > 0 && (
-                            <span className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent-foreground">
-                              {rewardCount} reward{rewardCount > 1 ? "s" : ""}
-                            </span>
-                          )}
-                          {dist !== null && (
-                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
-                              {formatDistance(dist)} away
-                            </span>
-                          )}
-                          {isMember && (
-                            <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
-                              Joined
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="mt-3">
+            <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} industries={uniqueIndustries} />
+          </div>
         </div>
       </ScrollReveal>
 
-      {/* Merchant Preview Dialog */}
-      <MerchantPreview
-        open={!!previewMerchantId}
-        onOpenChange={(open) => !open && setPreviewMerchantId(null)}
-        merchant={previewMerchant ? { ...previewMerchant } : null}
-        rewards={rewards.filter((r) => r.merchant_id === previewMerchantId)}
-        campaigns={campaigns.filter((c) => c.merchant_id === previewMerchantId)}
-        offers={offers.filter((o) => o.merchant_id === previewMerchantId)}
-        isCustomer={previewMerchantId ? customerMerchantIds.includes(previewMerchantId) : false}
-        distance={
-          previewMerchant && userLocation.latitude && userLocation.longitude && previewMerchant.latitude && previewMerchant.longitude
-            ? formatDistance(haversineDistance(userLocation.latitude, userLocation.longitude, previewMerchant.latitude, previewMerchant.longitude))
-            : null
-        }
-      />
-
-      {/* Redemption Code Dialog */}
-      <Dialog open={!!redemptionResult} onOpenChange={(open) => !open && setRedemptionResult(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="text-accent" size={20} /> Reward Redeemed!
-            </DialogTitle>
-            <DialogDescription>{redemptionResult?.title}</DialogDescription>
-          </DialogHeader>
-          {redemptionResult && (
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-accent/10 to-primary/5 rounded-2xl p-5 text-center border border-accent/20">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Show this code to the merchant</p>
-                <p className="font-mono text-2xl font-bold text-foreground tracking-[0.3em]">{redemptionResult.code}</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopyCode(redemptionResult.code)}
-                  className="mt-2 gap-1.5 text-xs"
-                >
-                  <Copy size={12} /> Copy code
-                </Button>
+      {featuredNearbyMerchant && featuredNearbyMerchant.distance !== null && (
+        <ScrollReveal delay={20}>
+          <div className="rounded-[24px] border border-border/35 bg-card/90 p-4 shadow-card backdrop-blur-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Closest to you</p>
+                <h4 className="mt-1 text-base font-bold text-foreground">{featuredNearbyMerchant.store_name}</h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatDistance(featuredNearbyMerchant.distance)} away
+                </p>
               </div>
-              <div className="text-center text-xs text-muted-foreground space-y-1">
-                <p>{redemptionResult.points} points spent</p>
-                <p className="text-[11px]">Expires {new Date(redemptionResult.expires).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => onOpenMerchant(featuredNearbyMerchant.merchant_id)}>
+                Open <Store size={14} />
+              </Button>
+            </div>
+          </div>
+        </ScrollReveal>
+      )}
+
+      {merchantsWithDistance.length === 0 ? (
+        <ScrollReveal delay={40}>
+          <div className="rounded-[28px] border border-dashed border-border/50 bg-muted/10 p-8 text-center">
+            <Store size={28} className="mx-auto text-muted-foreground/40" />
+            <p className="mt-3 text-sm font-semibold text-foreground">No stores match your search</p>
+            <p className="mt-1 text-xs text-muted-foreground">Try another industry or clear the search to browse all merchants.</p>
+          </div>
+        </ScrollReveal>
+      ) : (
+        <ScrollReveal delay={40}>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 px-1">
+              <p className="text-xs text-muted-foreground">
+                {merchantsWithDistance.length} store{merchantsWithDistance.length === 1 ? "" : "s"} available
+              </p>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                <ArrowLeftRight size={12} /> Swipe to browse
+              </span>
+            </div>
+
+            <Carousel setApi={setCarouselApi} opts={{ align: "start" }} className="w-full">
+              <CarouselContent>
+                {merchantsWithDistance.map((merchant) => {
+                  const directionsUrl = getDirectionsUrl(merchant);
+                  return (
+                    <CarouselItem key={merchant.merchant_id} className="basis-full">
+                      <div className="overflow-hidden rounded-[30px] border border-border/35 bg-card shadow-card">
+                        <button type="button" onClick={() => onOpenMerchant(merchant.merchant_id)} className="block w-full text-left">
+                          <div className="relative h-[440px] overflow-hidden">
+                            <img src={merchant.bannerImage} alt={merchant.store_name} className="h-full w-full object-cover" loading="lazy" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-foreground via-foreground/45 to-transparent" />
+
+                            <div className="absolute left-5 top-5 flex items-center gap-2">
+                              {merchant.isJoined && (
+                                <span className="rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-accent-foreground shadow-card">
+                                  Joined
+                                </span>
+                              )}
+                              <span className="rounded-full bg-background/15 px-3 py-1 text-[11px] font-semibold text-primary-foreground backdrop-blur-sm">
+                                {merchant.rewardCount} reward{merchant.rewardCount === 1 ? "" : "s"}
+                              </span>
+                            </div>
+
+                            <div className="absolute right-5 top-5 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-background/25 bg-card/90 shadow-card">
+                              {merchant.logo_url ? (
+                                <img src={merchant.logo_url} alt={merchant.store_name} className="h-full w-full object-cover" loading="lazy" />
+                              ) : (
+                                <Store size={22} className="text-secondary" />
+                              )}
+                            </div>
+
+                            <div className="absolute inset-x-0 bottom-0 p-5 text-primary-foreground">
+                              <div className="rounded-[24px] border border-background/15 bg-background/10 p-4 backdrop-blur-sm">
+                                <p className="text-[11px] uppercase tracking-[0.16em] text-primary-foreground/72">{merchant.industry_type || "Business"}</p>
+                                <h4 className="mt-1 text-3xl font-bold leading-tight">{merchant.store_name}</h4>
+                                {merchant.address && (
+                                  <p className="mt-2 flex items-start gap-1.5 text-sm text-primary-foreground/82">
+                                    <MapPin size={14} className="mt-0.5 shrink-0" /> {merchant.address}
+                                  </p>
+                                )}
+
+                                <div className="mt-4 grid grid-cols-2 gap-3">
+                                  <div className="rounded-2xl bg-background/10 p-3">
+                                    <p className="text-[10px] uppercase tracking-[0.14em] text-primary-foreground/62">Rewards</p>
+                                    <p className="mt-1 text-xl font-bold">{merchant.rewardCount}</p>
+                                  </div>
+                                  <div className="rounded-2xl bg-background/10 p-3">
+                                    <p className="text-[10px] uppercase tracking-[0.14em] text-primary-foreground/62">Offers</p>
+                                    <p className="mt-1 text-xl font-bold">{merchant.offerCount}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+
+                        <div className="flex items-center gap-2 border-t border-border/30 bg-card p-4">
+                          <Button variant="hero" className="flex-1 gap-2" onClick={() => onOpenMerchant(merchant.merchant_id)}>
+                            Open Store
+                          </Button>
+                          {directionsUrl && (
+                            <Button variant="outline" size="icon" asChild>
+                              <a href={directionsUrl} target="_blank" rel="noreferrer" aria-label={`Get directions to ${merchant.store_name}`}>
+                                <Navigation size={16} />
+                              </a>
+                            </Button>
+                          )}
+                          {merchant.distance !== null && (
+                            <div className="rounded-2xl bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                              {formatDistance(merchant.distance)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+            </Carousel>
+
+            {merchantsWithDistance.length > 1 && (
+              <div className="flex justify-center gap-1.5">
+                {merchantsWithDistance.map((merchant, index) => (
+                  <button
+                    key={merchant.merchant_id}
+                    type="button"
+                    onClick={() => carouselApi?.scrollTo(index)}
+                    className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide ? "w-6 bg-primary" : "w-2 bg-border"}`}
+                    aria-label={`Go to ${merchant.store_name}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="rounded-[24px] border border-border/35 bg-card/90 p-4 shadow-card backdrop-blur-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/10">
+                  <Gift size={18} className="text-secondary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Recommendation</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    For PerkBack, this one-store-per-screen layout works better than a stacked directory because it makes local merchant discovery feel premium while keeping rewards inside the dedicated Rewards tab.
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </ScrollReveal>
+      )}
     </div>
   );
 };
