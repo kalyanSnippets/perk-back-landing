@@ -64,6 +64,7 @@ const INDUSTRY_COLORS: Record<string, { bg: string; border: string; text: string
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
 const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
+const LAST_STORE_STORAGE_KEY = "perkback:last-store-view";
 
 const AccessCard = () => {
   const navigate = useNavigate();
@@ -93,6 +94,7 @@ const AccessCard = () => {
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [lastViewedMerchantId, setLastViewedMerchantId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -115,6 +117,12 @@ const AccessCard = () => {
   }, [rewardsApi]);
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const storedMerchantId = window.localStorage.getItem(LAST_STORE_STORAGE_KEY);
+    if (storedMerchantId) setLastViewedMerchantId(storedMerchantId);
+  }, []);
 
   useEffect(() => {
     if (!customer) return;
@@ -272,6 +280,21 @@ const AccessCard = () => {
     navigate("/get-started", { replace: true });
   };
 
+  const openStoreView = useCallback((merchantId: string) => {
+    setSelectedMerchantId(merchantId);
+    setLastViewedMerchantId(merchantId);
+    setShowTransactions(false);
+    try {
+      window.localStorage.setItem(LAST_STORE_STORAGE_KEY, merchantId);
+    } catch {
+      /* ignore storage failures */
+    }
+  }, []);
+
+  const closeStoreView = useCallback(() => {
+    setSelectedMerchantId(null);
+  }, []);
+
   const [walletLoading, setWalletLoading] = useState<string | null>(null);
   const deviceType = getDeviceType();
   const isMobile = useIsMobile();
@@ -352,6 +375,7 @@ const AccessCard = () => {
   if (!customer) return null;
 
   const selectedMerchant = selectedMerchantId ? customerMerchants.find(cm => cm.merchant_id === selectedMerchantId) : null;
+  const lastViewedMerchant = lastViewedMerchantId ? customerMerchants.find(cm => cm.merchant_id === lastViewedMerchantId) ?? null : null;
   const displayPoints = selectedMerchant ? selectedMerchant.points_balance : customer.points_balance;
 
   const filteredRewards = selectedMerchantId ? rewards.filter(r => r.merchant_id === selectedMerchantId) : rewards;
