@@ -9,7 +9,7 @@ import {
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
   Clock, Tag, ArrowRight, Shield, Copy, Share2,
   Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, ArrowLeft, MapPin, LogOut
+  CheckCircle, XCircle, Ticket, Info, Store, MapPin, LogOut
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import { getIndustryImage } from "@/lib/industryImages";
@@ -17,6 +17,7 @@ import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
+import StoreFilterBar from "@/components/customer/StoreFilterBar";
 import StampCardProgress from "@/components/customer/StampCardProgress";
 import MerchantStatusCard from "@/components/customer/MerchantStatusCard";
 import NfcTapButton from "@/components/customer/NfcTapButton";
@@ -359,6 +360,12 @@ const AccessCard = () => {
   const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
   const filteredTransactions = selectedMerchantId ? transactions.filter(t => t.merchant_id === selectedMerchantId) : transactions;
   const filteredRedemptions = selectedMerchantId ? redemptions.filter(r => r.merchant_id === selectedMerchantId) : redemptions;
+  const selectedMerchantNextReward = selectedMerchant
+    ? filteredRewards
+        .filter((reward) => reward.points_required > displayPoints)
+        .sort((a, b) => a.points_required - b.points_required)[0] ?? null
+    : null;
+  const recentTransactionsPreview = filteredTransactions.slice(0, 3);
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
