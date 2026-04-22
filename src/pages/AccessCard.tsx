@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
-  ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
+  Gift, Coffee, Sparkles,
   Tag, ArrowRight, Shield, Copy, Share2,
-  CheckCircle, XCircle, Ticket, Store, MapPin, LogOut,
+  CheckCircle, XCircle, Ticket, Info, Store, MapPin, LogOut, Megaphone,
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
@@ -353,7 +353,6 @@ const AccessCard = () => {
   const storeCampaigns = activeStoreViewMerchantId ? campaigns.filter((campaign) => campaign.merchant_id === activeStoreViewMerchantId) : [];
   const storeOffers = activeStoreViewMerchantId ? monthlyOffers.filter((offer) => offer.merchant_id === activeStoreViewMerchantId) : [];
   const storeTransactions = activeStoreViewMerchantId ? transactions.filter((transaction) => transaction.merchant_id === activeStoreViewMerchantId) : [];
-  const filteredRedemptions = activeStoreViewMerchantId ? redemptions.filter((redemption) => redemption.merchant_id === activeStoreViewMerchantId) : redemptions;
 
   const merchantCards: MerchantCardData[] = customerMerchants
     .map((merchant) => {
@@ -378,25 +377,6 @@ const AccessCard = () => {
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const displayPoints = customer.points_balance;
-  const overviewRewards = rewards;
-  const overviewCampaigns = campaigns;
-  const overviewOffers = monthlyOffers;
-  const overviewTransactions = transactions;
-
-  const carouselSlides = [
-    ...overviewCampaigns.map((campaign) => ({ type: "campaign" as const, id: campaign.id, title: campaign.title, description: campaign.description, store: campaign.store_name, endsIn: null, image_url: campaign.image_url, merchant_id: campaign.merchant_id })),
-    ...overviewOffers.map((offer) => ({ type: "offer" as const, id: offer.id, title: offer.title, description: offer.description, store: offer.store_name, endsIn: offer.valid_to ? daysUntil(offer.valid_to) : null, image_url: null as string | null, merchant_id: offer.merchant_id })),
-  ];
-
-  const nearestReward = overviewRewards.length > 0
-    ? overviewRewards.reduce((closest, reward) => {
-        const diff = reward.points_required - displayPoints;
-        const closestDiff = closest.points_required - displayPoints;
-        if (diff > 0 && (closestDiff <= 0 || diff < closestDiff)) return reward;
-        return closest;
-      }, overviewRewards[0])
-    : null;
-  const nearestProgress = nearestReward ? Math.min((displayPoints / nearestReward.points_required) * 100, 100) : 0;
 
   const rewardMerchant = selectedReward
     ? customerMerchants.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
