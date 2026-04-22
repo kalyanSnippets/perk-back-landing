@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -102,6 +103,11 @@ const AccessCard = () => {
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [highlightedSection, setHighlightedSection] = useState<"points" | "rewards" | "offers" | null>(null);
+  const [highlightedRewardId, setHighlightedRewardId] = useState<string | null>(null);
+  const pointsSectionRef = useRef<HTMLDivElement | null>(null);
+  const rewardsSectionRef = useRef<HTMLDivElement | null>(null);
+  const offersSectionRef = useRef<HTMLDivElement | null>(null);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchant?: CustomerMerchantData | null) => {
     if (typeof window === "undefined") return;
@@ -156,6 +162,17 @@ const AccessCard = () => {
     const timer = window.setTimeout(() => setIsSummaryLoading(false), 300);
     return () => window.clearTimeout(timer);
   }, [isSummaryLoading]);
+
+  useEffect(() => {
+    if (!highlightedSection && !highlightedRewardId) return;
+
+    const timer = window.setTimeout(() => {
+      setHighlightedSection(null);
+      setHighlightedRewardId(null);
+    }, 1800);
+
+    return () => window.clearTimeout(timer);
+  }, [highlightedSection, highlightedRewardId]);
 
   useEffect(() => {
     if (!customer) return;
