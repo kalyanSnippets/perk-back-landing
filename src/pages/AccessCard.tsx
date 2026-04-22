@@ -1121,7 +1121,12 @@ const AccessCard = () => {
 
         {/* Available Rewards - Enhanced */}
         <ScrollReveal delay={75}>
-          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+          <div
+            ref={rewardsSectionRef}
+            className={`bg-card rounded-2xl p-5 sm:p-6 shadow-card border transition-all duration-500 ${
+              highlightedSection === "rewards" ? "border-accent/50 shadow-hero" : "border-border/50"
+            }`}
+          >
             <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
               <Gift size={16} className="text-accent" /> Available Rewards
               {selectedMerchant && <span className="text-xs font-normal text-muted-foreground">at {selectedMerchant.store_name}</span>}
@@ -1151,7 +1156,8 @@ const AccessCard = () => {
                               readyToRedeem
                                 ? 'border-accent/40 shadow-[0_0_25px_-4px_hsl(var(--accent)/0.4)]'
                                 : 'border-border/20 shadow-card'
-                            }`}
+                            } ${highlightedRewardId === r.id ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : ''}
+                            `}
                           >
                             {/* Image or gradient header */}
                             <div className="relative h-[180px] overflow-hidden">
@@ -1193,7 +1199,15 @@ const AccessCard = () => {
                                 <Progress value={progress} className="h-1.5" />
                               </div>
                               {readyToRedeem ? (
-                                <Button variant="hero" size="sm" className="w-full gap-1.5 text-xs mt-1">
+                                <Button
+                                  variant="hero"
+                                  size="sm"
+                                  className="w-full gap-1.5 text-xs mt-1"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setSelectedReward(r);
+                                  }}
+                                >
                                   <Ticket size={12} /> Claim Reward
                                 </Button>
                               ) : (
@@ -1245,7 +1259,12 @@ const AccessCard = () => {
         {/* Monthly Offers */}
         {filteredOffers.length > 0 && (
           <ScrollReveal delay={125}>
-            <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
+            <div
+              ref={offersSectionRef}
+              className={`bg-card rounded-2xl p-5 sm:p-6 shadow-card border transition-all duration-500 ${
+                highlightedSection === "offers" ? "border-secondary/50 shadow-hero" : "border-border/50"
+              }`}
+            >
               <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <CalendarDays size={16} className="text-accent" /> Monthly Offers
               </h3>
