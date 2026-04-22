@@ -1,102 +1,133 @@
 
+## Refine the customer mobile/PWA entry flow so it feels like a real PerkBack app
 
-## Ship the Customer First-Touch journey to production
+### What will change
 
-Move the approved 10-screen prototype out of `/prototype` and into the real app as a live, mobile-first customer onboarding flow that starts when someone scans a merchant QR code.
+#### 1. QR poster will open the PerkBack domain directly
+- Update the counter QR poster generator so the encoded link uses `https://www.perkback.com.au/join/:slug` instead of the current runtime origin.
+- Keep the on-screen poster preview and downloaded PNG consistent, so what the merchant sees is exactly what customers scan.
+- This removes the “Lovable site first” behavior and sends customers straight to the PerkBack join experience.
+
+#### 2. Splash screen will stay on screen a bit longer
+- Increase the `/join/:merchantSlug` splash timing so it feels intentional instead of flashing away too quickly.
+- Keep the existing branded look, but extend the delay before advancing.
+
+#### 3. Customer onboarding will be simplified to one screen
+- Replace the current 3-slide onboarding carousel in `CustomerJoin.tsx` with a single fixed-height onboarding screen.
+- Preserve the strongest approved messaging:
+  - what PerkBack is
+  - why it helps
+  - one clear CTA
+- Keep the “Already on PerkBack? Sign in” path visible on this simple onboarding screen.
+
+#### 4. Logged-in QR scanners will go straight to the card flow
+- Keep the branded splash first.
+- After splash, if the customer is already authenticated, immediately link them to the merchant and send them to `/customer/access-card`.
+- Do not show welcome/onboarding/auth screens to already logged-in customers after a QR scan.
+
+#### 5. The installed app / phone experience will stop opening to the marketing homepage
+- Add a mobile-app-aware entry redirect so phone/PWA customers no longer land on `/`.
+- New behavior on phone:
+  - logged in customer → go straight to `/customer/access-card`
+  - logged out user → go to `/get-started` in login mode
+- This will make the app feel like a wallet/login app rather than a marketing website.
+
+#### 6. Hide public website chrome on phone
+- Remove the public top navbar and theme toggle on phone-sized views.
+- Keep desktop marketing navigation intact.
+- On phone, customer-facing routes will feel app-like rather than website-like.
+- Public links like Home, Pricing, Testimonials, Blog, etc. will no longer sit in the top mobile nav.
+
+#### 7. Move useful public links into a customer-accessible profile area
+- Since public nav is being removed on phone, add a compact “Profile / More” section inside the customer experience.
+- Include links there for pages you still want accessible separately, such as:
+  - About Us
+  - Pricing
+  - Testimonials
+  - Blog
+  - Contact Us
+  - Privacy
+- This keeps those pages reachable without cluttering the app shell.
+
+#### 8. Fix onboarding layout so it is locked to the phone screen
+- Make the join splash/onboarding/auth screens use fixed full-height mobile layouts.
+- Remove the accidental scrollable feel unless content truly overflows.
+- Ensure CTA buttons stay pinned appropriately within the viewport.
 
 ---
 
-### What the customer will experience
+### Files to update
+
+#### `src/components/merchant/CounterQrPoster.tsx`
+- Replace `window.location.origin` for QR/join URL generation with the fixed production domain `https://www.perkback.com.au`.
+- Apply the same source for both preview copy and PNG export.
+
+#### `src/pages/CustomerJoin.tsx`
+- Lengthen splash timing.
+- Simplify onboarding from 3 slides to 1 step.
+- Ensure full-screen mobile-safe layout with no unintended page scroll.
+- Tighten the signed-in auto-link logic so the post-splash route goes directly to the customer card.
+- Keep the “Already on PerkBack? Sign in” path visible and clear.
+
+#### `src/pages/GetStarted.tsx`
+- Add support for a `next` redirect parameter so sign-in from `/join/:slug` returns users to the join flow instead of dropping them elsewhere.
+- Add support for forcing login-first when launched from mobile/PWA entry.
+- Update the back/home affordance for phone app mode so it behaves like an app, not a marketing funnel.
+
+#### `src/components/Header.tsx`
+- Detect phone-sized views and suppress the entire public mobile header/nav for app-like flows.
+- Remove the mobile theme toggle.
+- Keep desktop header behavior for the normal website.
+
+#### `src/pages/Index.tsx`
+- Add customer mobile entry redirect behavior so phone/PWA users do not stay on the landing page.
+- Preserve normal desktop website behavior.
+
+#### `src/pages/AccessCard.tsx`
+- Make the customer card experience work cleanly without relying on the public header on phone.
+- Add a small profile/more section for access to public informational pages and account actions.
+- Preserve existing desktop/tablet behavior as much as possible.
+
+#### `public/manifest.json`
+- Change the installed app start URL away from `/` so the installed web app opens into the authentication/app flow instead of the landing page.
+- Point it to the login-first experience.
+
+---
+
+### Expected final behavior
 
 ```text
-Scan QR at counter
-        │
-        ▼
-  /join/:merchantSlug
-        │
-   ┌────┴─────────────────────────────────────────┐
-   │ Already signed in?                           │
-   │   yes → link merchant → /customer/access-card│
-   │   no  → continue ↓                           │
-   └────┬─────────────────────────────────────────┘
-        ▼
- Splash (1.2s brand moment)
-        ▼
- Merchant Welcome (logo + hero + "Join now")
-        ▼
- Onboarding carousel (3 slides, skippable)
-        ▼
- Step 1 of 2 — Quick questions (name, mobile, DOB)
-        ▼
- Step 2 of 2 — Create wallet (email + password, or Google/Apple)
-        ▼
- Card Ready celebration (CRN + loyalty number revealed)
-        ▼
- /customer/access-card  (wallet home)
+Scan merchant QR
+   ↓
+www.perkback.com.au/join/:slug
+   ↓
+PerkBack splash (slightly longer)
+   ↓
+If logged in:
+   link customer to merchant
+   → /customer/access-card
+
+If logged out:
+   1-step onboarding
+   → sign in / create account
+   → link to merchant
+   → /customer/access-card
 ```
 
-Total time target: under 60 seconds from QR scan to wallet.
+```text
+Open installed PerkBack app on phone
+   ↓
+If logged in:
+   /customer/access-card
+
+If logged out:
+   /get-started (login-first)
+```
 
 ---
 
-### What gets built
-
-**New route**
-- `/join/:merchantSlug` — single mobile-optimised page that orchestrates all 10 screens via internal step state. Desktop visitors see the same flow inside a centered mobile frame so the experience stays consistent.
-
-**New page** `src/pages/CustomerJoin.tsx`
-- Loads the merchant by slug (logo, name, industry, distance is optional).
-- Manages step state: `splash → welcome → onboarding → questions → wallet → ready`.
-- On submit: creates the Supabase auth user, writes the customer profile, generates CRN + loyalty number, links the customer to the merchant, then routes to `/customer/access-card`.
-
-**Reused production components (extracted from the prototype)**
-The 10 prototype screens become real, reusable components under `src/components/customer-join/`:
-- `JoinSplash.tsx`
-- `MerchantWelcome.tsx`
-- `JoinOnboarding.tsx` (3-slide carousel, skippable)
-- `QuickQuestionsForm.tsx` (React Hook Form + Zod)
-- `CreateWalletForm.tsx` (email/password + Google + Apple)
-- `CardReady.tsx` (celebration with real CRN + card number)
-
-All copy from the approved prototype is carried over verbatim. Visual styling, gradients, photography, merchant logo treatment and animations match the prototype exactly.
-
-**Auth integration**
-- Email + password signup using existing Supabase auth (same pattern as `CustomerAuth.tsx`).
-- Google and Apple OAuth using the existing providers already wired in `GetStarted`.
-- After OAuth return, the user lands back on `/join/:merchantSlug?step=ready` and the merchant link + card generation completes automatically.
-
-**Database work** (one migration)
-- New table `customer_merchants (customer_id, merchant_id, joined_at, source)` with RLS so a customer can only see their own links and a merchant can only see customers linked to them.
-- `slug` column added to `merchants` (auto-generated from `store_name` if missing) so QR codes can use friendly URLs like `/join/bean-society`.
-- Reuse existing CRN + `loyalty_card_number` generation already in the `customers` table flow — no changes to that logic.
-
-**QR code surface for merchants**
-- A new "Counter QR" panel inside `MerchantSettings` that renders the merchant's `/join/:slug` URL as a downloadable PNG poster matching the prototype's poster design (logo, store name, "Scan to join", PerkBack footer). Merchants can print this and put it on the counter.
-
----
-
-### Mobile-first behaviour
-
-- Page always renders in a single-column mobile layout regardless of viewport (max-width 420px, centered, with the existing prototype-style chrome around it on desktop).
-- Uses the same `safe-top` / `safe-bottom` utilities already in the codebase so it works inside the iOS PWA and the Capacitor native shell.
-
----
-
-### Out of scope for this build (kept for v2)
-
-- Geolocation distance ("120 m away") — shown as static for v1, wired to real geo in v2.
-- "Add to Apple / Google Wallet" button on the Card Ready screen will route into the existing `apple-wallet-pass` / `google-wallet-pass` edge functions but its UI is unchanged.
-- Merchant-side analytics for "joined via QR" — the `source` column is captured now so the dashboard widget can be added later.
-
----
-
-### Acceptance criteria
-
-- Visiting `/join/bean-society` on a phone shows the splash, then the full 10-screen flow exactly as in the prototype.
-- A new customer can sign up with email/password OR Google OR Apple and lands on `/customer/access-card` with a real CRN and 10-digit loyalty number visible.
-- An already-signed-in customer scanning a new merchant's QR is silently linked to that merchant and routed straight to `/customer/access-card` with a toast: "You're now earning at Bean Society".
-- The customer–merchant link appears in `customer_merchants` and the merchant's customer count updates.
-- The merchant can download their counter QR poster from Settings.
-- All existing routes, auth flows, and dashboards continue to work unchanged.
-- No regressions in the `/prototype` lab — the prototype stays as a reference.
-
+### Technical notes
+- No database schema change is required for these requests.
+- The existing merchant join-source save behavior in `customer_merchants.source` remains intact.
+- The main logic change is route handling, mobile shell behavior, and QR URL generation.
+- I will preserve desktop marketing pages and merchant flows while making the phone customer experience behave like a native-style app shell.
