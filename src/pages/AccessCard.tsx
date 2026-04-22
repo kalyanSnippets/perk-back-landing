@@ -952,7 +952,7 @@ const AccessCard = () => {
                           return;
                         }
                         const cm = customerMerchants.find(c => c.merchant_id === slide.merchant_id);
-                        if (cm) setSelectedMerchantId(slide.merchant_id);
+                        if (cm) handleMerchantSelection(slide.merchant_id);
                       }}
                       className="w-full text-left"
                     >
@@ -1416,7 +1416,7 @@ const AccessCard = () => {
                       size="sm"
                       className="flex-1 gap-1.5"
                       onClick={() => {
-                        setSelectedMerchantId(selectedCampaign.merchant_id);
+                        handleMerchantSelection(selectedCampaign.merchant_id);
                         setSelectedCampaign(null);
                       }}
                     >
