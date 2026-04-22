@@ -62,6 +62,10 @@ const GetStarted = () => {
     if (authLoading) return;
     if (!user) return;
     if (signupInProgress.current) return;
+    if (nextPath && isCustomer) {
+      navigate(nextPath);
+      return;
+    }
     if (isMerchant && isCustomer) {
       navigate("/choose-role");
     } else if (isMerchant) {
@@ -69,7 +73,7 @@ const GetStarted = () => {
     } else if (isCustomer) {
       navigate("/customer/access-card");
     }
-  }, [user, authLoading, isMerchant, isCustomer, navigate]);
+  }, [user, authLoading, isMerchant, isCustomer, navigate, nextPath]);
 
   const resetForm = () => {
     setEmail(""); setPassword(""); setFullName(""); setPhone(""); setDob("");
