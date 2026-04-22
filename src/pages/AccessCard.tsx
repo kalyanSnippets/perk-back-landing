@@ -32,15 +32,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { getIndustryImage } from "@/lib/industryImages";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -440,6 +434,25 @@ const AccessCard = () => {
       ?? filteredRewards.find((reward) => reward.image_url)?.image_url
       ?? null
     : null;
+  const merchantCards = customerMerchants
+    .map((merchant) => {
+      const merchantRewards = rewards.filter((reward) => reward.merchant_id === merchant.merchant_id);
+      const merchantOffers = monthlyOffers.filter((offer) => offer.merchant_id === merchant.merchant_id);
+      const merchantCampaignImage = campaigns.find((campaign) => campaign.merchant_id === merchant.merchant_id && campaign.image_url)?.image_url;
+      const merchantRewardImage = merchantRewards.find((reward) => reward.image_url)?.image_url;
+
+      return {
+        ...merchant,
+        rewardCount: merchantRewards.length,
+        offerCount: merchantOffers.length,
+        bannerImage: merchantCampaignImage ?? merchantRewardImage ?? getIndustryImage(merchant.industry_type),
+      };
+    })
+    .sort((a, b) => {
+      if (selectedMerchantId && a.merchant_id === selectedMerchantId) return -1;
+      if (selectedMerchantId && b.merchant_id === selectedMerchantId) return 1;
+      return b.points_balance - a.points_balance;
+    });
   const selectedMerchantMapUrl = selectedMerchant?.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedMerchant.address)}`
     : null;
