@@ -410,14 +410,6 @@ const AccessCard = () => {
   const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
   const filteredTransactions = selectedMerchantId ? transactions.filter(t => t.merchant_id === selectedMerchantId) : transactions;
   const filteredRedemptions = selectedMerchantId ? redemptions.filter(r => r.merchant_id === selectedMerchantId) : redemptions;
-  const selectedMerchantAccent = selectedMerchant
-    ? INDUSTRY_COLORS[selectedMerchant.industry_type || ""] ?? { bg: "from-primary/20 via-primary/10 to-secondary/10", border: "border-primary/30", text: "text-primary" }
-    : null;
-  const selectedMerchantSpotlightImage = selectedMerchant
-    ? filteredCampaigns.find((campaign) => campaign.image_url)?.image_url
-      ?? filteredRewards.find((reward) => reward.image_url)?.image_url
-      ?? null
-    : null;
   const merchantCards = customerMerchants
     .map((merchant) => {
       const merchantRewards = rewards.filter((reward) => reward.merchant_id === merchant.merchant_id);
@@ -437,53 +429,7 @@ const AccessCard = () => {
       if (selectedMerchantId && b.merchant_id === selectedMerchantId) return 1;
       return b.points_balance - a.points_balance;
     });
-  const selectedMerchantMapUrl = selectedMerchant?.address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedMerchant.address)}`
-    : null;
-  const selectedMerchantTopReward = selectedMerchant
-    ? filteredRewards.slice().sort((a, b) => a.points_required - b.points_required)[0] ?? null
-    : null;
-  const selectedMerchantReadyReward = selectedMerchant
-    ? filteredRewards.find((reward) => reward.points_required <= selectedMerchant.points_balance) ?? null
-    : null;
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
-  const dashboardInnerBlock = "rounded-[22px] border border-border/30 bg-background/70";
-  const handleCheckPoints = () => {
-    focusRewardsSection("points");
-    setPointsVisible(false);
-    window.setTimeout(() => setPointsVisible(true), 50);
-  };
-  const handleViewOffers = () => {
-    if (!selectedMerchant) return;
-
-    if (filteredOffers.length > 0) {
-      focusRewardsSection("offers");
-      toast.success(`Showing offers for ${selectedMerchant.store_name}`);
-      return;
-    }
-
-    setShowStoreDetails(true);
-    toast.message(`${selectedMerchant.store_name} has no live offers right now.`);
-  };
-  const handleQuickRedeem = () => {
-    if (!selectedMerchant) return;
-
-    if (!selectedMerchantReadyReward) {
-      if (selectedMerchantTopReward) {
-        setHighlightedRewardId(selectedMerchantTopReward.id);
-        focusRewardsSection("rewards");
-        toast.message(`Next reward: ${selectedMerchantTopReward.title}`);
-        return;
-      }
-
-      setShowStoreDetails(true);
-      toast.message("No rewards are available for this store yet.");
-      return;
-    }
-
-    setHighlightedRewardId(selectedMerchantReadyReward.id);
-    setSelectedReward(selectedMerchantReadyReward);
-  };
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
