@@ -113,6 +113,18 @@ const AccessCard = () => {
     }
   }, [activeStoreViewSource]);
 
+  const fetchOffersData = useCallback(async () => {
+    const merchantMap = new Map(merchantDirectory.map((merchant) => [merchant.merchant_id, merchant.store_name]));
+    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
+      supabase.from("rewards").select("*").eq("active", true),
+      supabase.from("campaigns").select("*").eq("active", true),
+      supabase.from("monthly_offers").select("*").eq("active", true),
+    ]);
+    setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
+    setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
+    setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
+  }, [merchantDirectory]);
+
   useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
@@ -154,18 +166,6 @@ const AccessCard = () => {
       supabase.removeChannel(channel);
     };
   }, [customer?.id, customer, fetchOffersData]);
-
-  const fetchOffersData = useCallback(async () => {
-    const merchantMap = new Map(merchantDirectory.map((merchant) => [merchant.merchant_id, merchant.store_name]));
-    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
-      supabase.from("rewards").select("*").eq("active", true),
-      supabase.from("campaigns").select("*").eq("active", true),
-      supabase.from("monthly_offers").select("*").eq("active", true),
-    ]);
-    setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
-    setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
-    setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
-  }, [merchantDirectory]);
 
   const fetchData = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
