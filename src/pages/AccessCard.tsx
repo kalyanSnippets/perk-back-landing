@@ -2,33 +2,25 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
-  ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
-  Clock, Tag, ArrowRight, Shield, Copy, Share2,
-  Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, MapPin, LogOut,
+  ArrowRight, Shield, Copy, Share2,
+  CheckCircle, XCircle, Info, Store, MapPin, LogOut, Megaphone,
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
-import MerchantStatusCard from "@/components/customer/MerchantStatusCard";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Carousel, CarouselContent, CarouselItem, type CarouselApi,
-} from "@/components/ui/carousel";
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getIndustryImage } from "@/lib/industryImages";
 import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
@@ -40,25 +32,9 @@ interface TransactionData { id: string; merchant_name: string; merchant_id: stri
 interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
 interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
-interface RedemptionData { id: string; reward_title: string; points_spent: number; redemption_code: string; status: string; expires_at: string; created_at: string; merchant_id: string; store_name?: string; }
 interface MerchantCardData extends CustomerMerchantData { rewardCount: number; offerCount: number; bannerImage: string; }
 
-const CAROUSEL_GRADIENTS = [
-  "from-primary via-primary/90 to-secondary",
-  "from-secondary via-secondary/90 to-primary",
-  "from-accent/90 via-accent/80 to-primary/80",
-];
-
-const REWARD_GRADIENTS = [
-  "from-primary/20 via-primary/10 to-secondary/10",
-  "from-secondary/20 via-secondary/10 to-accent/10",
-  "from-accent/20 via-accent/10 to-primary/10",
-  "from-primary/15 via-secondary/15 to-accent/15",
-];
-
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
-const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
-const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
 const getDirectionsUrl = (address?: string | null) => address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}` : null;
 
 const AccessCard = () => {
@@ -70,29 +46,17 @@ const AccessCard = () => {
   const [rewards, setRewards] = useState<RewardData[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [monthlyOffers, setMonthlyOffers] = useState<MonthlyOfferData[]>([]);
-  const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
   const { isAdmin, isMerchant, logout } = useAuth();
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [slideCount, setSlideCount] = useState(0);
-  const [rewardsApi, setRewardsApi] = useState<CarouselApi>();
-  const [rewardsSlide, setRewardsSlide] = useState(0);
-  const [rewardsCount, setRewardsCount] = useState(0);
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
-  const [showClaimInfo, setShowClaimInfo] = useState(false);
-  const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
-  const [highlightedSection, setHighlightedSection] = useState<"points" | "rewards" | "offers" | null>(null);
   const pointsSectionRef = useRef<HTMLDivElement | null>(null);
-  const rewardsSectionRef = useRef<HTMLDivElement | null>(null);
-  const offersSectionRef = useRef<HTMLDivElement | null>(null);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchant?: CustomerMerchantData | null) => {
     if (typeof window === "undefined") return;
@@ -126,37 +90,7 @@ const AccessCard = () => {
     trackStoreSwitcherEvent("customer_store_cleared", merchant);
   }, [activeStoreViewMerchantId, customerMerchants, trackStoreSwitcherEvent]);
 
-  useEffect(() => {
-    if (!carouselApi) return;
-    setSlideCount(carouselApi.scrollSnapList().length);
-    setCurrentSlide(carouselApi.selectedScrollSnap());
-    carouselApi.on("select", () => setCurrentSlide(carouselApi.selectedScrollSnap()));
-    const interval = setInterval(() => carouselApi.scrollNext(), 4000);
-    return () => clearInterval(interval);
-  }, [carouselApi]);
-
-  useEffect(() => {
-    if (!rewardsApi) return;
-    setRewardsCount(rewardsApi.scrollSnapList().length);
-    setRewardsSlide(rewardsApi.selectedScrollSnap());
-    rewardsApi.on("select", () => setRewardsSlide(rewardsApi.selectedScrollSnap()));
-    rewardsApi.on("reInit", () => {
-      setRewardsCount(rewardsApi.scrollSnapList().length);
-      setRewardsSlide(rewardsApi.selectedScrollSnap());
-    });
-  }, [rewardsApi]);
-
   useEffect(() => { fetchData(); }, []);
-
-  useEffect(() => {
-    if (!highlightedSection) return;
-
-    const timer = window.setTimeout(() => {
-      setHighlightedSection(null);
-    }, 1800);
-
-    return () => window.clearTimeout(timer);
-  }, [highlightedSection]);
 
   useEffect(() => {
     if (!customer) return;
@@ -246,16 +180,14 @@ const AccessCard = () => {
     }));
     setCustomerMerchants(cmList);
 
-    const [rewardsRes, campaignsRes, offersRes, redemptionsRes] = await Promise.all([
+    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
-      supabase.from("redemptions").select("*").eq("customer_id", customerData.id).order("created_at", { ascending: false }),
     ]);
     setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
-    setRedemptions((redemptionsRes.data || []).map((redemption) => ({ ...redemption, store_name: merchantMap.get(redemption.merchant_id) || "Store" })));
 
     const merchantIds = cmList.map((merchant) => merchant.merchant_id);
     if (merchantIds.length > 0) {
@@ -400,7 +332,6 @@ const AccessCard = () => {
   const storeCampaigns = activeStoreViewMerchantId ? campaigns.filter((campaign) => campaign.merchant_id === activeStoreViewMerchantId) : [];
   const storeOffers = activeStoreViewMerchantId ? monthlyOffers.filter((offer) => offer.merchant_id === activeStoreViewMerchantId) : [];
   const storeTransactions = activeStoreViewMerchantId ? transactions.filter((transaction) => transaction.merchant_id === activeStoreViewMerchantId) : [];
-  const filteredRedemptions = activeStoreViewMerchantId ? redemptions.filter((redemption) => redemption.merchant_id === activeStoreViewMerchantId) : redemptions;
 
   const merchantCards: MerchantCardData[] = customerMerchants
     .map((merchant) => {
@@ -425,25 +356,6 @@ const AccessCard = () => {
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const displayPoints = customer.points_balance;
-  const overviewRewards = rewards;
-  const overviewCampaigns = campaigns;
-  const overviewOffers = monthlyOffers;
-  const overviewTransactions = transactions;
-
-  const carouselSlides = [
-    ...overviewCampaigns.map((campaign) => ({ type: "campaign" as const, id: campaign.id, title: campaign.title, description: campaign.description, store: campaign.store_name, endsIn: null, image_url: campaign.image_url, merchant_id: campaign.merchant_id })),
-    ...overviewOffers.map((offer) => ({ type: "offer" as const, id: offer.id, title: offer.title, description: offer.description, store: offer.store_name, endsIn: offer.valid_to ? daysUntil(offer.valid_to) : null, image_url: null as string | null, merchant_id: offer.merchant_id })),
-  ];
-
-  const nearestReward = overviewRewards.length > 0
-    ? overviewRewards.reduce((closest, reward) => {
-        const diff = reward.points_required - displayPoints;
-        const closestDiff = closest.points_required - displayPoints;
-        if (diff > 0 && (closestDiff <= 0 || diff < closestDiff)) return reward;
-        return closest;
-      }, overviewRewards[0])
-    : null;
-  const nearestProgress = nearestReward ? Math.min((displayPoints / nearestReward.points_required) * 100, 100) : 0;
 
   const rewardMerchant = selectedReward
     ? customerMerchants.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
@@ -687,43 +599,22 @@ const AccessCard = () => {
                   gamification={gamificationByMerchant[activeStoreCard.merchant_id]}
                   onBack={closeStoreView}
                   onRewardSelect={setSelectedReward}
-                  onCampaignSelect={setSelectedCampaign}
+                  onCampaignSelect={(campaign) => setSelectedCampaign(campaign)}
                 />
               ) : (
                 <>
                   <ScrollReveal>
-                    <div
-                      ref={pointsSectionRef}
-                      className={`relative overflow-hidden rounded-[30px] border bg-card p-5 text-center shadow-card transition-all duration-500 sm:p-6 ${
-                        highlightedSection === "points" ? "border-primary/50 shadow-hero" : "border-border/50"
-                      }`}
-                    >
-                      <div className="floating-dot w-6 h-6 bg-accent/15 -top-1 right-[15%]" style={{ animationDelay: "0s" }} />
-                      <div className="floating-dot w-4 h-4 bg-secondary/10 bottom-2 left-[10%]" style={{ animationDelay: "1.5s" }} />
-
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-[0.15em] mb-3 relative z-10">
-                        Total Points Balance
-                      </p>
-                      <div className={`flex items-center justify-center gap-3 transition-all duration-700 relative z-10 ${pointsVisible ? "opacity-100 scale-100" : "opacity-0 scale-90"}`}>
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center">
-                          <Star className="text-accent fill-accent" size={24} />
+                    <div ref={pointsSectionRef} className={`${dashboardSectionShell} p-5 sm:p-6`}>
+                      <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Total Points</p>
+                      <div className="mt-3 flex items-end justify-between gap-4">
+                        <div className={`transition-all duration-700 ${pointsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
+                          <p className="text-5xl font-bold text-foreground tabular-nums sm:text-6xl">{displayPoints}</p>
+                          <p className="mt-2 text-xs text-muted-foreground">Your full balance across all joined stores.</p>
                         </div>
-                        <span className="text-5xl sm:text-6xl font-bold text-foreground tabular-nums">{displayPoints}</span>
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent/12">
+                          <Star className="fill-accent text-accent" size={24} />
+                        </div>
                       </div>
-                      {nearestReward && nearestReward.points_required > displayPoints ? (
-                        <div className="mt-4 space-y-2 relative z-10">
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>Next: <span className="font-semibold text-foreground">{nearestReward.title}</span></span>
-                            <span>{nearestReward.points_required - displayPoints} pts to go</span>
-                          </div>
-                          <Progress value={nearestProgress} className="h-2" />
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-xs mt-3 relative z-10">Keep earning to unlock exclusive rewards!</p>
-                      )}
-                      <button onClick={() => setShowClaimInfo(true)} className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 mx-auto transition-colors relative z-10">
-                        <Info size={10} /> How to earn points
-                      </button>
                     </div>
                   </ScrollReveal>
 
@@ -755,332 +646,6 @@ const AccessCard = () => {
                     </ScrollReveal>
                   )}
 
-                  {customerMerchants.length > 0 && (
-                    <div className="space-y-2 pt-1">
-                      {customerMerchants.map((merchant) => {
-                        const gamification = gamificationByMerchant[merchant.merchant_id];
-                        if (!gamification) return null;
-                        if (!gamification.levels && !gamification.streak) return null;
-                        return (
-                          <MerchantStatusCard
-                            key={merchant.merchant_id}
-                            merchantId={merchant.merchant_id}
-                            storeName={merchant.store_name}
-                            pointsBalance={merchant.points_balance}
-                            transactions={transactions}
-                            showTier={gamification.levels}
-                            showStreak={gamification.streak}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {carouselSlides.length > 0 && (
-                    <ScrollReveal delay={50}>
-                      <Carousel setApi={setCarouselApi} opts={{ loop: true }} className="w-full">
-                        <CarouselContent>
-                          {carouselSlides.map((slide, index) => (
-                            <CarouselItem key={`${slide.type}-${index}`}>
-                              <button
-                                onClick={() => {
-                                  if (slide.type === "campaign") {
-                                    const campaign = campaigns.find((item) => item.id === slide.id);
-                                    if (campaign) setSelectedCampaign(campaign);
-                                    return;
-                                  }
-                                  openStoreView(slide.merchant_id);
-                                }}
-                                className="w-full text-left"
-                              >
-                                <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${CAROUSEL_GRADIENTS[index % CAROUSEL_GRADIENTS.length]} p-5 sm:p-6 min-h-[160px] flex flex-col justify-between`}>
-                                  {slide.image_url && (
-                                    <div className="absolute inset-0">
-                                      <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
-                                      <div className="absolute inset-0 bg-gradient-to-r from-foreground/75 via-foreground/50 to-foreground/25" />
-                                    </div>
-                                  )}
-                                  <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full border border-primary-foreground/10" />
-                                  <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full border border-primary-foreground/8" />
-                                  <div className="relative z-10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      {slide.type === "campaign" ? <Megaphone size={14} className="text-primary-foreground/70" /> : <CalendarDays size={14} className="text-primary-foreground/70" />}
-                                      <span className="text-primary-foreground/60 text-[10px] uppercase tracking-wider">{slide.store}</span>
-                                    </div>
-                                    <h3 className="text-primary-foreground font-bold text-lg sm:text-xl leading-tight">{slide.title}</h3>
-                                    {slide.description && <p className="text-primary-foreground/70 text-xs mt-1 line-clamp-2">{slide.description}</p>}
-                                  </div>
-                                  <div className="relative z-10 flex items-center justify-between mt-3">
-                                    <span className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
-                                      {slide.type === "campaign" ? "Campaign" : "Monthly Offer"}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                      {slide.endsIn !== null && (
-                                        <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
-                                          <Clock size={9} /> {slide.endsIn}d left
-                                        </span>
-                                      )}
-                                      <span className="text-[10px] bg-primary-foreground/20 text-primary-foreground px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                                        View Details <ArrowRight size={9} />
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </button>
-                            </CarouselItem>
-                          ))}
-                        </CarouselContent>
-                        {slideCount > 1 && (
-                          <div className="flex justify-center gap-1.5 mt-3">
-                            {Array.from({ length: slideCount }).map((_, index) => (
-                              <button key={index} onClick={() => carouselApi?.scrollTo(index)}
-                                className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlide ? "bg-primary w-5" : "bg-border"}`} />
-                            ))}
-                          </div>
-                        )}
-                      </Carousel>
-                    </ScrollReveal>
-                  )}
-
-                  <ScrollReveal delay={75}>
-                    <div
-                      ref={rewardsSectionRef}
-                      className={`${dashboardSectionShell} p-5 transition-all duration-500 sm:p-6 ${
-                        highlightedSection === "rewards" ? "border-accent/50 shadow-hero" : "border-border/50"
-                      }`}
-                    >
-                      <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                        <Gift size={16} className="text-accent" /> Available Rewards
-                      </h3>
-                      {overviewRewards.length === 0 ? (
-                        <div className="text-center py-6">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/10 flex items-center justify-center mx-auto mb-3"><Gift size={24} className="text-accent" /></div>
-                          <p className="text-sm font-medium text-foreground">No rewards available yet</p>
-                          <p className="text-xs text-muted-foreground mt-1">Shop at partner stores to unlock exclusive rewards!</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <Carousel setApi={setRewardsApi} opts={{ loop: false, align: "start" }} className="w-full">
-                            <CarouselContent>
-                              {overviewRewards.map((reward, index) => {
-                                const merchant = customerMerchants.find((item) => item.merchant_id === reward.merchant_id);
-                                const pointsForThisMerchant = merchant ? merchant.points_balance : 0;
-                                const progress = Math.min((pointsForThisMerchant / reward.points_required) * 100, 100);
-                                const readyToRedeem = progress >= 100;
-                                const almostThere = progress >= 80 && progress < 100;
-                                const IconComp = rewardTypeIcon(reward.reward_type);
-                                const gradient = REWARD_GRADIENTS[index % REWARD_GRADIENTS.length];
-                                return (
-                                  <CarouselItem key={reward.id} className="basis-full">
-                                    <div
-                                      onClick={() => setSelectedReward(reward)}
-                                      className={`w-full rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer border ${
-                                        readyToRedeem
-                                          ? "border-accent/40 shadow-[0_0_25px_-4px_hsl(var(--accent)/0.4)]"
-                                          : "border-border/20 shadow-card"
-                                      }`}
-                                    >
-                                      <div className="relative h-[180px] overflow-hidden">
-                                        {reward.image_url ? (
-                                          <img src={reward.image_url} alt={reward.title} className="w-full h-full object-cover" loading="lazy" />
-                                        ) : (
-                                          <div className={`w-full h-full bg-gradient-to-br ${gradient}`}>
-                                            <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-background/10 border border-background/20" />
-                                            <div className="absolute bottom-12 left-4 w-8 h-8 rounded-full bg-background/10 border border-background/20" />
-                                          </div>
-                                        )}
-                                        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
-                                        <div className="absolute top-3 right-3 flex items-center gap-2">
-                                          {readyToRedeem && (
-                                            <span className="bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse">✨ Ready!</span>
-                                          )}
-                                          <span className="text-[9px] uppercase tracking-wider font-semibold bg-foreground/50 backdrop-blur-sm px-2 py-0.5 rounded-full text-primary-foreground/90">{reward.reward_type}</span>
-                                        </div>
-                                        <div className="absolute top-3 left-3">
-                                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm ${readyToRedeem ? "bg-accent/30" : "bg-foreground/35"}`}>
-                                            <IconComp size={18} className="text-primary-foreground" />
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      <div className="bg-card p-4 space-y-2">
-                                        <p className="font-bold text-base text-foreground leading-tight">{reward.title}</p>
-                                        <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Store size={10} /> {reward.store_name}</p>
-                                        {reward.description && <p className="text-[10px] text-muted-foreground/80 line-clamp-2">{reward.description}</p>}
-                                        <div className="pt-1">
-                                          <div className="flex items-center justify-between text-[10px] mb-1">
-                                            <span className="text-muted-foreground">{pointsForThisMerchant}/{reward.points_required} pts</span>
-                                            {readyToRedeem && <span className="text-accent font-bold">✨ Ready!</span>}
-                                            {almostThere && <span className="text-secondary font-semibold">Almost there!</span>}
-                                          </div>
-                                          <Progress value={progress} className="h-1.5" />
-                                        </div>
-                                        {readyToRedeem ? (
-                                          <Button
-                                            variant="hero"
-                                            size="sm"
-                                            className="w-full gap-1.5 text-xs mt-1"
-                                            onClick={(event) => {
-                                              event.stopPropagation();
-                                              setSelectedReward(reward);
-                                            }}
-                                          >
-                                            <Ticket size={12} /> Claim Reward
-                                          </Button>
-                                        ) : (
-                                          <p className="text-[10px] text-center text-muted-foreground mt-1">
-                                            {reward.points_required - pointsForThisMerchant} pts to go
-                                          </p>
-                                        )}
-                                        {reward.is_limited_time && reward.expires_at && (
-                                          <p className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5"><Clock size={8} /> Expires {new Date(reward.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </CarouselItem>
-                                );
-                              })}
-                            </CarouselContent>
-                          </Carousel>
-                          {rewardsCount > 1 && (
-                            <div className="flex justify-center gap-1.5">
-                              {Array.from({ length: rewardsCount }).map((_, index) => (
-                                <button key={index} onClick={() => rewardsApi?.scrollTo(index)}
-                                  className={`h-2 rounded-full transition-all duration-300 ${index === rewardsSlide ? "bg-accent w-5" : "bg-border w-2"}`} aria-label={`Go to reward ${index + 1}`} />
-                              ))}
-                            </div>
-                          )}
-                          <p className="text-[10px] text-center text-muted-foreground">Swipe to see more rewards →</p>
-                        </div>
-                      )}
-                    </div>
-                  </ScrollReveal>
-
-                  {overviewOffers.length > 0 && (
-                    <ScrollReveal delay={125}>
-                      <div
-                        ref={offersSectionRef}
-                        className={`${dashboardSectionShell} p-5 transition-all duration-500 sm:p-6 ${
-                          highlightedSection === "offers" ? "border-secondary/50 shadow-hero" : "border-border/50"
-                        }`}
-                      >
-                        <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                          <CalendarDays size={16} className="text-accent" /> Monthly Offers
-                        </h3>
-                        <div className="space-y-3">
-                          {overviewOffers.map((offer) => (
-                            <div key={offer.id} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/30 hover:-translate-y-0.5 hover:shadow-card transition-all duration-200">
-                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
-                                <CalendarDays size={16} className="text-accent-foreground" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-xs sm:text-sm text-foreground">{offer.title}</p>
-                                {offer.description && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">{offer.description}</p>}
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <span className="text-[10px] text-muted-foreground/60">{offer.store_name}</span>
-                                  {offer.valid_to && (
-                                    <span className="text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                                      <Clock size={8} /> Ends in {daysUntil(offer.valid_to)} days
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </ScrollReveal>
-                  )}
-
-                  <ScrollReveal delay={150}>
-                    <div className={`${dashboardSectionShell} overflow-hidden`}>
-                      <button onClick={() => setShowTransactions(!showTransactions)} className="w-full flex items-center justify-between p-5 sm:p-6 text-left">
-                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                          <Shield size={16} className="text-secondary" /> Points Earned
-                          <span className="text-xs font-normal text-muted-foreground">({overviewTransactions.length})</span>
-                        </h3>
-                        <ChevronRight size={16} className={`text-muted-foreground transition-transform duration-200 ${showTransactions ? "rotate-90" : ""}`} />
-                      </button>
-                      {showTransactions && (
-                        <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-2">
-                          {overviewTransactions.length === 0 ? (
-                            <div className="text-center py-6">
-                              <Gift size={24} className="text-muted-foreground/40 mx-auto mb-2" />
-                              <p className="text-sm text-muted-foreground">No transactions yet.</p>
-                            </div>
-                          ) : (
-                            overviewTransactions.map((transaction) => (
-                              <div key={transaction.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{transaction.merchant_name}</p>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="text-[11px] text-muted-foreground">${transaction.purchase_amount.toFixed(2)}</span>
-                                    <span className="text-muted-foreground/30">·</span>
-                                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                      <Clock size={10} /> {new Date(transaction.transaction_date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                                    </span>
-                                  </div>
-                                </div>
-                                <span className="text-sm font-bold text-accent-foreground bg-accent/15 px-2 py-1 rounded-lg">+{transaction.points_awarded}</span>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </ScrollReveal>
-
-                  {filteredRedemptions.length > 0 && (
-                    <ScrollReveal delay={175}>
-                      <div className={`${dashboardSectionShell} overflow-hidden`}>
-                        <Collapsible>
-                          <CollapsibleTrigger className="w-full flex items-center justify-between p-5 sm:p-6 text-left hover:bg-muted/20 transition-colors group">
-                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                              <Ticket size={16} className="text-secondary" /> My Redemptions
-                              <span className="text-xs font-normal text-muted-foreground">({filteredRedemptions.length})</span>
-                            </h3>
-                            <ChevronRight size={16} className="text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="px-5 sm:px-6 pb-5 sm:pb-6 space-y-2">
-                              {filteredRedemptions.map((redemption) => {
-                                const isExpired = redemption.status === "expired" || (redemption.status === "pending" && new Date(redemption.expires_at) < new Date());
-                                const isVerified = redemption.status === "verified";
-                                const isPending = redemption.status === "pending" && !isExpired;
-                                return (
-                                  <div key={redemption.id} className={`p-3 rounded-xl border ${isPending ? "border-accent/30 bg-accent/5" : "border-border/30 bg-muted/30"}`}>
-                                    <div className="flex items-center justify-between">
-                                      <div className="min-w-0 flex-1">
-                                        <p className="font-semibold text-xs text-foreground">{redemption.reward_title}</p>
-                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">{redemption.store_name}</p>
-                                      </div>
-                                      <div className="pl-2">
-                                        {isVerified && <span className="text-[10px] bg-accent/15 text-accent-foreground px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10} /> Used</span>}
-                                        {isPending && <span className="text-[10px] bg-accent/15 text-accent-foreground px-2 py-0.5 rounded-full flex items-center gap-1"><Clock size={10} /> Pending</span>}
-                                        {isExpired && <span className="text-[10px] bg-destructive/15 text-destructive px-2 py-0.5 rounded-full flex items-center gap-1"><XCircle size={10} /> Expired</span>}
-                                      </div>
-                                    </div>
-                                    {isPending && (
-                                      <div className="mt-2 bg-card rounded-lg p-2 border border-border/30 text-center">
-                                        <p className="text-[10px] text-muted-foreground mb-1">Show this code to merchant</p>
-                                        <p className="font-mono text-lg font-bold text-foreground tracking-[0.3em]">{redemption.redemption_code}</p>
-                                        <p className="text-[9px] text-muted-foreground/60 mt-1">Expires {new Date(redemption.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
-                                      </div>
-                                    )}
-                                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
-                                      <span>{redemption.points_spent} pts</span>
-                                      <span className="text-muted-foreground/30">·</span>
-                                      <span>{new Date(redemption.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </div>
-                    </ScrollReveal>
-                  )}
                 </>
               )}
 
@@ -1114,30 +679,6 @@ const AccessCard = () => {
           redeeming={redeeming === selectedReward?.id}
           onRedeem={handleRedeem}
         />
-
-        <Dialog open={showClaimInfo} onOpenChange={setShowClaimInfo}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><Gift size={18} className="text-secondary" /> Ways to Earn Points</DialogTitle>
-              <DialogDescription>Here's how you can earn points at partner stores</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              {[
-                { icon: ScanBarcode, text: "Show your loyalty barcode or number at checkout" },
-                { icon: Smartphone, text: "Merchant scans or enters your number" },
-                { icon: Star, text: "Points are added instantly" },
-                { icon: Gift, text: "Track your rewards anytime in Perk Back" },
-              ].map((item, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
-                    <item.icon size={14} className="text-secondary" />
-                  </div>
-                  <span className="text-sm text-foreground/80">{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {showRedemptionModal && (
           <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm flex items-center justify-center px-4" onClick={() => setShowRedemptionModal(null)}>
