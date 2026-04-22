@@ -77,7 +77,7 @@ const AccessCard = () => {
   const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
-  const { isAdmin, logout } = useAuth();
+  const { isAdmin, isMerchant, logout } = useAuth();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
@@ -455,6 +455,13 @@ const AccessCard = () => {
                   <p className="text-xs text-muted-foreground">Manage your session and account controls from one place.</p>
                 </div>
                 <div className="grid gap-2">
+                  {isMerchant && (
+                    <Button variant="outline" size="sm" className="justify-start gap-2 h-10" asChild>
+                      <Link to="/merchant/dashboard">
+                        <Store size={14} /> Merchant Dashboard
+                      </Link>
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" className="justify-start gap-2 h-10" onClick={handleLogout}>
                     <LogOut size={14} /> Log out
                   </Button>
@@ -475,6 +482,7 @@ const AccessCard = () => {
                     { label: "About Us", href: "/about?web=1" },
                     { label: "Pricing", href: "/pricing?web=1" },
                     { label: "Testimonials", href: "/testimonials?web=1" },
+                    { label: "Reviews", href: "/reviews?web=1" },
                     { label: "Blog", href: "/blog?web=1" },
                     { label: "Contact", href: "/contact?web=1" },
                     { label: "Privacy", href: "/privacy?web=1" },
@@ -699,6 +707,59 @@ const AccessCard = () => {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
+        {selectedMerchant && (
+          <ScrollReveal delay={25}>
+            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-card">
+              <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${INDUSTRY_COLORS[selectedMerchant.industry_type || ""]?.bg || "from-secondary/15 via-primary/10 to-accent/10"}`} />
+              <div className="relative p-5 sm:p-6 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-14 w-14 rounded-2xl border border-border/50 bg-background shadow-sm overflow-hidden flex items-center justify-center shrink-0">
+                      {selectedMerchant.logo_url ? (
+                        <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
+                      ) : (
+                        <Store size={22} className={INDUSTRY_COLORS[selectedMerchant.industry_type || ""]?.text || "text-secondary"} />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Exclusive store section</p>
+                      <h3 className="text-xl font-bold text-foreground truncate">{selectedMerchant.store_name}</h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                        {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
+                        {selectedMerchant.address && (
+                          <span className="inline-flex items-center gap-1 min-w-0"><MapPin size={11} /> <span className="truncate">{selectedMerchant.address}</span></span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setSelectedMerchantId(null)}>
+                    <ArrowLeft size={12} /> All Stores
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { label: "Points", value: `${selectedMerchant.points_balance}` },
+                    { label: "Rewards", value: `${filteredRewards.length}` },
+                    { label: "Offers", value: `${filteredOffers.length}` },
+                    { label: "Visits", value: `${selectedMerchant.visit_count}` },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-xl border border-border/40 bg-background/80 px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                      <p className="mt-1 text-lg font-bold text-foreground">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                  <p className="text-sm font-semibold text-foreground">Everything below is now filtered just for {selectedMerchant.store_name}.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Rewards, campaigns, offers, stamp progress, redemptions, and recent activity are all exclusive to this store view.</p>
+                </div>
               </div>
             </div>
           </ScrollReveal>
