@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
-  Gift,
   ArrowRight, Shield, Copy, Share2,
   CheckCircle, XCircle, Info, Store, MapPin, LogOut, Megaphone,
 } from "lucide-react";
@@ -54,7 +53,6 @@ const AccessCard = () => {
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
