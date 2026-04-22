@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import SplashScreen from "./SplashScreen";
 import OnboardingCarousel from "./OnboardingCarousel";
+import { isMobileAppContext } from "@/lib/deviceDetection";
 
 const ONBOARDING_KEY = "perkback_onboarded_v1";
 const SPLASH_KEY = "perkback_splash_seen_v1"; // session-only
@@ -35,7 +36,12 @@ const hasCompletedOnboarding = () => {
 const FirstVisitGate = () => {
   const location = useLocation();
   const skipPaths = ["/get-started", "/customer/auth", "/merchant/auth", "/reset-password"];
-  const shouldSkip = skipPaths.some((p) => location.pathname.startsWith(p));
+  const shouldSkip = skipPaths.some((p) => location.pathname.startsWith(p)) || isMobileAppContext();
+
+  useEffect(() => {
+    if (!shouldSkip) return;
+    setStage("done");
+  }, [shouldSkip]);
 
   const [stage, setStage] = useState<Stage>(() => {
     if (shouldSkip) return "done";

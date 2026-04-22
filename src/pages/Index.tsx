@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { isMobileAppContext } from "@/lib/deviceDetection";
 
 // Below-the-fold sections are split into their own chunks so the
 // landing-page bundle only has to ship Header + Hero on first paint.
@@ -22,9 +23,10 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const { authReady, isCustomer, user } = useAuth();
   const isMobile = useIsMobile();
+  const isAppContext = isMobileAppContext();
 
   useEffect(() => {
-    if (!isMobile || !authReady) return;
+    if ((!isMobile && !isAppContext) || !authReady) return;
     if (searchParams.get("web") === "1") return;
 
     if (user && isCustomer) {
@@ -35,7 +37,11 @@ const Index = () => {
     if (!user) {
       navigate("/get-started?app=1", { replace: true });
     }
-  }, [authReady, isCustomer, isMobile, navigate, searchParams, user]);
+  }, [authReady, isAppContext, isCustomer, isMobile, navigate, searchParams, user]);
+
+  if (isAppContext && !searchParams.get("web")) {
+    return <div className="min-h-screen bg-background" aria-hidden="true" />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
