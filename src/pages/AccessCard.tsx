@@ -1220,6 +1220,16 @@ const AccessCard = () => {
                     <Ticket size={16} /> {redeeming === selectedReward.id ? "Redeeming..." : "Redeem Now"}
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => {
+                    openStoreView(selectedReward.merchant_id);
+                    setSelectedReward(null);
+                  }}
+                >
+                  <Store size={16} /> Open Store Page
+                </Button>
               </>
             );
           })()}
