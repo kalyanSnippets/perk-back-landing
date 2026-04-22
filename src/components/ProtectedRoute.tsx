@@ -1,5 +1,6 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -7,7 +8,15 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  const location = useLocation();
+  const isMobile = useIsMobile();
   const { user, loading, isCustomer, isMerchant, isAdmin } = useAuth();
+
+  const intendedPath = `${location.pathname}${location.search}${location.hash}`;
+  const loginTarget = `/get-started?${new URLSearchParams({
+    ...(isMobile ? { app: "1" } : {}),
+    next: intendedPath,
+  }).toString()}`;
 
   if (loading) {
     return (
@@ -18,7 +27,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   }
 
   if (!user) {
-    return <Navigate to="/get-started" replace />;
+    return <Navigate to={loginTarget} replace />;
   }
 
   if (requiredRole === "customer" && !isCustomer) {
