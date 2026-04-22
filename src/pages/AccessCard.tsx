@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -96,9 +97,36 @@ const AccessCard = () => {
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
+  const [showStoreDetails, setShowStoreDetails] = useState(false);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+
+  const trackStoreSwitcherEvent = useCallback((eventName: string, merchant?: CustomerMerchantData | null) => {
+    if (typeof window === "undefined") return;
+
+    const detail = {
+      event: eventName,
+      merchantId: merchant?.merchant_id ?? null,
+      merchantName: merchant?.store_name ?? null,
+      source: "customer_my_store_switcher",
+      timestamp: new Date().toISOString(),
+    };
+
+    window.dispatchEvent(new CustomEvent("perkback:analytics", { detail }));
+
+    if ("dataLayer" in window && Array.isArray((window as Window & { dataLayer?: unknown[] }).dataLayer)) {
+      (window as Window & { dataLayer: unknown[] }).dataLayer.push(detail);
+    }
+  }, []);
+
+  const handleMerchantSelection = useCallback((merchantId: string | null) => {
+    const merchant = merchantId ? customerMerchants.find((item) => item.merchant_id === merchantId) ?? null : null;
+    setIsSummaryLoading(true);
+    setSelectedMerchantId(merchantId);
+    trackStoreSwitcherEvent(merchantId ? "customer_store_selected" : "customer_store_cleared", merchant);
+  }, [customerMerchants, trackStoreSwitcherEvent]);
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -121,6 +149,13 @@ const AccessCard = () => {
   }, [rewardsApi]);
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    if (!isSummaryLoading) return;
+
+    const timer = window.setTimeout(() => setIsSummaryLoading(false), 300);
+    return () => window.clearTimeout(timer);
+  }, [isSummaryLoading]);
 
   useEffect(() => {
     if (!customer) return;
@@ -365,6 +400,36 @@ const AccessCard = () => {
   const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
   const filteredTransactions = selectedMerchantId ? transactions.filter(t => t.merchant_id === selectedMerchantId) : transactions;
   const filteredRedemptions = selectedMerchantId ? redemptions.filter(r => r.merchant_id === selectedMerchantId) : redemptions;
+  const selectedMerchantTopReward = useMemo(() => {
+    if (!selectedMerchant) return null;
+
+    return filteredRewards
+      .slice()
+      .sort((a, b) => a.points_required - b.points_required)[0] ?? null;
+  }, [filteredRewards, selectedMerchant]);
+  const selectedMerchantReadyReward = useMemo(() => {
+    if (!selectedMerchant) return null;
+
+    return filteredRewards.find((reward) => reward.points_required <= selectedMerchant.points_balance) ?? null;
+  }, [filteredRewards, selectedMerchant]);
+  const handleCheckPoints = useCallback(() => {
+    setActiveMainTab("my-rewards");
+    setPointsVisible(false);
+    window.setTimeout(() => setPointsVisible(true), 50);
+  }, []);
+  const handleViewOffers = useCallback(() => {
+    if (!selectedMerchant) return;
+    setActiveMainTab("my-rewards");
+    toast.success(`Showing offers for ${selectedMerchant.store_name}`);
+  }, [selectedMerchant]);
+  const handleQuickRedeem = useCallback(() => {
+    if (!selectedMerchantReadyReward) {
+      toast.message("No reward is ready to redeem yet for this store.");
+      return;
+    }
+
+    setSelectedReward(selectedMerchantReadyReward);
+  }, [selectedMerchantReadyReward]);
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
@@ -662,7 +727,7 @@ const AccessCard = () => {
                   </p>
                 </div>
                 {selectedMerchant && (
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs shrink-0" onClick={() => setSelectedMerchantId(null)}>
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs shrink-0" onClick={() => handleMerchantSelection(null)}>
                     View All
                   </Button>
                 )}
@@ -671,7 +736,10 @@ const AccessCard = () => {
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <Select
                   value={selectedMerchantId ?? "all"}
-                  onValueChange={(value) => setSelectedMerchantId(value === "all" ? null : value)}
+                  onOpenChange={(open) => {
+                    if (open) trackStoreSwitcherEvent("customer_store_switcher_opened", selectedMerchant);
+                  }}
+                  onValueChange={(value) => handleMerchantSelection(value === "all" ? null : value)}
                 >
                   <SelectTrigger className="h-11 rounded-xl border-border/60 bg-background">
                     <SelectValue placeholder="Choose a store" />
@@ -688,7 +756,7 @@ const AccessCard = () => {
 
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setSelectedMerchantId(null)}
+                    onClick={() => handleMerchantSelection(null)}
                     className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
                       !selectedMerchant
                         ? "border-primary/40 bg-primary/10 text-primary"
@@ -702,7 +770,7 @@ const AccessCard = () => {
                     return (
                       <button
                         key={merchant.merchant_id}
-                        onClick={() => setSelectedMerchantId(merchant.merchant_id)}
+                        onClick={() => handleMerchantSelection(merchant.merchant_id)}
                         className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
                           isActive
                             ? "border-primary/40 bg-primary/10 text-primary"
@@ -717,7 +785,29 @@ const AccessCard = () => {
               </div>
 
               <div className="rounded-2xl border border-border/40 bg-muted/20 p-4 sm:p-5">
-                {selectedMerchant ? (
+                {isSummaryLoading ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-12 w-12 rounded-2xl" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-3 w-full max-w-[220px]" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="rounded-xl border border-border/40 bg-background px-3 py-3 space-y-2">
+                          <Skeleton className="h-3 w-14" />
+                          <Skeleton className="h-6 w-10" />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-10 w-full rounded-xl" />)}
+                    </div>
+                  </div>
+                ) : selectedMerchant ? (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <div className="h-12 w-12 rounded-2xl border border-border/50 bg-background shadow-sm overflow-hidden flex items-center justify-center shrink-0">
@@ -755,6 +845,36 @@ const AccessCard = () => {
                         </div>
                       ))}
                     </div>
+
+                    <div className="rounded-xl border border-border/40 bg-background p-3.5 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Reward focus</p>
+                          <h5 className="text-sm font-semibold text-foreground">
+                            {selectedMerchantTopReward ? selectedMerchantTopReward.title : "No store rewards yet"}
+                          </h5>
+                        </div>
+                        <Button variant="outline" size="sm" className="h-8 px-3 text-[11px]" onClick={() => setShowStoreDetails(true)}>
+                          View details
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedMerchantTopReward
+                          ? selectedMerchantTopReward.description || `Track your next reward from ${selectedMerchant.store_name}.`
+                          : `This store has no active rewards right now. Check back soon for new offers and perks.`}
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleViewOffers}>
+                          <CalendarDays size={14} /> View offers
+                        </Button>
+                        <Button variant="hero" size="sm" className="h-10 justify-start" onClick={handleQuickRedeem}>
+                          <Ticket size={14} /> Redeem reward
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleCheckPoints}>
+                          <Star size={14} /> Check points
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -777,6 +897,13 @@ const AccessCard = () => {
                           <p className="mt-1 text-lg font-bold text-foreground">{item.value}</p>
                         </div>
                       ))}
+                    </div>
+                    <div className="rounded-xl border border-dashed border-border/50 bg-background/70 px-4 py-4 text-center">
+                      <Store size={18} className="mx-auto text-secondary" />
+                      <p className="mt-2 text-sm font-semibold text-foreground">Choose a store for focused rewards</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Similar loyalty apps keep the default view broad, then unlock store-specific rewards, offers, and quick actions after selection.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -825,7 +952,7 @@ const AccessCard = () => {
                           return;
                         }
                         const cm = customerMerchants.find(c => c.merchant_id === slide.merchant_id);
-                        if (cm) setSelectedMerchantId(slide.merchant_id);
+                        if (cm) handleMerchantSelection(slide.merchant_id);
                       }}
                       className="w-full text-left"
                     >
@@ -1189,6 +1316,89 @@ const AccessCard = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Store Reward Details Dialog */}
+      <Dialog open={showStoreDetails} onOpenChange={setShowStoreDetails}>
+        <DialogContent className="max-w-md">
+          {selectedMerchant && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Store size={18} className="text-secondary" /> {selectedMerchant.store_name}
+                </DialogTitle>
+                <DialogDescription>
+                  Store-specific rewards, offers, and activity tailored to this merchant.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-border/40 bg-muted/20 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Current balance</p>
+                      <p className="mt-1 text-2xl font-bold text-foreground">{selectedMerchant.points_balance} pts</p>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <p>{filteredRewards.length} rewards</p>
+                      <p>{filteredOffers.length} offers</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-foreground">Rewards at this store</h4>
+                  {filteredRewards.length > 0 ? (
+                    filteredRewards.slice(0, 4).map((reward) => {
+                      const isReady = reward.points_required <= selectedMerchant.points_balance;
+
+                      return (
+                        <button
+                          key={reward.id}
+                          onClick={() => {
+                            setShowStoreDetails(false);
+                            setSelectedReward(reward);
+                          }}
+                          className="w-full rounded-xl border border-border/40 bg-background px-4 py-3 text-left transition-colors hover:bg-muted/20"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground truncate">{reward.title}</p>
+                              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                                {reward.description || `${reward.points_required} points required to redeem.`}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-sm font-bold text-foreground">{reward.points_required} pts</p>
+                              <p className={`text-[10px] font-semibold ${isReady ? "text-accent-foreground" : "text-muted-foreground"}`}>
+                                {isReady ? "Ready now" : `${Math.max(reward.points_required - selectedMerchant.points_balance, 0)} to go`}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-border/50 bg-background/70 px-4 py-5 text-center">
+                      <Gift size={18} className="mx-auto text-accent" />
+                      <p className="mt-2 text-sm font-semibold text-foreground">No active rewards yet</p>
+                      <p className="mt-1 text-xs text-muted-foreground">This merchant hasn’t published rewards yet, but your points and visits are still being tracked.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleViewOffers}>
+                    <CalendarDays size={14} /> View offers
+                  </Button>
+                  <Button variant="hero" size="sm" className="h-10 justify-start" onClick={handleQuickRedeem}>
+                    <Ticket size={14} /> Redeem reward
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Ways to Claim Points */}
       <Dialog open={showClaimInfo} onOpenChange={setShowClaimInfo}>
         <DialogContent className="max-w-sm">
@@ -1289,7 +1499,7 @@ const AccessCard = () => {
                       size="sm"
                       className="flex-1 gap-1.5"
                       onClick={() => {
-                        setSelectedMerchantId(selectedCampaign.merchant_id);
+                        handleMerchantSelection(selectedCampaign.merchant_id);
                         setSelectedCampaign(null);
                       }}
                     >
