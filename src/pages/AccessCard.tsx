@@ -727,7 +727,7 @@ const AccessCard = () => {
                   </p>
                 </div>
                 {selectedMerchant && (
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs shrink-0" onClick={() => setSelectedMerchantId(null)}>
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs shrink-0" onClick={() => handleMerchantSelection(null)}>
                     View All
                   </Button>
                 )}
@@ -736,7 +736,10 @@ const AccessCard = () => {
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <Select
                   value={selectedMerchantId ?? "all"}
-                  onValueChange={(value) => setSelectedMerchantId(value === "all" ? null : value)}
+                  onOpenChange={(open) => {
+                    if (open) trackStoreSwitcherEvent("customer_store_switcher_opened", selectedMerchant);
+                  }}
+                  onValueChange={(value) => handleMerchantSelection(value === "all" ? null : value)}
                 >
                   <SelectTrigger className="h-11 rounded-xl border-border/60 bg-background">
                     <SelectValue placeholder="Choose a store" />
@@ -753,7 +756,7 @@ const AccessCard = () => {
 
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setSelectedMerchantId(null)}
+                    onClick={() => handleMerchantSelection(null)}
                     className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
                       !selectedMerchant
                         ? "border-primary/40 bg-primary/10 text-primary"
@@ -767,7 +770,7 @@ const AccessCard = () => {
                     return (
                       <button
                         key={merchant.merchant_id}
-                        onClick={() => setSelectedMerchantId(merchant.merchant_id)}
+                        onClick={() => handleMerchantSelection(merchant.merchant_id)}
                         className={`rounded-full border px-3 py-2 text-[11px] font-semibold transition-colors ${
                           isActive
                             ? "border-primary/40 bg-primary/10 text-primary"
@@ -782,7 +785,29 @@ const AccessCard = () => {
               </div>
 
               <div className="rounded-2xl border border-border/40 bg-muted/20 p-4 sm:p-5">
-                {selectedMerchant ? (
+                {isSummaryLoading ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-12 w-12 rounded-2xl" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-3 w-full max-w-[220px]" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="rounded-xl border border-border/40 bg-background px-3 py-3 space-y-2">
+                          <Skeleton className="h-3 w-14" />
+                          <Skeleton className="h-6 w-10" />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-10 w-full rounded-xl" />)}
+                    </div>
+                  </div>
+                ) : selectedMerchant ? (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <div className="h-12 w-12 rounded-2xl border border-border/50 bg-background shadow-sm overflow-hidden flex items-center justify-center shrink-0">
@@ -820,6 +845,36 @@ const AccessCard = () => {
                         </div>
                       ))}
                     </div>
+
+                    <div className="rounded-xl border border-border/40 bg-background p-3.5 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Reward focus</p>
+                          <h5 className="text-sm font-semibold text-foreground">
+                            {selectedMerchantTopReward ? selectedMerchantTopReward.title : "No store rewards yet"}
+                          </h5>
+                        </div>
+                        <Button variant="outline" size="sm" className="h-8 px-3 text-[11px]" onClick={() => setShowStoreDetails(true)}>
+                          View details
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedMerchantTopReward
+                          ? selectedMerchantTopReward.description || `Track your next reward from ${selectedMerchant.store_name}.`
+                          : `This store has no active rewards right now. Check back soon for new offers and perks.`}
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleViewOffers}>
+                          <CalendarDays size={14} /> View offers
+                        </Button>
+                        <Button variant="hero" size="sm" className="h-10 justify-start" onClick={handleQuickRedeem}>
+                          <Ticket size={14} /> Redeem reward
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleCheckPoints}>
+                          <Star size={14} /> Check points
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -842,6 +897,13 @@ const AccessCard = () => {
                           <p className="mt-1 text-lg font-bold text-foreground">{item.value}</p>
                         </div>
                       ))}
+                    </div>
+                    <div className="rounded-xl border border-dashed border-border/50 bg-background/70 px-4 py-4 text-center">
+                      <Store size={18} className="mx-auto text-secondary" />
+                      <p className="mt-2 text-sm font-semibold text-foreground">Choose a store for focused rewards</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Similar loyalty apps keep the default view broad, then unlock store-specific rewards, offers, and quick actions after selection.
+                      </p>
                     </div>
                   </div>
                 )}
