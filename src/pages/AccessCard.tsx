@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
   Gift,
-  Tag, ArrowRight, Shield, Copy, Share2,
+  ArrowRight, Shield, Copy, Share2,
   CheckCircle, XCircle, Info, Store, MapPin, LogOut, Megaphone,
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
@@ -182,16 +182,14 @@ const AccessCard = () => {
     }));
     setCustomerMerchants(cmList);
 
-    const [rewardsRes, campaignsRes, offersRes, redemptionsRes] = await Promise.all([
+    const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
-      supabase.from("redemptions").select("*").eq("customer_id", customerData.id).order("created_at", { ascending: false }),
     ]);
     setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
-    setRedemptions((redemptionsRes.data || []).map((redemption) => ({ ...redemption, store_name: merchantMap.get(redemption.merchant_id) || "Store" })));
 
     const merchantIds = cmList.map((merchant) => merchant.merchant_id);
     if (merchantIds.length > 0) {
@@ -603,7 +601,7 @@ const AccessCard = () => {
                   gamification={gamificationByMerchant[activeStoreCard.merchant_id]}
                   onBack={closeStoreView}
                   onRewardSelect={setSelectedReward}
-                  onCampaignSelect={setSelectedCampaign}
+                  onCampaignSelect={(campaign) => setSelectedCampaign(campaign)}
                 />
               ) : (
                 <>
@@ -683,30 +681,6 @@ const AccessCard = () => {
           redeeming={redeeming === selectedReward?.id}
           onRedeem={handleRedeem}
         />
-
-        <Dialog open={showClaimInfo} onOpenChange={setShowClaimInfo}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><Gift size={18} className="text-secondary" /> Ways to Earn Points</DialogTitle>
-              <DialogDescription>Here's how you can earn points at partner stores</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              {[
-                { icon: ScanBarcode, text: "Show your loyalty barcode or number at checkout" },
-                { icon: Smartphone, text: "Merchant scans or enters your number" },
-                { icon: Star, text: "Points are added instantly" },
-                { icon: Gift, text: "Track your rewards anytime in Perk Back" },
-              ].map((item, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
-                    <item.icon size={14} className="text-secondary" />
-                  </div>
-                  <span className="text-sm text-foreground/80">{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {showRedemptionModal && (
           <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm flex items-center justify-center px-4" onClick={() => setShowRedemptionModal(null)}>
