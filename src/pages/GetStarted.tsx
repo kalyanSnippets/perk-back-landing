@@ -12,6 +12,7 @@ import { lovable } from "@/integrations/lovable/index";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import { z } from "zod";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { isMobileAppContext } from "@/lib/deviceDetection";
 
 const emailSchema = z.string().trim().email("Invalid email address").max(255);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(128);
@@ -47,7 +48,7 @@ const GetStarted = () => {
   const { user, loading: authLoading, isMerchant, isCustomer } = useAuth();
   const signupInProgress = useRef(false);
   const isMobile = useIsMobile();
-  const isAppMode = searchParams.get("app") === "1";
+  const isAppMode = searchParams.get("app") === "1" || isMobileAppContext();
   const nextPath = useMemo(() => {
     const raw = searchParams.get("next");
     return raw && raw.startsWith("/") ? raw : null;
