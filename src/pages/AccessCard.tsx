@@ -57,12 +57,6 @@ const REWARD_GRADIENTS = [
   "from-purple-500/20 via-purple-400/10 to-primary/10",
 ];
 
-const INDUSTRY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  "Coffee Shop": { bg: "from-amber-500/20 via-orange-400/10 to-yellow-300/10", border: "border-amber-400/40", text: "text-amber-600" },
-  "Retail": { bg: "from-blue-500/20 via-indigo-400/10 to-cyan-300/10", border: "border-blue-400/40", text: "text-blue-600" },
-  "Restaurant": { bg: "from-emerald-500/20 via-teal-400/10 to-green-300/10", border: "border-emerald-400/40", text: "text-emerald-600" },
-};
-
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
 const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
@@ -92,8 +86,6 @@ const AccessCard = () => {
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [showStoreDetails, setShowStoreDetails] = useState(false);
-  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
@@ -123,7 +115,6 @@ const AccessCard = () => {
 
   const handleMerchantSelection = useCallback((merchantId: string | null) => {
     const merchant = merchantId ? customerMerchants.find((item) => item.merchant_id === merchantId) ?? null : null;
-    setIsSummaryLoading(true);
     setSelectedMerchantId(merchantId);
     trackStoreSwitcherEvent(merchantId ? "customer_store_selected" : "customer_store_cleared", merchant);
   }, [customerMerchants, trackStoreSwitcherEvent]);
@@ -149,13 +140,6 @@ const AccessCard = () => {
   }, [rewardsApi]);
 
   useEffect(() => { fetchData(); }, []);
-
-  useEffect(() => {
-    if (!isSummaryLoading) return;
-
-    const timer = window.setTimeout(() => setIsSummaryLoading(false), 300);
-    return () => window.clearTimeout(timer);
-  }, [isSummaryLoading]);
 
   useEffect(() => {
     if (!highlightedSection && !highlightedRewardId) return;
