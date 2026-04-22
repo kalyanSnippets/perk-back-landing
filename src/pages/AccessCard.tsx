@@ -523,7 +523,7 @@ const AccessCard = () => {
         <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 py-6 max-w-lg space-y-5 pb-20 pt-6 sm:pt-24">
+      <div className="container mx-auto max-w-lg space-y-4 px-4 pb-20 pt-6 sm:space-y-5 sm:pt-24">
 
         {/* ─── Greeting ─── */}
         <ScrollReveal>
@@ -538,7 +538,7 @@ const AccessCard = () => {
         </ScrollReveal>
 
         {/* ─── Main Tab Switcher — Top navigation for all breakpoints ─── */}
-        <div className="sticky top-3 z-20 rounded-2xl border border-border/50 bg-background/95 p-2 shadow-card backdrop-blur-md">
+        <div className="sticky top-3 z-20 rounded-[28px] border border-border/40 bg-background/95 p-2 shadow-card backdrop-blur-md">
           <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted/40 p-1">
           {[
             { key: "my-rewards" as const, label: "Rewards" },
@@ -752,7 +752,7 @@ const AccessCard = () => {
         <ScrollReveal>
           <div
             ref={pointsSectionRef}
-            className={`relative overflow-hidden bg-card rounded-2xl p-5 sm:p-6 shadow-card border text-center transition-all duration-500 ${
+            className={`relative overflow-hidden rounded-[30px] border bg-card p-5 text-center shadow-card transition-all duration-500 sm:p-6 ${
               highlightedSection === "points" ? "border-primary/50 shadow-hero" : "border-border/50"
             }`}
           >
@@ -1086,7 +1086,7 @@ const AccessCard = () => {
 
         {/* Your Status — slim bar, only when merchant has gamification enabled */}
         {customerMerchants.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-2 pt-1">
             {(selectedMerchantId
               ? customerMerchants.filter(cm => cm.merchant_id === selectedMerchantId)
               : customerMerchants
