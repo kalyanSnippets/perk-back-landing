@@ -686,14 +686,16 @@ const AccessCard = () => {
                   </button>
                 )}
               </div>
+              {!selectedMerchant && (
+                <p className="mb-3 text-xs text-muted-foreground">Your store pages open from rewards and offers, while this section stays as a quick overview.</p>
+              )}
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
                 {customerMerchants.map(cm => {
                   const isSelected = selectedMerchantId === cm.merchant_id;
                   const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
                   return (
-                    <button
+                    <div
                       key={cm.merchant_id}
-                      onClick={() => (isSelected ? closeStoreView() : openStoreView(cm.merchant_id))}
                       className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-card text-left ${
                         isSelected
                           ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
@@ -734,7 +736,7 @@ const AccessCard = () => {
                           <span>${cm.total_spend.toFixed(0)} spent</span>
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -860,7 +862,7 @@ const AccessCard = () => {
                           return;
                         }
                         const cm = customerMerchants.find(c => c.merchant_id === slide.merchant_id);
-                        if (cm) setSelectedMerchantId(slide.merchant_id);
+                        if (cm) openStoreView(slide.merchant_id);
                       }}
                       className="w-full text-left"
                     >
@@ -1316,7 +1318,7 @@ const AccessCard = () => {
                     <span>{cm.address}</span>
                   </div>
                 )}
-                <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 pt-1">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedCampaign(null)}>Close</Button>
                   {cm && (
                     <Button
@@ -1324,7 +1326,7 @@ const AccessCard = () => {
                       size="sm"
                       className="flex-1 gap-1.5"
                       onClick={() => {
-                        setSelectedMerchantId(selectedCampaign.merchant_id);
+                          openStoreView(selectedCampaign.merchant_id);
                         setSelectedCampaign(null);
                       }}
                     >
