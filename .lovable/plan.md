@@ -1,156 +1,154 @@
 
-## Refine the customer dashboard so it feels like one cohesive screen again, and restore the “My Stores” section to the earlier card-style layout shown in your reference
+Implement an in-dashboard store detail experience inside `src/pages/AccessCard.tsx` so tapping a My Store card transitions the customer into a dedicated store-focused screen instead of only filtering the current dashboard.
 
-### What will change
+### What will be built
 
-### 1. Make the whole Rewards dashboard feel unified instead of stacked “pieces”
-I’ll rework the `my-rewards` view in `src/pages/AccessCard.tsx` so the sections feel like one continuous premium dashboard rather than separate unrelated cards.
+### 1. Turn store card tap into a full in-dashboard store page
+When a customer taps a My Store card:
+- switch from the generic “My Rewards” overview into a dedicated store detail view inside the same dashboard
+- preserve the current top tab navigation and shared page shell
+- show a clear back action to return to the main rewards overview
+- keep session, routing, and auth behavior unchanged
 
-This means:
-- tighten vertical rhythm and spacing between sections
-- create a clearer visual order:
-  1. greeting
-  2. top tab switcher
-  3. points balance hero
-  4. My Stores card-slider section
-  5. status/progress
-  6. campaign / offer spotlight
-  7. rewards and offers below
-- reduce the feeling of “box inside box inside box”
-- use more consistent radii, shadows, padding, and section backgrounds
-- simplify the selected-store summary so it doesn’t compete too much with the main dashboard flow
+Recommended state model:
+- keep `activeMainTab`
+- add a store detail mode such as `activeStoreViewMerchantId`
+- use that state to render either:
+  - the main rewards overview
+  - or the dedicated selected-store page
 
-### 2. Restore “My Stores” to the older visual style from your image
-The current store area is more like a filter/control panel. I’ll bring it back to the previous visual pattern shown in the screenshot:
+### 2. Redesign My Store cards to be simpler and more premium
+Replace the current busy card treatment with a cleaner visual layout:
+- large background image/banner
+- dark gradient overlay for readability
+- merchant logo badge
+- store name
+- industry label
+- points balance
+- reward count summary at the bottom
+- optional visits/spend as smaller secondary metadata
+
+Design direction:
+- simpler composition
+- less visual clutter
+- stronger image-led layout
+- more consistent card heights and padding
+- keep the active/selected styling subtle and premium
+
+### 3. Build a dedicated store detail page section
+The new store page should show all relevant info for the selected merchant in one place:
 
 ```text
-My Stores
-[ large horizontal store cards with image ]
-[ store logo badge overlapping image ]
-[ store name ]
-[ industry ]
-[ points ]
-[ visits + spend ]
+Back to My Rewards
+Store hero
+Store name + industry + address
+Points at this store
+Reward summary
+Campaigns / monthly offers
+All rewards for this store
+Directions CTA
 ```
 
-Planned update:
-- replace the current select-heavy presentation with a visual store card carousel/grid
-- each store card will show:
-  - merchant image/banner
-  - store logo/icon badge
+Content to include:
+- merchant image/banner
+- merchant logo
+- store name
+- industry
+- address
+- points balance for that merchant
+- visits and spend
+- active campaigns
+- monthly offers
+- all rewards for that merchant
+
+### 4. Make reward cards redirect to store directions
+When a reward is tapped from the dedicated store page:
+- open a store-specific reward action experience instead of only the current generic reward dialog
+- primary action should be a directions CTA to the merchant
+- preserve redeem behavior if the reward is ready
+- if not ready, still show points needed and direct the user to the store
+
+Recommended reward interaction:
+- reward card tap opens a store reward modal/sheet
+- modal includes:
+  - reward title
+  - reward image if present
   - store name
-  - industry type
-  - store-specific points
-  - visits
-  - total spend
-- selecting a store will still filter rewards/offers, but the interaction will feel visual first, not form-first
-- keep “All Stores” available, but make it secondary and cleaner
+  - required points
+  - customer’s points at this store
+  - redeem CTA when eligible
+  - “Get directions” CTA
+  - optional address snippet
 
-### 3. Keep the new functionality, but move it behind the restored store cards
-You asked for it to feel like it used to before, so I won’t remove the useful logic that was recently added. Instead I’ll reposition it:
+### 5. Add store directions consistently
+Use merchant address to generate a maps URL everywhere relevant:
+- store detail hero CTA
+- reward detail CTA
+- optional offer/campaign CTA if desired
 
-- store card tap/select → activates that merchant
-- the richer store-specific actions/details can appear:
-  - either beneath the active store cards
-  - or inside a cleaner details sheet/modal
-- this preserves:
-  - working store filtering
-  - reward modal
-  - quick actions
-  - analytics events
-without making the “My Stores” section look overloaded
+Behavior:
+- if address exists, open Google Maps directions
+- if address is missing, hide the directions action instead of showing a broken button
 
-### 4. Simplify the selected-store experience
-Right now the selected merchant block is visually too dense. I’ll tone it down so it supports the dashboard instead of dominating it.
+### 6. Keep the main overview dashboard cohesive
+The generic customer dashboard should remain the overview page:
+- points hero
+- simplified My Stores section
+- campaigns/offers/rewards overview
+- transaction history
 
-Recommended direction:
-- keep one compact selected-store detail panel
-- reduce duplicate stats and repeated “reward focus” content
-- make only one primary CTA prominent
-- use smaller secondary actions
-- preserve working links:
-  - View offers
-  - Redeem reward
-  - Check points
-  - Get directions / Store details
+But once a store is selected:
+- the customer should feel like they are “inside that store”
+- the overview sections should no longer compete with the store-specific content
 
-### 5. Match the screenshot’s softer premium style more closely
-Your reference uses:
-- white cards
-- soft shadows
-- large rounded corners
-- lighter backgrounds
-- cleaner spacing
-- less visual fragmentation
+### 7. Preserve and adapt existing working logic
+Keep these behaviors working:
+- merchant selection analytics
+- filtered merchant rewards/offers/campaign data
+- reward redemption flow
+- realtime updates after merchant changes
+- merchant status / gamification logic where applicable
 
-I’ll align the rewards dashboard with that direction by:
-- reducing heavy borders where not needed
-- using softer card separation
-- increasing white/neutral breathing room
-- making the points card and stores section visually dominant
-- keeping PerkBack’s blue/gold identity while avoiding over-clutter
+Adjust existing logic so:
+- My Store cards enter store view
+- “View All” exits store view
+- campaigns/offers on the store page stay limited to the selected merchant
+- the existing reward modal is upgraded into a store-aware action modal
 
-### 6. Update the points + status flow so it fits better with the restored layout
-The screenshot has a cleaner sequence:
-- points hero first
-- store cards second
-- status strip third
-- campaign card after
+### 8. Refactor AccessCard to keep it maintainable
+To avoid further bloat in `src/pages/AccessCard.tsx`, extract the store-specific UI into focused components.
 
-I’ll reshape the current flow to follow that pattern more closely:
-- retain the current live points logic
-- keep the merchant status card/tier strip
-- place campaign/offer spotlight after the store section, not competing with it
+Recommended components:
+- `src/components/customer/MyStoreCard.tsx`
+- `src/components/customer/StoreDetailView.tsx`
+- `src/components/customer/StoreRewardActionDialog.tsx`
 
----
+This keeps:
+- page-level state in `AccessCard.tsx`
+- presentation logic in reusable customer components
 
-## Files to update
+### Files to update
 - `src/pages/AccessCard.tsx`
-- possibly `src/lib/industryImages.ts` if stronger/fallback merchant card imagery is needed
+- `src/lib/industryImages.ts` if stronger fallback imagery is needed
+- new customer UI components for the store cards/detail screen/reward dialog
 
----
+### Implementation details
+- no database changes required
+- no auth changes required
+- no route changes required because you chose to keep this inside the dashboard
+- reuse existing merchant-derived data from:
+  - `customerMerchants`
+  - `rewards`
+  - `campaigns`
+  - `monthlyOffers`
+- derive a store maps URL from merchant address
+- promote merchant imagery using existing reward/campaign images first, then `getIndustryImage(...)` fallback
 
-## Implementation details
+### UX recommendations
+Best final experience:
+- overview dashboard = browse all stores
+- tap store card = enter that store’s own mini-page
+- tap reward = see reward details + directions + redeem action
+- back button = return to all stores overview
 
-### My Stores redesign
-- convert the current “My Store” panel from filter-first UI into a card-based merchant showcase
-- use merchant image/logo/industry metadata already available in `customerMerchants`
-- preserve store selection state with `selectedMerchantId`
-- keep analytics:
-  - store switcher opened
-  - merchant selected
-- adapt analytics trigger so it still works with the restored card interaction
-
-### Layout cleanup
-- reduce nested wrappers in the rewards tab
-- standardize section container styling
-- rebalance spacing and hierarchy for mobile first (current viewport is narrow mobile)
-
-### Functional preservation
-I will keep:
-- merchant filtering
-- reward redemption behavior
-- store detail modal
-- quick-action buttons
-- loading skeletons / empty states
-- highlight-and-scroll behavior for points/rewards/offers
-
-But I will present them in a cleaner structure so the screen feels more intentional.
-
----
-
-## Recommended final UX direction
-Best version for this screen:
-
-```text
-Greeting
-Top tabs
-Large points card
-My Stores horizontal visual cards
-Compact loyalty status strip
-Featured campaign/offer card
-Rewards section
-Offers section
-```
-
-This will bring back the more polished “used to be before” feel from your screenshot while keeping the better filtering and working actions that were recently added.
+This gives you the “exclusive” store experience you want without sending the user to a separate app route, while also making the My Store cards cleaner, more premium, and more useful on mobile.
