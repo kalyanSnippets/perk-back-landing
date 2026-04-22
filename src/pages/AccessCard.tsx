@@ -2,29 +2,23 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
   ScanBarcode, Gift, Smartphone, Coffee, Sparkles,
-  Clock, Tag, ArrowRight, Shield, Copy, Share2,
-  Megaphone, CalendarDays, ChevronRight,
-  CheckCircle, XCircle, Ticket, Info, Store, MapPin, LogOut,
+  Tag, ArrowRight, Shield, Copy, Share2,
+  CheckCircle, XCircle, Ticket, Store, MapPin, LogOut,
 } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
-import MerchantStatusCard from "@/components/customer/MerchantStatusCard";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Carousel, CarouselContent, CarouselItem, type CarouselApi,
-} from "@/components/ui/carousel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -74,25 +68,14 @@ const AccessCard = () => {
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
   const { isAdmin, isMerchant, logout } = useAuth();
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [slideCount, setSlideCount] = useState(0);
-  const [rewardsApi, setRewardsApi] = useState<CarouselApi>();
-  const [rewardsSlide, setRewardsSlide] = useState(0);
-  const [rewardsCount, setRewardsCount] = useState(0);
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
-  const [showClaimInfo, setShowClaimInfo] = useState(false);
-  const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
-  const [highlightedSection, setHighlightedSection] = useState<"points" | "rewards" | "offers" | null>(null);
   const pointsSectionRef = useRef<HTMLDivElement | null>(null);
-  const rewardsSectionRef = useRef<HTMLDivElement | null>(null);
-  const offersSectionRef = useRef<HTMLDivElement | null>(null);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchant?: CustomerMerchantData | null) => {
     if (typeof window === "undefined") return;
@@ -126,37 +109,7 @@ const AccessCard = () => {
     trackStoreSwitcherEvent("customer_store_cleared", merchant);
   }, [activeStoreViewMerchantId, customerMerchants, trackStoreSwitcherEvent]);
 
-  useEffect(() => {
-    if (!carouselApi) return;
-    setSlideCount(carouselApi.scrollSnapList().length);
-    setCurrentSlide(carouselApi.selectedScrollSnap());
-    carouselApi.on("select", () => setCurrentSlide(carouselApi.selectedScrollSnap()));
-    const interval = setInterval(() => carouselApi.scrollNext(), 4000);
-    return () => clearInterval(interval);
-  }, [carouselApi]);
-
-  useEffect(() => {
-    if (!rewardsApi) return;
-    setRewardsCount(rewardsApi.scrollSnapList().length);
-    setRewardsSlide(rewardsApi.selectedScrollSnap());
-    rewardsApi.on("select", () => setRewardsSlide(rewardsApi.selectedScrollSnap()));
-    rewardsApi.on("reInit", () => {
-      setRewardsCount(rewardsApi.scrollSnapList().length);
-      setRewardsSlide(rewardsApi.selectedScrollSnap());
-    });
-  }, [rewardsApi]);
-
   useEffect(() => { fetchData(); }, []);
-
-  useEffect(() => {
-    if (!highlightedSection) return;
-
-    const timer = window.setTimeout(() => {
-      setHighlightedSection(null);
-    }, 1800);
-
-    return () => window.clearTimeout(timer);
-  }, [highlightedSection]);
 
   useEffect(() => {
     if (!customer) return;
