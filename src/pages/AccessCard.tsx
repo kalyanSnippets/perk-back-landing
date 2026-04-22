@@ -27,6 +27,7 @@ import FloatingBottomNav from "@/components/shared/FloatingBottomNav";
 import { CreditCard as CreditCardIcon, Compass } from "lucide-react";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { getDeviceType } from "@/lib/deviceDetection";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Carousel, CarouselContent, CarouselItem, type CarouselApi,
 } from "@/components/ui/carousel";
@@ -269,6 +270,7 @@ const AccessCard = () => {
 
   const [walletLoading, setWalletLoading] = useState<string | null>(null);
   const deviceType = getDeviceType();
+  const isMobile = useIsMobile();
 
   const handleAddToGoogleWallet = async () => {
     setWalletLoading("google");
@@ -372,13 +374,13 @@ const AccessCard = () => {
   return (
     <>
     <div className="min-h-screen bg-muted/20 pb-24 sm:pb-0">
-      <Header />
+      {!isMobile && <Header />}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/8 via-secondary/5 to-transparent" />
         <div className="absolute top-20 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 py-6 max-w-lg space-y-5 pb-20 pt-20 sm:pt-24">
+      <div className="container mx-auto px-4 py-6 max-w-lg space-y-5 pb-20 pt-6 sm:pt-24">
 
         {/* ─── Greeting ─── */}
         <ScrollReveal>
@@ -535,6 +537,32 @@ const AccessCard = () => {
                 >
                   <XCircle size={12} /> Delete my account
                 </button>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={125}>
+              <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Info size={16} className="text-muted-foreground" /> More
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: "About Us", href: "/about?web=1" },
+                    { label: "Pricing", href: "/pricing?web=1" },
+                    { label: "Testimonials", href: "/testimonials?web=1" },
+                    { label: "Blog", href: "/blog?web=1" },
+                    { label: "Contact", href: "/contact?web=1" },
+                    { label: "Privacy", href: "/privacy?web=1" },
+                  ].map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             </ScrollReveal>
           </>
