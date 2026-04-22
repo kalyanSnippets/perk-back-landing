@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Download, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import perkbackLogo from "@/assets/perkback-logo-224.webp";
+
+const JOIN_BASE_URL = "https://www.perkback.com.au";
 
 interface CounterQrPosterProps {
   storeName: string;
@@ -15,7 +17,7 @@ const CounterQrPoster = ({ storeName, slug, logoUrl }: CounterQrPosterProps) => 
   const posterRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
-  const joinUrl = slug ? `${window.location.origin}/join/${slug}` : "";
+  const joinUrl = slug ? `${JOIN_BASE_URL}/join/${slug}` : "";
 
   const handleDownload = async () => {
     if (!slug) {
@@ -115,6 +117,13 @@ const CounterQrPoster = ({ storeName, slug, logoUrl }: CounterQrPosterProps) => 
 
       {/* On-screen preview */}
       <div ref={posterRef} className="mx-auto w-full max-w-xs rounded-3xl bg-gradient-hero p-5 text-primary-foreground shadow-hero">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-primary-foreground/10 backdrop-blur-sm shadow-card">
+          <img
+            src={logoUrl || perkbackLogo}
+            alt={storeName}
+            className="h-10 w-10 object-contain"
+          />
+        </div>
         <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-primary-foreground/70">
           Powered by PerkBack
         </p>
