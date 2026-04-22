@@ -1,69 +1,99 @@
 
-## Fix the QR-code 404 by aligning the live domain with the current app build
+## Rework the customer access-card navigation and tighten auth handling across direct opens
 
-### What I verified
-- The current codebase does include the `/join/:merchantSlug` route in `src/App.tsx`.
-- The QR poster currently generates `https://www.perkback.com.au/join/:slug` in `src/components/merchant/CounterQrPoster.tsx`.
-- Fetching the live URL `https://www.perkback.com.au/join/cafe-shop-kk` returns the app’s 404 screen, not the join flow.
-- That means the problem is not the QR slug format itself — it is that the live frontend currently serving `www.perkback.com.au` is not serving the new route correctly.
+### What will change
 
-### Most likely root cause
-The live/custom-domain deployment is behind the current code. In this setup, frontend route changes only go live after publishing/updating the site. The code has the route, but the live domain is still behaving like an older build where `/join/:slug` falls into `NotFound`.
+#### 1. Move customer navigation to the top of the Access Card page
+- Replace the current mobile bottom navigation in `src/pages/AccessCard.tsx` with a top tab navigation that is visible on phone as well as desktop/tablet.
+- Expand the tab model from:
+  - My Rewards
+  - My Card
+  - Explore
+- to:
+  - Rewards
+  - Card
+  - Explore
+  - Profile
+- Use one shared `activeMainTab` state for all breakpoints so the same view logic drives every layout.
 
-### Implementation plan
+#### 2. Create a proper Profile tab inside the customer access-card flow
+- Move the current account/settings content out of the card tab and into a dedicated `Profile` tab.
+- The new profile tab will contain:
+  - account settings section
+  - logout action
+  - account deletion entry
+  - main website links currently living in “More”:
+    - About Us
+    - Pricing
+    - Testimonials
+    - Blog
+    - Contact
+    - Privacy
+- Keep the delete-account dialog wired exactly as it is today, but launch it from the Profile tab instead of the card tab.
 
-#### 1. Confirm the join route is present in the shipped frontend bundle
-- Rebuild the frontend and ensure the generated app includes the `/join/:merchantSlug` route from `src/App.tsx`.
-- Verify that no route guard or lazy-loading issue is preventing `CustomerJoin` from being loaded in production.
+#### 3. Simplify the Card tab so it only contains card-related content
+- Keep the digital card, barcode/QR, share/copy, wallet buttons, and card details in the Card tab.
+- Remove the current “Account Settings” and “More” cards from the Card tab so the tab is focused and cleaner.
 
-#### 2. Publish the latest frontend so the custom domain gets the new route
-- Push the current frontend changes live by updating the published deployment.
-- Re-check both:
-  - `https://perk-back-landing.lovable.app/join/cafe-shop-kk`
-  - `https://www.perkback.com.au/join/cafe-shop-kk`
-- Expected result: both should open the PerkBack splash/join flow instead of the 404 page.
+#### 4. Make auth behavior consistent when opening the app directly in Chrome
+- Audit the customer entry flow so protected customer screens never appear accessible without a valid session.
+- Standardize redirect behavior so unauthenticated users who open protected customer URLs directly are sent to the login screen, not to the landing page.
+- Preserve the intended return path by redirecting to login with a `next` parameter when appropriate, so after sign-in the user comes back to the requested customer screen.
+- Align route guards and in-page auth fallbacks so they do not fight each other or create inconsistent navigation.
 
-#### 3. Keep the QR generator pointed at the correct production domain
-- Preserve the fixed production join base URL in `CounterQrPoster.tsx`.
-- Verify the generated QR payload exactly matches:
-  - `https://www.perkback.com.au/join/<merchant-slug>`
-- Ensure the previewed poster and downloaded PNG use the exact same URL.
+#### 5. Keep session behavior correct across screens
+- Preserve the current persistent-auth behavior for signed-in users.
+- Ensure customer routes continue to work when:
+  - opening the app directly
+  - refreshing a protected page
+  - entering via Chrome on mobile
+  - returning from sign-in
+- Prevent cases where one screen treats the user as authenticated while another bounces them unexpectedly.
 
-#### 4. Add one source of truth for customer join URLs
-- Refactor the join URL creation into a shared constant/helper so the app does not mix preview origins, runtime origins, and production URLs in different places.
-- Use that shared helper anywhere merchant join links are created or displayed.
+---
 
-#### 5. Verify the full live flow end-to-end after publish
-- Test a real merchant slug on the live domain.
-- Verify these outcomes:
-  - unauthenticated user sees splash, then the simplified onboarding/login flow
-  - authenticated customer goes from splash directly to access card
-  - no 404 on direct load or refresh of `/join/:slug`
-  - merchant link/source still saves correctly to `customer_merchants`
+### Files I will update
 
-#### 6. Check for any stale mobile-installed app behavior
-- Since phone users are scanning from camera/apps, verify the issue is not just an old installed app session opening an outdated deployment.
-- Confirm direct browser navigation to the custom-domain join URL works first, then confirm installed/PWA behavior separately.
+- `src/pages/AccessCard.tsx`
+  - add the new top navigation model
+  - introduce the Profile tab
+  - remove the bottom floating nav
+  - move logout / delete / links into Profile
+- `src/components/shared/FloatingBottomNav.tsx`
+  - likely no longer needed by Access Card after this change
+- `src/components/ProtectedRoute.tsx`
+  - improve unauthenticated redirects to preserve intended destination where needed
+- `src/pages/GetStarted.tsx`
+  - ensure redirect-after-login works cleanly for direct-open protected pages
+- potentially `src/pages/Index.tsx` and/or other customer auth redirect points
+  - only if needed to remove inconsistent landing-page fallbacks
 
-### Files involved
-- `src/App.tsx` — production route registration for `/join/:merchantSlug`
-- `src/components/merchant/CounterQrPoster.tsx` — QR destination URL generation
-- `src/pages/CustomerJoin.tsx` — live join experience rendered at that route
-- `src/pages/NotFound.tsx` — current fallback proving live traffic is missing the route
-- optionally a new shared URL helper such as `src/lib/customerJoinUrl.ts`
+---
 
-### Expected final result
+### Behavior after the change
+
 ```text
-Scan merchant QR
-   ↓
-https://www.perkback.com.au/join/cafe-shop-kk
-   ↓
-PerkBack splash screen
-   ↓
-customer join / login flow
-   ↓
-access card
+Customer opens /customer/access-card directly
+  ├─ if logged in → opens access card normally
+  └─ if logged out → opens login screen first
+
+After login
+  └─ returns to the intended customer page
 ```
 
-### Technical note
-This looks like a deployment mismatch, not a database or QR-format bug. The route is present in code, but the live domain is still serving a build that resolves the path to `NotFound`. Once approved, I’ll implement the shared URL hardening if needed and verify the live deployment path end-to-end.
+```text
+Access Card page
+  ├─ Top nav: Rewards | Card | Explore | Profile
+  ├─ Rewards tab: rewards content
+  ├─ Card tab: loyalty card only
+  ├─ Explore tab: discovery content
+  └─ Profile tab: settings, logout, website links, delete account
+```
+
+---
+
+### Technical notes
+- No database schema change is required for this request.
+- Existing authentication/session persistence will be preserved.
+- Existing delete-account backend behavior remains intact; this is a UX and routing refactor.
+- I will keep the customer mobile experience app-like while making the navigation clearer and auth handling more reliable.
