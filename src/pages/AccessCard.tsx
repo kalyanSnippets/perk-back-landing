@@ -57,12 +57,6 @@ const REWARD_GRADIENTS = [
   "from-purple-500/20 via-purple-400/10 to-primary/10",
 ];
 
-const INDUSTRY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  "Coffee Shop": { bg: "from-amber-500/20 via-orange-400/10 to-yellow-300/10", border: "border-amber-400/40", text: "text-amber-600" },
-  "Retail": { bg: "from-blue-500/20 via-indigo-400/10 to-cyan-300/10", border: "border-blue-400/40", text: "text-blue-600" },
-  "Restaurant": { bg: "from-emerald-500/20 via-teal-400/10 to-green-300/10", border: "border-emerald-400/40", text: "text-emerald-600" },
-};
-
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
 const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
@@ -92,8 +86,6 @@ const AccessCard = () => {
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [showStoreDetails, setShowStoreDetails] = useState(false);
-  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
@@ -123,7 +115,6 @@ const AccessCard = () => {
 
   const handleMerchantSelection = useCallback((merchantId: string | null) => {
     const merchant = merchantId ? customerMerchants.find((item) => item.merchant_id === merchantId) ?? null : null;
-    setIsSummaryLoading(true);
     setSelectedMerchantId(merchantId);
     trackStoreSwitcherEvent(merchantId ? "customer_store_selected" : "customer_store_cleared", merchant);
   }, [customerMerchants, trackStoreSwitcherEvent]);
@@ -149,13 +140,6 @@ const AccessCard = () => {
   }, [rewardsApi]);
 
   useEffect(() => { fetchData(); }, []);
-
-  useEffect(() => {
-    if (!isSummaryLoading) return;
-
-    const timer = window.setTimeout(() => setIsSummaryLoading(false), 300);
-    return () => window.clearTimeout(timer);
-  }, [isSummaryLoading]);
 
   useEffect(() => {
     if (!highlightedSection && !highlightedRewardId) return;
@@ -426,14 +410,6 @@ const AccessCard = () => {
   const filteredOffers = selectedMerchantId ? monthlyOffers.filter(o => o.merchant_id === selectedMerchantId) : monthlyOffers;
   const filteredTransactions = selectedMerchantId ? transactions.filter(t => t.merchant_id === selectedMerchantId) : transactions;
   const filteredRedemptions = selectedMerchantId ? redemptions.filter(r => r.merchant_id === selectedMerchantId) : redemptions;
-  const selectedMerchantAccent = selectedMerchant
-    ? INDUSTRY_COLORS[selectedMerchant.industry_type || ""] ?? { bg: "from-primary/20 via-primary/10 to-secondary/10", border: "border-primary/30", text: "text-primary" }
-    : null;
-  const selectedMerchantSpotlightImage = selectedMerchant
-    ? filteredCampaigns.find((campaign) => campaign.image_url)?.image_url
-      ?? filteredRewards.find((reward) => reward.image_url)?.image_url
-      ?? null
-    : null;
   const merchantCards = customerMerchants
     .map((merchant) => {
       const merchantRewards = rewards.filter((reward) => reward.merchant_id === merchant.merchant_id);
@@ -453,53 +429,7 @@ const AccessCard = () => {
       if (selectedMerchantId && b.merchant_id === selectedMerchantId) return 1;
       return b.points_balance - a.points_balance;
     });
-  const selectedMerchantMapUrl = selectedMerchant?.address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedMerchant.address)}`
-    : null;
-  const selectedMerchantTopReward = selectedMerchant
-    ? filteredRewards.slice().sort((a, b) => a.points_required - b.points_required)[0] ?? null
-    : null;
-  const selectedMerchantReadyReward = selectedMerchant
-    ? filteredRewards.find((reward) => reward.points_required <= selectedMerchant.points_balance) ?? null
-    : null;
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
-  const dashboardInnerBlock = "rounded-[22px] border border-border/30 bg-background/70";
-  const handleCheckPoints = () => {
-    focusRewardsSection("points");
-    setPointsVisible(false);
-    window.setTimeout(() => setPointsVisible(true), 50);
-  };
-  const handleViewOffers = () => {
-    if (!selectedMerchant) return;
-
-    if (filteredOffers.length > 0) {
-      focusRewardsSection("offers");
-      toast.success(`Showing offers for ${selectedMerchant.store_name}`);
-      return;
-    }
-
-    setShowStoreDetails(true);
-    toast.message(`${selectedMerchant.store_name} has no live offers right now.`);
-  };
-  const handleQuickRedeem = () => {
-    if (!selectedMerchant) return;
-
-    if (!selectedMerchantReadyReward) {
-      if (selectedMerchantTopReward) {
-        setHighlightedRewardId(selectedMerchantTopReward.id);
-        focusRewardsSection("rewards");
-        toast.message(`Next reward: ${selectedMerchantTopReward.title}`);
-        return;
-      }
-
-      setShowStoreDetails(true);
-      toast.message("No rewards are available for this store yet.");
-      return;
-    }
-
-    setHighlightedRewardId(selectedMerchantReadyReward.id);
-    setSelectedReward(selectedMerchantReadyReward);
-  };
 
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const carouselSlides = [
@@ -904,184 +834,6 @@ const AccessCard = () => {
                 </div>
               </div>
 
-              <div className={`${dashboardInnerBlock} p-4 sm:p-5`}>
-                {isSummaryLoading ? (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Skeleton className="h-12 w-12 rounded-2xl" />
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <Skeleton className="h-3 w-24" />
-                        <Skeleton className="h-5 w-40" />
-                        <Skeleton className="h-3 w-full max-w-[220px]" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={index} className="rounded-xl border border-border/40 bg-background px-3 py-3 space-y-2">
-                          <Skeleton className="h-3 w-14" />
-                          <Skeleton className="h-6 w-10" />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-10 w-full rounded-xl" />)}
-                    </div>
-                  </div>
-                ) : selectedMerchant ? (
-                  <div className="space-y-4">
-                    <div className={`relative overflow-hidden rounded-[20px] border ${selectedMerchantAccent?.border || "border-border/40"}`}>
-                      {selectedMerchantSpotlightImage ? (
-                        <>
-                          <img src={selectedMerchantSpotlightImage} alt={selectedMerchant.store_name} className="absolute inset-0 h-full w-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-tr from-background/95 via-background/70 to-background/20" />
-                        </>
-                      ) : (
-                        <div className={`absolute inset-0 bg-gradient-to-br ${selectedMerchantAccent?.bg || "from-primary/20 via-primary/10 to-secondary/10"}`} />
-                      )}
-
-                      <div className="pointer-events-none absolute -top-12 right-[-18px] h-32 w-32 rounded-full border border-background/20" />
-                      <div className="pointer-events-none absolute -bottom-10 left-[-22px] h-24 w-24 rounded-full bg-background/10" />
-
-                      <div className="relative z-10 p-4 sm:p-5">
-                        <div className="flex items-start gap-3">
-                          <div className="h-14 w-14 rounded-2xl border border-background/30 bg-background/90 shadow-sm overflow-hidden flex items-center justify-center shrink-0">
-                            {selectedMerchant.logo_url ? (
-                              <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
-                            ) : (
-                              <Store size={22} className={selectedMerchantAccent?.text || "text-secondary"} />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="secondary" className="bg-background/80 text-foreground hover:bg-background/80">Selected store</Badge>
-                              {selectedMerchantReadyReward && <Badge className="bg-accent text-accent-foreground">Reward ready</Badge>}
-                              {!selectedMerchantReadyReward && selectedMerchantTopReward && (
-                                <Badge variant="outline" className="border-background/30 bg-background/60 text-foreground">
-                                  {Math.max(selectedMerchantTopReward.points_required - selectedMerchant.points_balance, 0)} pts to go
-                                </Badge>
-                              )}
-                            </div>
-                            <h4 className="mt-3 text-lg font-bold text-foreground truncate">{selectedMerchant.store_name}</h4>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-foreground/75">
-                              {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
-                              {selectedMerchant.address && (
-                                <span className="inline-flex min-w-0 items-center gap-1">
-                                  <MapPin size={11} />
-                                  <span className="truncate">{selectedMerchant.address}</span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-4 flex items-end justify-between gap-3">
-                              <div>
-                                <p className="text-[10px] uppercase tracking-[0.16em] text-foreground/60">Store points</p>
-                                <p className="mt-1 text-3xl font-bold text-foreground">{selectedMerchant.points_balance}</p>
-                              </div>
-                              <div className="rounded-2xl border border-background/25 bg-background/80 px-3 py-2 text-right">
-                                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Reward focus</p>
-                                <p className="mt-1 text-sm font-semibold text-foreground">
-                                  {selectedMerchantTopReward ? selectedMerchantTopReward.title : "No store rewards yet"}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {[
-                        { label: "Points", value: `${selectedMerchant.points_balance}` },
-                        { label: "Rewards", value: `${filteredRewards.length}` },
-                        { label: "Offers", value: `${filteredOffers.length}` },
-                        { label: "Visits", value: `${selectedMerchant.visit_count}` },
-                      ].map((item) => (
-                        <div key={item.label} className="rounded-xl border border-border/40 bg-background px-3 py-3">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                          <p className="mt-1 text-lg font-bold text-foreground">{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="rounded-[20px] border border-border/40 bg-background p-3.5 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Reward focus</p>
-                          <h5 className="text-sm font-semibold text-foreground">
-                            {selectedMerchantTopReward ? selectedMerchantTopReward.title : "No store rewards yet"}
-                          </h5>
-                        </div>
-                        <Button variant="outline" size="sm" className="h-8 px-3 text-[11px]" onClick={() => setShowStoreDetails(true)}>
-                          View details
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedMerchantTopReward
-                          ? selectedMerchantTopReward.description || `Track your next reward from ${selectedMerchant.store_name}.`
-                          : `This store has no active rewards right now. Check back soon for new offers and perks.`}
-                      </p>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleViewOffers}>
-                          <CalendarDays size={14} /> View offers
-                        </Button>
-                        <Button variant="hero" size="sm" className="h-10 justify-start" onClick={handleQuickRedeem}>
-                          <Ticket size={14} /> Redeem reward
-                        </Button>
-                        <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleCheckPoints}>
-                          <Star size={14} /> Check points
-                        </Button>
-                        {selectedMerchantMapUrl ? (
-                          <Button variant="outline" size="sm" className="h-10 justify-start" asChild>
-                            <a href={selectedMerchantMapUrl} target="_blank" rel="noreferrer">
-                              <MapPin size={14} /> Get directions
-                            </a>
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" className="h-10 justify-start" onClick={() => setShowStoreDetails(true)}>
-                            <Info size={14} /> Store details
-                          </Button>
-                        )}
-                      </div>
-                      <div className="rounded-xl border border-dashed border-border/40 bg-muted/20 p-3 text-xs text-muted-foreground">
-                        {selectedMerchantReadyReward
-                          ? `Best next step: redeem ${selectedMerchantReadyReward.title} while it’s ready.`
-                          : selectedMerchantTopReward
-                            ? `You’re ${Math.max(selectedMerchantTopReward.points_required - selectedMerchant.points_balance, 0)} points away from ${selectedMerchantTopReward.title}.`
-                            : `No rewards or offers are live yet for ${selectedMerchant.store_name}, so keep earning and check back soon.`}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">All stores overview</p>
-                      <h4 className="text-base font-bold text-foreground">Your rewards network at a glance</h4>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Browse everything across your connected stores, or tap a store card above to return to the old focused experience.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {[
-                        { label: "Stores", value: `${customerMerchants.length}` },
-                        { label: "Rewards", value: `${filteredRewards.length}` },
-                        { label: "Offers", value: `${filteredOffers.length}` },
-                        { label: "Visits", value: `${customerMerchants.reduce((total, merchant) => total + merchant.visit_count, 0)}` },
-                      ].map((item) => (
-                        <div key={item.label} className="rounded-xl border border-border/40 bg-background px-3 py-3">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                          <p className="mt-1 text-lg font-bold text-foreground">{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="rounded-xl border border-dashed border-border/50 bg-background/70 px-4 py-4 text-center">
-                      <Store size={18} className="mx-auto text-secondary" />
-                      <p className="mt-2 text-sm font-semibold text-foreground">Choose a store for focused rewards</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Similar loyalty apps keep the default view broad, then unlock store-specific rewards, offers, and quick actions after selection.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </ScrollReveal>
         )}
@@ -1506,89 +1258,6 @@ const AccessCard = () => {
               </>
             );
           })()}
-        </DialogContent>
-      </Dialog>
-
-      {/* Store Reward Details Dialog */}
-      <Dialog open={showStoreDetails} onOpenChange={setShowStoreDetails}>
-        <DialogContent className="max-w-md">
-          {selectedMerchant && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Store size={18} className="text-secondary" /> {selectedMerchant.store_name}
-                </DialogTitle>
-                <DialogDescription>
-                  Store-specific rewards, offers, and activity tailored to this merchant.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-border/40 bg-muted/20 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Current balance</p>
-                      <p className="mt-1 text-2xl font-bold text-foreground">{selectedMerchant.points_balance} pts</p>
-                    </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      <p>{filteredRewards.length} rewards</p>
-                      <p>{filteredOffers.length} offers</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-foreground">Rewards at this store</h4>
-                  {filteredRewards.length > 0 ? (
-                    filteredRewards.slice(0, 4).map((reward) => {
-                      const isReady = reward.points_required <= selectedMerchant.points_balance;
-
-                      return (
-                        <button
-                          key={reward.id}
-                          onClick={() => {
-                            setShowStoreDetails(false);
-                            setSelectedReward(reward);
-                          }}
-                          className="w-full rounded-xl border border-border/40 bg-background px-4 py-3 text-left transition-colors hover:bg-muted/20"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-foreground truncate">{reward.title}</p>
-                              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                                {reward.description || `${reward.points_required} points required to redeem.`}
-                              </p>
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <p className="text-sm font-bold text-foreground">{reward.points_required} pts</p>
-                              <p className={`text-[10px] font-semibold ${isReady ? "text-accent-foreground" : "text-muted-foreground"}`}>
-                                {isReady ? "Ready now" : `${Math.max(reward.points_required - selectedMerchant.points_balance, 0)} to go`}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-border/50 bg-background/70 px-4 py-5 text-center">
-                      <Gift size={18} className="mx-auto text-accent" />
-                      <p className="mt-2 text-sm font-semibold text-foreground">No active rewards yet</p>
-                      <p className="mt-1 text-xs text-muted-foreground">This merchant hasn’t published rewards yet, but your points and visits are still being tracked.</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm" className="h-10 justify-start" onClick={handleViewOffers}>
-                    <CalendarDays size={14} /> View offers
-                  </Button>
-                  <Button variant="hero" size="sm" className="h-10 justify-start" onClick={handleQuickRedeem}>
-                    <Ticket size={14} /> Redeem reward
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
         </DialogContent>
       </Dialog>
 
