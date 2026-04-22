@@ -653,121 +653,62 @@ const AccessCard = () => {
         {customerMerchants.length > 0 && (
           <ScrollReveal delay={15}>
             <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Store size={16} className="text-secondary" /> My Stores
-                </h3>
-                {selectedMerchantId && (
-                  <button onClick={() => setSelectedMerchantId(null)} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
-                    <ArrowLeft size={12} /> All Stores
-                  </button>
-                )}
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Store size={16} className="text-secondary" /> My Stores
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Switch merchants without leaving your rewards dashboard.
+                  </p>
+                </div>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-                {customerMerchants.map(cm => {
-                  const isSelected = selectedMerchantId === cm.merchant_id;
-                  const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
-                  return (
-                    <button
-                      key={cm.merchant_id}
-                      onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
-                      className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-card text-left ${
-                        isSelected
-                          ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
-                          : 'border border-border/50 hover:shadow-card'
-                      }`}
-                    >
-                      {/* Industry-themed image header (image only, no text overlay) */}
-                      <div className="relative h-20 overflow-hidden">
-                        <img
-                          src={getIndustryImage(cm.industry_type)}
-                          alt={cm.industry_type || "Store"}
-                          loading="lazy"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} mix-blend-multiply opacity-60`} />
-                      </div>
-                      {/* Clean content area below image */}
-                      <div className="p-3.5 space-y-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border/50 -mt-8 relative z-10 shadow-md">
-                            {cm.logo_url ? (
-                              <img src={cm.logo_url} alt={cm.store_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Store size={18} className={colors.text} />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm text-foreground truncate leading-tight">{cm.store_name}</p>
-                            {cm.industry_type && (
-                              <p className="text-[10px] text-muted-foreground truncate">{cm.industry_type}</p>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-2xl font-bold text-primary tabular-nums leading-none">{cm.points_balance} <span className="text-xs font-normal text-muted-foreground">pts</span></p>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span>{cm.visit_count} visits</span>
-                          <span className="text-muted-foreground/30">·</span>
-                          <span>${cm.total_spend.toFixed(0)} spent</span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <StoreFilterBar
+                merchants={customerMerchants}
+                selectedMerchantId={selectedMerchantId}
+                onSelect={setSelectedMerchantId}
+              />
             </div>
           </ScrollReveal>
         )}
 
         {selectedMerchant && (
           <ScrollReveal delay={25}>
-            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-card">
-              <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${INDUSTRY_COLORS[selectedMerchant.industry_type || ""]?.bg || "from-secondary/15 via-primary/10 to-accent/10"}`} />
-              <div className="relative p-5 sm:p-6 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-14 w-14 rounded-2xl border border-border/50 bg-background shadow-sm overflow-hidden flex items-center justify-center shrink-0">
-                      {selectedMerchant.logo_url ? (
-                        <img src={selectedMerchant.logo_url} alt={selectedMerchant.store_name} className="h-full w-full object-cover" />
-                      ) : (
-                        <Store size={22} className={INDUSTRY_COLORS[selectedMerchant.industry_type || ""]?.text || "text-secondary"} />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Exclusive store section</p>
-                      <h3 className="text-xl font-bold text-foreground truncate">{selectedMerchant.store_name}</h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                        {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
-                        {selectedMerchant.address && (
-                          <span className="inline-flex items-center gap-1 min-w-0"><MapPin size={11} /> <span className="truncate">{selectedMerchant.address}</span></span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setSelectedMerchantId(null)}>
-                    <ArrowLeft size={12} /> All Stores
-                  </Button>
+            <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Latest visits and points earned at {selectedMerchant.store_name}.
+                  </p>
                 </div>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                  {filteredTransactions.length} visits
+                </span>
+              </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    { label: "Points", value: `${selectedMerchant.points_balance}` },
-                    { label: "Rewards", value: `${filteredRewards.length}` },
-                    { label: "Offers", value: `${filteredOffers.length}` },
-                    { label: "Visits", value: `${selectedMerchant.visit_count}` },
-                  ].map((item) => (
-                    <div key={item.label} className="rounded-xl border border-border/40 bg-background/80 px-3 py-3">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                      <p className="mt-1 text-lg font-bold text-foreground">{item.value}</p>
+              {recentTransactionsPreview.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-center">
+                  <p className="text-sm font-medium text-foreground">No recent activity yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Your latest transactions at this store will appear here.</p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-2.5">
+                  {recentTransactionsPreview.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 px-3 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{transaction.merchant_name}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {new Date(transaction.transaction_date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} · ${transaction.purchase_amount.toFixed(2)} spent
+                        </p>
+                      </div>
+                      <span className="rounded-lg bg-accent/15 px-2.5 py-1 text-sm font-bold text-accent-foreground">
+                        +{transaction.points_awarded}
+                      </span>
                     </div>
                   ))}
                 </div>
-
-                <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Everything below is now filtered just for {selectedMerchant.store_name}.</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Rewards, campaigns, offers, stamp progress, redemptions, and recent activity are all exclusive to this store view.</p>
-                </div>
-              </div>
+              )}
             </div>
           </ScrollReveal>
         )}
