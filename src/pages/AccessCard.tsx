@@ -64,7 +64,6 @@ const INDUSTRY_COLORS: Record<string, { bg: string; border: string; text: string
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const daysUntil = (dateStr: string) => { const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)); return diff > 0 ? diff : 0; };
 const rewardTypeIcon = (type: string) => { switch (type) { case "freebie": return Coffee; case "voucher": return Tag; case "discount": return Sparkles; default: return Gift; } };
-const LAST_STORE_STORAGE_KEY = "perkback:last-store-view";
 
 const AccessCard = () => {
   const navigate = useNavigate();
@@ -94,7 +93,6 @@ const AccessCard = () => {
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
-  const [lastViewedMerchantId, setLastViewedMerchantId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -117,12 +115,6 @@ const AccessCard = () => {
   }, [rewardsApi]);
 
   useEffect(() => { fetchData(); }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const storedMerchantId = window.localStorage.getItem(LAST_STORE_STORAGE_KEY);
-    if (storedMerchantId) setLastViewedMerchantId(storedMerchantId);
-  }, []);
 
   useEffect(() => {
     if (!customer) return;
@@ -280,21 +272,6 @@ const AccessCard = () => {
     navigate("/get-started", { replace: true });
   };
 
-  const openStoreView = useCallback((merchantId: string) => {
-    setSelectedMerchantId(merchantId);
-    setLastViewedMerchantId(merchantId);
-    setShowTransactions(false);
-    try {
-      window.localStorage.setItem(LAST_STORE_STORAGE_KEY, merchantId);
-    } catch {
-      /* ignore storage failures */
-    }
-  }, []);
-
-  const closeStoreView = useCallback(() => {
-    setSelectedMerchantId(null);
-  }, []);
-
   const [walletLoading, setWalletLoading] = useState<string | null>(null);
   const deviceType = getDeviceType();
   const isMobile = useIsMobile();
@@ -375,7 +352,6 @@ const AccessCard = () => {
   if (!customer) return null;
 
   const selectedMerchant = selectedMerchantId ? customerMerchants.find(cm => cm.merchant_id === selectedMerchantId) : null;
-  const lastViewedMerchant = lastViewedMerchantId ? customerMerchants.find(cm => cm.merchant_id === lastViewedMerchantId) ?? null : null;
   const displayPoints = selectedMerchant ? selectedMerchant.points_balance : customer.points_balance;
 
   const filteredRewards = selectedMerchantId ? rewards.filter(r => r.merchant_id === selectedMerchantId) : rewards;
@@ -398,12 +374,6 @@ const AccessCard = () => {
       }, filteredRewards[0])
     : null;
   const nearestProgress = nearestReward ? Math.min((displayPoints / nearestReward.points_required) * 100, 100) : 0;
-  const featuredMerchant = selectedMerchant ?? lastViewedMerchant;
-  const storeViewRewards = selectedMerchant ? rewards.filter(r => r.merchant_id === selectedMerchant.merchant_id) : [];
-  const storeViewCampaigns = selectedMerchant ? campaigns.filter(c => c.merchant_id === selectedMerchant.merchant_id) : [];
-  const storeViewOffers = selectedMerchant ? monthlyOffers.filter(o => o.merchant_id === selectedMerchant.merchant_id) : [];
-  const storeViewTransactions = selectedMerchant ? transactions.filter(t => t.merchant_id === selectedMerchant.merchant_id) : [];
-  const storeViewRedemptions = selectedMerchant ? redemptions.filter(r => r.merchant_id === selectedMerchant.merchant_id) : [];
 
   return (
     <>
@@ -681,21 +651,19 @@ const AccessCard = () => {
                   <Store size={16} className="text-secondary" /> My Stores
                 </h3>
                 {selectedMerchantId && (
-                  <button onClick={closeStoreView} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
+                  <button onClick={() => setSelectedMerchantId(null)} className="text-xs text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
                     <ArrowLeft size={12} /> All Stores
                   </button>
                 )}
               </div>
-              {!selectedMerchant && (
-                <p className="mb-3 text-xs text-muted-foreground">Your store pages open from rewards and offers, while this section stays as a quick overview.</p>
-              )}
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
                 {customerMerchants.map(cm => {
                   const isSelected = selectedMerchantId === cm.merchant_id;
                   const colors = INDUSTRY_COLORS[cm.industry_type || ""] || { bg: "from-secondary/15 via-primary/10 to-accent/10", border: "border-secondary/30", text: "text-secondary" };
                   return (
-                    <div
+                    <button
                       key={cm.merchant_id}
+                      onClick={() => setSelectedMerchantId(isSelected ? null : cm.merchant_id)}
                       className={`min-w-[200px] snap-start flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-card text-left ${
                         isSelected
                           ? `${colors.border} border-2 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]`
@@ -736,36 +704,11 @@ const AccessCard = () => {
                           <span>${cm.total_spend.toFixed(0)} spent</span>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </div>
-          </ScrollReveal>
-        )}
-
-        {!selectedMerchant && featuredMerchant && (
-          <ScrollReveal delay={25}>
-            <button
-              type="button"
-              onClick={() => openStoreView(featuredMerchant.merchant_id)}
-              className="w-full rounded-2xl border border-border/50 bg-card p-5 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                    {lastViewedMerchant ? "Last used store" : "Continue with a store"}
-                  </p>
-                  <h3 className="mt-1 text-lg font-bold text-foreground">{featuredMerchant.store_name}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                    Open a rewards-first store page with active rewards, offers, and store details.
-                  </p>
-                </div>
-                <div className="rounded-xl bg-primary/10 p-2 text-primary">
-                  <ArrowRight size={16} />
-                </div>
-              </div>
-            </button>
           </ScrollReveal>
         )}
 
@@ -784,7 +727,7 @@ const AccessCard = () => {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Store rewards</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Exclusive store section</p>
                       <h3 className="text-xl font-bold text-foreground truncate">{selectedMerchant.store_name}</h3>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         {selectedMerchant.industry_type && <span>{selectedMerchant.industry_type}</span>}
@@ -794,7 +737,7 @@ const AccessCard = () => {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={closeStoreView}>
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setSelectedMerchantId(null)}>
                     <ArrowLeft size={12} /> All Stores
                   </Button>
                 </div>
@@ -814,8 +757,8 @@ const AccessCard = () => {
                 </div>
 
                 <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Rewards and offers now open a focused store page for {selectedMerchant.store_name}.</p>
-                  <p className="mt-1 text-xs text-muted-foreground">This view keeps reward discovery first, with offers and store details following the same pattern used by leading loyalty apps.</p>
+                  <p className="text-sm font-semibold text-foreground">Everything below is now filtered just for {selectedMerchant.store_name}.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Rewards, campaigns, offers, stamp progress, redemptions, and recent activity are all exclusive to this store view.</p>
                 </div>
               </div>
             </div>
@@ -862,7 +805,7 @@ const AccessCard = () => {
                           return;
                         }
                         const cm = customerMerchants.find(c => c.merchant_id === slide.merchant_id);
-                        if (cm) openStoreView(slide.merchant_id);
+                        if (cm) setSelectedMerchantId(slide.merchant_id);
                       }}
                       className="w-full text-left"
                     >
@@ -1220,16 +1163,6 @@ const AccessCard = () => {
                     <Ticket size={16} /> {redeeming === selectedReward.id ? "Redeeming..." : "Redeem Now"}
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() => {
-                    openStoreView(selectedReward.merchant_id);
-                    setSelectedReward(null);
-                  }}
-                >
-                  <Store size={16} /> Open Store Page
-                </Button>
               </>
             );
           })()}
@@ -1328,7 +1261,7 @@ const AccessCard = () => {
                     <span>{cm.address}</span>
                   </div>
                 )}
-                  <div className="flex gap-2 pt-1">
+                <div className="flex gap-2 pt-1">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedCampaign(null)}>Close</Button>
                   {cm && (
                     <Button
@@ -1336,7 +1269,7 @@ const AccessCard = () => {
                       size="sm"
                       className="flex-1 gap-1.5"
                       onClick={() => {
-                          openStoreView(selectedCampaign.merchant_id);
+                        setSelectedMerchantId(selectedCampaign.merchant_id);
                         setSelectedCampaign(null);
                       }}
                     >
