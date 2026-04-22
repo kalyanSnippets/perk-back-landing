@@ -1,99 +1,98 @@
 
-## Rework the customer access-card navigation and tighten auth handling across direct opens
+## Streamline the installed-app entry flow and upgrade the customer dashboard store/profile experience
 
 ### What will change
 
-#### 1. Move customer navigation to the top of the Access Card page
-- Replace the current mobile bottom navigation in `src/pages/AccessCard.tsx` with a top tab navigation that is visible on phone as well as desktop/tablet.
-- Expand the tab model from:
-  - My Rewards
-  - My Card
-  - Explore
-- to:
-  - Rewards
-  - Card
-  - Explore
-  - Profile
-- Use one shared `activeMainTab` state for all breakpoints so the same view logic drives every layout.
+#### 1. Opening the installed mobile app will go straight to the correct destination
+- Update the mobile app entry logic so the installed app does not show the onboarding splash, hero page, or landing page before routing.
+- When the app is opened in mobile app mode:
+  - if the user is already logged in as a customer → go directly to `/customer/access-card`
+  - if the user is not logged in → go directly to `/get-started?app=1`
+- Keep the normal marketing website behavior for standard browser visits and desktop use.
 
-#### 2. Create a proper Profile tab inside the customer access-card flow
-- Move the current account/settings content out of the card tab and into a dedicated `Profile` tab.
-- The new profile tab will contain:
-  - account settings section
-  - logout action
-  - account deletion entry
-  - main website links currently living in “More”:
-    - About Us
-    - Pricing
-    - Testimonials
-    - Blog
-    - Contact
-    - Privacy
-- Keep the delete-account dialog wired exactly as it is today, but launch it from the Profile tab instead of the card tab.
+#### 2. Skip the global splash/onboarding overlay for app-mode opens
+- Adjust the first-visit gate so it does not render the global splash/onboarding when the app is opened in app/mobile mode.
+- This prevents the current sequence:
+  - splash
+  - landing page
+  - redirect to access card
+- The result will feel like a real installed app instead of a website boot flow.
 
-#### 3. Simplify the Card tab so it only contains card-related content
-- Keep the digital card, barcode/QR, share/copy, wallet buttons, and card details in the Card tab.
-- Remove the current “Account Settings” and “More” cards from the Card tab so the tab is focused and cleaner.
+#### 3. Tighten the root-page redirect logic for mobile app mode
+- Refine the home page redirect behavior so app-mode routing happens immediately and consistently after auth is ready.
+- Preserve the current role-aware behavior, but prioritize customer app entry:
+  - signed-in customer → access card
+  - signed-out user → login
+- Avoid showing the landing page content during this transition.
 
-#### 4. Make auth behavior consistent when opening the app directly in Chrome
-- Audit the customer entry flow so protected customer screens never appear accessible without a valid session.
-- Standardize redirect behavior so unauthenticated users who open protected customer URLs directly are sent to the login screen, not to the landing page.
-- Preserve the intended return path by redirecting to login with a `next` parameter when appropriate, so after sign-in the user comes back to the requested customer screen.
-- Align route guards and in-page auth fallbacks so they do not fight each other or create inconsistent navigation.
+#### 4. Add Profile actions requested in the customer dashboard
+- Extend the Profile tab in `src/pages/AccessCard.tsx` to include:
+  - Reviews link
+  - Merchant Dashboard button
+- Per your choice, the Merchant Dashboard button will be hidden unless that user also has a merchant account.
+- Keep logout and delete-account controls in the same Profile tab.
 
-#### 5. Keep session behavior correct across screens
-- Preserve the current persistent-auth behavior for signed-in users.
-- Ensure customer routes continue to work when:
-  - opening the app directly
-  - refreshing a protected page
-  - entering via Chrome on mobile
-  - returning from sign-in
-- Prevent cases where one screen treats the user as authenticated while another bounces them unexpectedly.
+#### 5. Turn “My Store” into a clearer exclusive store section
+- Keep the current store selection model, but redesign it so selecting a store creates a much more obvious “exclusive store section” inline inside the Rewards tab.
+- When a customer selects one store, I’ll show a focused store-only block near the top that feels dedicated to that merchant, with:
+  - store branding / logo / industry / address
+  - store-specific points balance
+  - rewards for that store
+  - campaigns for that store
+  - monthly offers for that store
+  - stamp/status modules when available
+  - recent store activity / transactions for that store
+- This will build on the existing filtering logic already driven by `selectedMerchantId`, but make it feel like a real merchant hub rather than just a silent filter.
+
+#### 6. Make store selection more understandable
+- Improve the “My Stores” interaction so it is obvious that tapping a store opens its dedicated inline section.
+- Add clearer selected-state messaging and stronger visual separation between:
+  - all-store overview
+  - one-store focused view
+- Keep “All Stores” as the escape/back state.
 
 ---
 
 ### Files I will update
 
+- `src/components/onboarding/FirstVisitGate.tsx`
+  - skip splash/onboarding when the app is opened in mobile app mode
+- `src/pages/Index.tsx`
+  - harden the installed-app redirect behavior so users do not see the landing page first
 - `src/pages/AccessCard.tsx`
-  - add the new top navigation model
-  - introduce the Profile tab
-  - remove the bottom floating nav
-  - move logout / delete / links into Profile
-- `src/components/shared/FloatingBottomNav.tsx`
-  - likely no longer needed by Access Card after this change
-- `src/components/ProtectedRoute.tsx`
-  - improve unauthenticated redirects to preserve intended destination where needed
-- `src/pages/GetStarted.tsx`
-  - ensure redirect-after-login works cleanly for direct-open protected pages
-- potentially `src/pages/Index.tsx` and/or other customer auth redirect points
-  - only if needed to remove inconsistent landing-page fallbacks
+  - add Reviews link in Profile
+  - conditionally show Merchant Dashboard button for dual-role users only
+  - upgrade the selected-store experience into a clearer inline exclusive store section
+- potentially `src/contexts/AuthContext.tsx`
+  - only if needed to avoid auth-ready timing causing a flash of the landing screen during app opens
 
 ---
 
-### Behavior after the change
+### Final behavior after the change
 
 ```text
-Customer opens /customer/access-card directly
-  ├─ if logged in → opens access card normally
-  └─ if logged out → opens login screen first
-
-After login
-  └─ returns to the intended customer page
+Installed mobile app opens
+  ├─ logged-in customer → /customer/access-card immediately
+  └─ logged-out user → /get-started?app=1 immediately
 ```
 
 ```text
-Access Card page
-  ├─ Top nav: Rewards | Card | Explore | Profile
-  ├─ Rewards tab: rewards content
-  ├─ Card tab: loyalty card only
-  ├─ Explore tab: discovery content
-  └─ Profile tab: settings, logout, website links, delete account
+Customer dashboard
+  ├─ Top tabs: Rewards | Card | Explore | Profile
+  ├─ Profile includes:
+  │   ├─ reviews link
+  │   ├─ logout
+  │   ├─ delete account
+  │   └─ merchant dashboard button (only if user also has merchant account)
+  └─ My Stores:
+      ├─ all stores = overall rewards view
+      └─ selected store = dedicated inline store section with exclusive store content
 ```
 
 ---
 
 ### Technical notes
 - No database schema change is required for this request.
-- Existing authentication/session persistence will be preserved.
-- Existing delete-account backend behavior remains intact; this is a UX and routing refactor.
-- I will keep the customer mobile experience app-like while making the navigation clearer and auth handling more reliable.
+- Existing auth/session persistence will be preserved.
+- The exclusive store experience can be implemented with the current customer/store/reward/campaign/offer data already being loaded in `AccessCard.tsx`.
+- I will preserve normal website behavior on desktop and regular browser visits while making the installed mobile app open like a true app.
