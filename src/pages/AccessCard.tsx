@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -96,9 +97,36 @@ const AccessCard = () => {
   const [showClaimInfo, setShowClaimInfo] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
+  const [showStoreDetails, setShowStoreDetails] = useState(false);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState<"my-rewards" | "my-card" | "explore" | "profile">("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+
+  const trackStoreSwitcherEvent = useCallback((eventName: string, merchant?: CustomerMerchantData | null) => {
+    if (typeof window === "undefined") return;
+
+    const detail = {
+      event: eventName,
+      merchantId: merchant?.merchant_id ?? null,
+      merchantName: merchant?.store_name ?? null,
+      source: "customer_my_store_switcher",
+      timestamp: new Date().toISOString(),
+    };
+
+    window.dispatchEvent(new CustomEvent("perkback:analytics", { detail }));
+
+    if ("dataLayer" in window && Array.isArray((window as Window & { dataLayer?: unknown[] }).dataLayer)) {
+      (window as Window & { dataLayer: unknown[] }).dataLayer.push(detail);
+    }
+  }, []);
+
+  const handleMerchantSelection = useCallback((merchantId: string | null) => {
+    const merchant = merchantId ? customerMerchants.find((item) => item.merchant_id === merchantId) ?? null : null;
+    setIsSummaryLoading(true);
+    setSelectedMerchantId(merchantId);
+    trackStoreSwitcherEvent(merchantId ? "customer_store_selected" : "customer_store_cleared", merchant);
+  }, [customerMerchants, trackStoreSwitcherEvent]);
 
   useEffect(() => {
     if (!carouselApi) return;
