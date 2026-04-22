@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { lovable } from "@/integrations/lovable/index";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import { z } from "zod";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const emailSchema = z.string().trim().email("Invalid email address").max(255);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(128);
@@ -21,6 +22,7 @@ type AuthMode = "login" | "signup";
 
 const GetStarted = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [role, setRole] = useState<Role>("customer");
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,17 @@ const GetStarted = () => {
 
   const { user, loading: authLoading, isMerchant, isCustomer } = useAuth();
   const signupInProgress = useRef(false);
+  const isMobile = useIsMobile();
+  const isAppMode = searchParams.get("app") === "1";
+  const nextPath = useMemo(() => {
+    const raw = searchParams.get("next");
+    return raw && raw.startsWith("/") ? raw : null;
+  }, [searchParams]);
+
+  const getPostLoginPath = (customerHasCard?: boolean | null) => {
+    if (nextPath) return nextPath;
+    return customerHasCard ? "/customer/access-card" : "/customer/confirmation";
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -67,8 +80,9 @@ const GetStarted = () => {
   const handleOAuthSignIn = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
+      const redirectPath = nextPath ?? (isAppMode ? "/get-started?app=1" : "/");
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}${redirectPath}`,
       });
       if (result.error) {
         toast.error(result.error.message || `${provider} sign-in failed`);
@@ -184,7 +198,7 @@ const GetStarted = () => {
         } else {
           toast.success("Welcome back! Signed in to your merchant account.");
         }
-        navigate("/merchant/dashboard");
+        navigate(nextPath ?? "/merchant/dashboard");
       } else {
         const { data: existing } = await supabase.from("customers").select("loyalty_card_number").eq("user_id", user.id).maybeSingle();
         if (!existing) {
@@ -197,7 +211,7 @@ const GetStarted = () => {
         } else {
           toast.success("Welcome back! Signed in to your customer account.");
         }
-        navigate(existing?.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
+        navigate(getPostLoginPath(!!existing?.loyalty_card_number));
       }
       // Clear guard after a tick so the auto-redirect effect doesn't override our navigate
       setTimeout(() => { signupInProgress.current = false; }, 1500);
@@ -227,8 +241,8 @@ const GetStarted = () => {
       return;
     }
     if (merchant && customer) navigate("/choose-role");
-    else if (merchant) navigate("/merchant/dashboard");
-    else if (customer) navigate(customer.loyalty_card_number ? "/customer/access-card" : "/customer/confirmation");
+    else if (merchant) navigate(nextPath ?? "/merchant/dashboard");
+    else if (customer) navigate(getPostLoginPath(!!customer.loyalty_card_number));
   };
 
   const switchToSignup = (selectedRole: Role) => {
@@ -245,7 +259,7 @@ const GetStarted = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-6 text-center animate-fade-up">
-          <Link to="/" className="inline-block mb-4">
+          <Link to={isAppMode ? "/get-started?app=1" : "/"} className="inline-block mb-4">
             <img src={perkbackLogo} alt="Perk Back" className="h-10 sm:h-12 w-auto mx-auto" />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -374,11 +388,13 @@ const GetStarted = () => {
           )}
         </div>
 
-        <div className="text-center mt-5 animate-fade-up-delay-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/"><ArrowLeft size={16} /> Back to Home</Link>
-          </Button>
-        </div>
+        {!isAppMode && !(isMobile && searchParams.get("app") === "1") && (
+          <div className="text-center mt-5 animate-fade-up-delay-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/"><ArrowLeft size={16} /> Back to Home</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
