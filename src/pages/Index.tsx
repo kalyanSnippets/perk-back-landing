@@ -1,6 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
+import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Below-the-fold sections are split into their own chunks so the
 // landing-page bundle only has to ship Header + Hero on first paint.
@@ -15,6 +18,25 @@ const SectionPlaceholder = ({ minHeight }: { minHeight: string }) => (
 );
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { authReady, isCustomer, user } = useAuth();
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (!isMobile || !authReady) return;
+    if (searchParams.get("web") === "1") return;
+
+    if (user && isCustomer) {
+      navigate("/customer/access-card", { replace: true });
+      return;
+    }
+
+    if (!user) {
+      navigate("/get-started?app=1", { replace: true });
+    }
+  }, [authReady, isCustomer, isMobile, navigate, searchParams, user]);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
