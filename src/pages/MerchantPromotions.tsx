@@ -228,13 +228,13 @@ const MerchantPromotions = () => {
                 <div key={rule.id} className={`bg-card rounded-2xl p-5 border shadow-card transition-all ${rule.active ? "border-border/50" : "border-border/30 opacity-60"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">
-                        {rule.rule_type === "spend_x_get_y"
-                          ? `Spend $${rule.trigger_count}`
-                          : `${ruleTypeLabel(rule.rule_type).replace("X", String(rule.trigger_count))}`}
-                        {" → "}
-                        <span className="text-primary">{rule.reward_description}</span>
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">{formatPromotionSummary({
+                        ruleType: rule.rule_type,
+                        triggerCount: rule.trigger_count,
+                        rewardDescription: rule.reward_description,
+                        rewardType: rule.reward_type,
+                        rewardValue: rule.reward_value,
+                      })}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {getRewardTypeLabel(rule.reward_type)}
                         {" • "}
