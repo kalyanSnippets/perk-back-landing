@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { z } from "zod";
 import {
   Star, Hash, User, CreditCard,
   ArrowRight, Shield, Copy, Share2, CheckCircle,
   XCircle, Store, MapPin, LogOut, Megaphone,
-  ChevronRight, Info,
+  ChevronRight, Info, CalendarDays, PencilLine,
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
@@ -27,6 +29,10 @@ import StoreRewardActionDialog from "@/components/customer/StoreRewardActionDial
 import LoyaltyCardFlip from "@/components/customer/LoyaltyCardFlip";
 import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 import { linkCustomerToMerchant } from "@/lib/customerMerchantJoin";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; date_of_birth?: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -41,9 +47,21 @@ type StoreViewSource = "my-rewards" | "explore";
 
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const getDirectionsUrl = (address?: string | null) => address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}` : null;
+const profileUpdateSchema = z.object({
+  full_name: z.string().trim().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  date_of_birth: z.date().nullable().refine((value) => !value || value <= new Date(), "Date of birth cannot be in the future"),
+});
+const formatProfileDate = (value?: string | null) => {
+  if (!value) return "Add";
+  const parsedDate = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsedDate.getTime())
+    ? "Add"
+    : parsedDate.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+};
 
 const AccessCard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [customerMerchants, setCustomerMerchants] = useState<CustomerMerchantData[]>([]);
@@ -61,11 +79,16 @@ const AccessCard = () => {
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [activeMainTab, setActiveMainTab] = useState<MainTab>("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>(() => searchParams.get("tab") === "profile" ? "profile" : "my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [joiningMerchantId, setJoiningMerchantId] = useState<string | null>(null);
   const [joinedMerchantOverrides, setJoinedMerchantOverrides] = useState<Record<string, true>>({});
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileFullName, setProfileFullName] = useState("");
+  const [profileDateOfBirth, setProfileDateOfBirth] = useState<Date | undefined>(undefined);
+  const [profileErrors, setProfileErrors] = useState<{ full_name?: string; date_of_birth?: string }>({});
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
@@ -132,6 +155,20 @@ const AccessCard = () => {
   }, [merchantDirectory]);
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "profile") {
+      setActiveMainTab("profile");
+      setActiveStoreViewMerchantId(null);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!customer) return;
+    setProfileFullName(customer.full_name || "");
+    setProfileDateOfBirth(customer.date_of_birth ? new Date(`${customer.date_of_birth}T00:00:00`) : undefined);
+    setProfileErrors({});
+  }, [customer]);
 
   useEffect(() => {
     if (!customer) return;
@@ -289,6 +326,55 @@ const AccessCard = () => {
     await logout();
     toast.success("Logged out successfully");
     navigate("/get-started", { replace: true });
+  };
+
+  const handleOpenProfileDialog = () => {
+    setProfileFullName(customer?.full_name || "");
+    setProfileDateOfBirth(customer?.date_of_birth ? new Date(`${customer.date_of_birth}T00:00:00`) : undefined);
+    setProfileErrors({});
+    setProfileDialogOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!customer) return;
+
+    const validation = profileUpdateSchema.safeParse({
+      full_name: profileFullName,
+      date_of_birth: profileDateOfBirth ?? null,
+    });
+
+    if (!validation.success) {
+      const fieldErrors = validation.error.flatten().fieldErrors;
+      setProfileErrors({
+        full_name: fieldErrors.full_name?.[0],
+        date_of_birth: fieldErrors.date_of_birth?.[0],
+      });
+      return;
+    }
+
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        full_name: validation.data.full_name,
+        date_of_birth: validation.data.date_of_birth ? format(validation.data.date_of_birth, "yyyy-MM-dd") : null,
+      })
+      .eq("id", customer.id);
+
+    setSavingProfile(false);
+
+    if (error) {
+      toast.error(error.message || "Unable to update profile");
+      return;
+    }
+
+    setCustomer((current) => current ? {
+      ...current,
+      full_name: validation.data.full_name,
+      date_of_birth: validation.data.date_of_birth ? format(validation.data.date_of_birth, "yyyy-MM-dd") : null,
+    } : current);
+    setProfileDialogOpen(false);
+    toast.success("Profile updated");
   };
 
   const handleJoinStore = async (merchantId: string) => {
