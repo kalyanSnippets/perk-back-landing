@@ -593,51 +593,46 @@ const AccessCard = () => {
               </ScrollReveal>
 
               <ScrollReveal delay={50}>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 text-xs" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
-                    <Copy size={13} /> Copy
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 text-xs" onClick={handleShare}>
-                    <Share2 size={13} /> Share
-                  </Button>
-                </div>
-                <div className="mt-2 flex gap-2">
-                  {(deviceType === "ios" || deviceType === "desktop") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-10 flex-1 gap-1.5 border-border/50 bg-foreground text-background hover:bg-foreground/90 hover:text-background text-xs"
-                      onClick={handleAddToAppleWallet}
-                      disabled={walletLoading === "apple"}
-                    >
-                      🍎 {walletLoading === "apple" ? "Adding..." : "Add to Apple Wallet"}
+                <div className="space-y-3 rounded-[22px] border border-border/40 bg-muted/20 p-3 shadow-card">
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
+                      <Copy size={13} /> Copy
                     </Button>
-                  )}
-                  {(deviceType === "android" || deviceType === "desktop") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-10 flex-1 gap-1.5 border-border/50 text-xs"
-                      onClick={handleAddToGoogleWallet}
-                      disabled={walletLoading === "google"}
-                    >
-                      📱 {walletLoading === "google" ? "Adding..." : "Add to Google Wallet"}
+                    <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={handleShare}>
+                      <Share2 size={13} /> Share
                     </Button>
-                  )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(deviceType === "ios" || deviceType === "desktop") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-10 flex-1 gap-1.5 border-border/50 bg-card text-xs"
+                        onClick={handleAddToAppleWallet}
+                        disabled={walletLoading === "apple"}
+                      >
+                        🍎 {walletLoading === "apple" ? "Adding..." : "Add to Apple Wallet"}
+                      </Button>
+                    )}
+                    {(deviceType === "android" || deviceType === "desktop") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-10 flex-1 gap-1.5 border-border/50 bg-card text-xs"
+                        onClick={handleAddToGoogleWallet}
+                        disabled={walletLoading === "google"}
+                      >
+                        📱 {walletLoading === "google" ? "Adding..." : "Add to Google Wallet"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </ScrollReveal>
 
               <ScrollReveal delay={75}>
-                <div className="rounded-[24px] border border-border/40 bg-card/80 px-4 py-4 shadow-card backdrop-blur-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Wallet ready</p>
-                      <p className="mt-1 text-sm font-semibold text-foreground">Your loyalty card already contains your member details for checkout.</p>
-                    </div>
-                    <div className="rounded-full bg-secondary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-secondary">
-                      Live
-                    </div>
-                  </div>
+                <div className="rounded-[20px] border border-border/40 bg-card px-4 py-3 shadow-card">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Wallet ready</p>
+                  <p className="mt-1 text-sm text-foreground">Your live loyalty card is ready for checkout and wallet save.</p>
                 </div>
               </ScrollReveal>
             </>
