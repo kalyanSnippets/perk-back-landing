@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { z } from "zod";
 import {
   Star, Hash, User, CreditCard,
   ArrowRight, Shield, Copy, Share2, CheckCircle,
   XCircle, Store, MapPin, LogOut, Megaphone,
-  ChevronRight, Info,
+  ChevronRight, Info, CalendarDays, PencilLine,
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
@@ -27,6 +29,10 @@ import StoreRewardActionDialog from "@/components/customer/StoreRewardActionDial
 import LoyaltyCardFlip from "@/components/customer/LoyaltyCardFlip";
 import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 import { linkCustomerToMerchant } from "@/lib/customerMerchantJoin";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; date_of_birth?: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -41,9 +47,21 @@ type StoreViewSource = "my-rewards" | "explore";
 
 const getGreeting = () => { const h = new Date().getHours(); if (h < 12) return "Good morning"; if (h < 17) return "Good afternoon"; return "Good evening"; };
 const getDirectionsUrl = (address?: string | null) => address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}` : null;
+const profileUpdateSchema = z.object({
+  full_name: z.string().trim().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  date_of_birth: z.date().nullable().refine((value) => !value || value <= new Date(), "Date of birth cannot be in the future"),
+});
+const formatProfileDate = (value?: string | null) => {
+  if (!value) return "Add";
+  const parsedDate = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsedDate.getTime())
+    ? "Add"
+    : parsedDate.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+};
 
 const AccessCard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [customerMerchants, setCustomerMerchants] = useState<CustomerMerchantData[]>([]);
@@ -61,11 +79,16 @@ const AccessCard = () => {
   const [showRedemptionModal, setShowRedemptionModal] = useState<{ code: string; title: string; points: number; expires: string } | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardData | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
-  const [activeMainTab, setActiveMainTab] = useState<MainTab>("my-rewards");
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>(() => searchParams.get("tab") === "profile" ? "profile" : "my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [joiningMerchantId, setJoiningMerchantId] = useState<string | null>(null);
   const [joinedMerchantOverrides, setJoinedMerchantOverrides] = useState<Record<string, true>>({});
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileFullName, setProfileFullName] = useState("");
+  const [profileDateOfBirth, setProfileDateOfBirth] = useState<Date | undefined>(undefined);
+  const [profileErrors, setProfileErrors] = useState<{ full_name?: string; date_of_birth?: string }>({});
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
@@ -132,6 +155,20 @@ const AccessCard = () => {
   }, [merchantDirectory]);
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "profile") {
+      setActiveMainTab("profile");
+      setActiveStoreViewMerchantId(null);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!customer) return;
+    setProfileFullName(customer.full_name || "");
+    setProfileDateOfBirth(customer.date_of_birth ? new Date(`${customer.date_of_birth}T00:00:00`) : undefined);
+    setProfileErrors({});
+  }, [customer]);
 
   useEffect(() => {
     if (!customer) return;
@@ -289,6 +326,55 @@ const AccessCard = () => {
     await logout();
     toast.success("Logged out successfully");
     navigate("/get-started", { replace: true });
+  };
+
+  const handleOpenProfileDialog = () => {
+    setProfileFullName(customer?.full_name || "");
+    setProfileDateOfBirth(customer?.date_of_birth ? new Date(`${customer.date_of_birth}T00:00:00`) : undefined);
+    setProfileErrors({});
+    setProfileDialogOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!customer) return;
+
+    const validation = profileUpdateSchema.safeParse({
+      full_name: profileFullName,
+      date_of_birth: profileDateOfBirth ?? null,
+    });
+
+    if (!validation.success) {
+      const fieldErrors = validation.error.flatten().fieldErrors;
+      setProfileErrors({
+        full_name: fieldErrors.full_name?.[0],
+        date_of_birth: fieldErrors.date_of_birth?.[0],
+      });
+      return;
+    }
+
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        full_name: validation.data.full_name,
+        date_of_birth: validation.data.date_of_birth ? format(validation.data.date_of_birth, "yyyy-MM-dd") : null,
+      })
+      .eq("id", customer.id);
+
+    setSavingProfile(false);
+
+    if (error) {
+      toast.error(error.message || "Unable to update profile");
+      return;
+    }
+
+    setCustomer((current) => current ? {
+      ...current,
+      full_name: validation.data.full_name,
+      date_of_birth: validation.data.date_of_birth ? format(validation.data.date_of_birth, "yyyy-MM-dd") : null,
+    } : current);
+    setProfileDialogOpen(false);
+    toast.success("Profile updated");
   };
 
   const handleJoinStore = async (merchantId: string) => {
@@ -455,16 +541,13 @@ const AccessCard = () => {
     {
       title: "Profile",
       items: [
-        { label: "Full Name", value: customer.full_name || "—", icon: User },
-        { label: "CRN", value: customer.crn || "—", icon: Hash },
-        { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
-      ],
-    },
-    {
-      title: "Account Settings",
-      items: [
-        ...(isMerchant ? [{ label: "Merchant Dashboard", value: "Open", icon: Store, href: "/merchant/dashboard" }] : []),
-        { label: "Log out", value: "Sign out", icon: LogOut, action: handleLogout },
+        {
+          label: "Name & Date of Birth",
+          value: customer.date_of_birth ? formatProfileDate(customer.date_of_birth) : "Add",
+          subvalue: customer.full_name || "Add your name",
+          icon: CalendarDays,
+          action: handleOpenProfileDialog,
+        },
       ],
     },
     {
@@ -561,6 +644,7 @@ const AccessCard = () => {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xl font-bold">{customer.full_name || "PerkBack Member"}</p>
                         <p className="mt-1 text-sm text-primary-foreground/80">Member since {memberSinceLabel} · CRN {customer.crn || "—"}</p>
+                        <p className="mt-3 text-xs text-primary-foreground/78">Card number {customer.loyalty_card_number || "—"}</p>
                       </div>
                     </div>
                   </div>
@@ -600,7 +684,7 @@ const AccessCard = () => {
                                 <ChevronRight size={16} className="text-muted-foreground/80" />
                               </div>
                             </Link>
-                          ) : (
+                          ) : item.action ? (
                             <button
                               key={item.label}
                               type="button"
@@ -619,6 +703,20 @@ const AccessCard = () => {
                                 <ChevronRight size={16} className="text-muted-foreground/80" />
                               </div>
                             </button>
+                          ) : (
+                            <div
+                              key={item.label}
+                              className={`flex items-center gap-3 px-4 py-4 ${index !== section.items.length - 1 ? "border-b border-border/40" : ""}`}
+                            >
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                                <item.icon size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                                {item.subvalue && <p className="truncate text-xs text-muted-foreground">{item.subvalue}</p>}
+                              </div>
+                              <span className="pl-2 text-sm text-muted-foreground">{item.value}</span>
+                            </div>
                           )
                         ))}
                       </div>
@@ -626,12 +724,20 @@ const AccessCard = () => {
                   ))}
 
                   <section className="space-y-3 pt-2">
-                    <Button variant="ghost" className="h-12 w-full justify-between rounded-2xl border border-destructive/20 bg-card px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
-                      <span className="flex items-center gap-2"><XCircle size={16} /> Delete my account</span>
-                      <ChevronRight size={16} />
-                    </Button>
+                    {isMerchant && (
+                      <Button variant="outline" className="h-12 w-full justify-between rounded-2xl border-border/50 bg-card px-4" asChild>
+                        <Link to="/merchant/dashboard">
+                          <span className="flex items-center gap-2"><Store size={16} /> Merchant Dashboard</span>
+                          <ChevronRight size={16} />
+                        </Link>
+                      </Button>
+                    )}
                     <Button className="h-12 w-full justify-between rounded-2xl px-4" onClick={handleLogout}>
                       <span className="flex items-center gap-2"><LogOut size={16} /> Log out</span>
+                      <ChevronRight size={16} />
+                    </Button>
+                    <Button variant="ghost" className="h-12 w-full justify-between rounded-2xl border border-destructive/20 bg-card px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
+                      <span className="flex items-center gap-2"><XCircle size={16} /> Delete my account</span>
                       <ChevronRight size={16} />
                     </Button>
                   </section>
@@ -959,6 +1065,64 @@ const AccessCard = () => {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit profile</DialogTitle>
+            <DialogDescription>Update your name and date of birth.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Full name</Label>
+              <Input
+                id="profile-name"
+                value={profileFullName}
+                onChange={(event) => {
+                  setProfileFullName(event.target.value);
+                  setProfileErrors((current) => ({ ...current, full_name: undefined }));
+                }}
+                placeholder="Your full name"
+              />
+              {profileErrors.full_name && <p className="text-xs text-destructive">{profileErrors.full_name}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Date of birth</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between rounded-2xl border-border/50 bg-card text-left font-normal">
+                    <span>{profileDateOfBirth ? format(profileDateOfBirth, "PPP") : "Pick a date"}</span>
+                    <PencilLine size={16} className="text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={profileDateOfBirth}
+                    onSelect={(date) => {
+                      setProfileDateOfBirth(date);
+                      setProfileErrors((current) => ({ ...current, date_of_birth: undefined }));
+                    }}
+                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              {profileErrors.date_of_birth && <p className="text-xs text-destructive">{profileErrors.date_of_birth}</p>}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setProfileDialogOpen(false)} disabled={savingProfile}>Cancel</Button>
+              <Button className="flex-1" onClick={handleSaveProfile} disabled={savingProfile}>
+                {savingProfile ? "Saving..." : "Save changes"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import DOMPurify from "dompurify";
+import PublicPageFrame from "@/components/shared/PublicPageFrame";
+import { useEmbeddedPublicPage } from "@/hooks/useEmbeddedPublicPage";
 
 interface BlogData {
   id: string;
@@ -21,6 +21,7 @@ const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<BlogData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isEmbedded, backHref } = useEmbeddedPublicPage();
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -37,12 +38,11 @@ const BlogPost = () => {
   }, [slug]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 sm:pt-24 pb-16">
+    <PublicPageFrame isEmbedded={isEmbedded} backHref={backHref} title={post?.title || "Blog"}>
+      <div className={isEmbedded ? "pt-2" : ""}>
         <div className="container mx-auto px-4 max-w-3xl">
           <Link
-            to="/blog"
+            to={isEmbedded ? "/blog?web=1" : "/blog"}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft size={14} />
@@ -93,9 +93,8 @@ const BlogPost = () => {
             </ScrollReveal>
           )}
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicPageFrame>
   );
 };
 

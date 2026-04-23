@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Send, Mail, User, Building2, MessageSquare } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import PublicPageFrame from "@/components/shared/PublicPageFrame";
+import { useEmbeddedPublicPage } from "@/hooks/useEmbeddedPublicPage";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -23,6 +23,7 @@ const ContactUs = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { isEmbedded, backHref } = useEmbeddedPublicPage();
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -60,9 +61,8 @@ const ContactUs = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 sm:pt-24 pb-16">
+    <PublicPageFrame isEmbedded={isEmbedded} backHref={backHref} title="Contact Us">
+      <div className={isEmbedded ? "pt-2" : ""}>
         <div className="container mx-auto px-4 max-w-2xl">
           <ScrollReveal>
             <div className="text-center mb-10">
@@ -149,9 +149,8 @@ const ContactUs = () => {
             </ScrollReveal>
           )}
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicPageFrame>
   );
 };
 
