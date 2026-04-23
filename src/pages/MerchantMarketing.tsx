@@ -25,6 +25,12 @@ import {
   campaignSchema, rewardSchema, promotionSchema,
   monthlyOfferSchema, birthdaySchema, firstZodError,
 } from "@/lib/validationSchemas";
+import {
+  PROMOTION_REWARD_OPTIONS,
+  PROMOTION_RULE_OPTIONS,
+  formatPromotionSummary,
+  getRewardTypeLabel,
+} from "@/lib/rewardFormatting";
 
 // ── Types ──
 interface Campaign { id: string; title: string; description: string | null; active: boolean; created_at: string; }
@@ -37,16 +43,11 @@ interface Offer { id: string; title: string; description: string | null; active:
 interface AiSuggestion { title: string; description: string; target_audience: string; expected_impact: string; confidence: string; }
 interface AiRewardSuggestion { title: string; description: string; reward_type: string; points_required: number; image_prompt: string; }
 
-const RULE_TYPES = [
-  { value: "visit_x_get_y", label: "Visit X times", icon: Footprints },
-  { value: "buy_x_get_y", label: "Buy X items", icon: ShoppingBag },
-  { value: "spend_x_get_y", label: "Spend $X", icon: DollarSign },
-];
-const REWARD_TYPES_PROMO = [
-  { value: "free_item", label: "Free Item" },
-  { value: "discount_percent", label: "Discount %" },
-  { value: "bonus_points", label: "Bonus Points" },
-];
+const RULE_TYPES = PROMOTION_RULE_OPTIONS.map((option) => ({
+  ...option,
+  icon: option.value === "visit_x_get_y" ? Footprints : option.value === "buy_x_get_y" ? ShoppingBag : DollarSign,
+}));
+const REWARD_TYPES_PROMO = PROMOTION_REWARD_OPTIONS;
 
 const confidenceColor: Record<string, string> = {
   high: "bg-green-500/15 text-green-600",
@@ -298,9 +299,6 @@ const MerchantMarketing = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
   }
 
-  const ruleTypeLabel = (type: string) => RULE_TYPES.find(r => r.value === type)?.label || type;
-  const rewardTypeLabel = (type: string) => REWARD_TYPES_PROMO.find(r => r.value === type)?.label || type;
-
   return (
     <div className="min-h-screen bg-muted/20">
       <Header />
@@ -508,6 +506,15 @@ const MerchantMarketing = () => {
                           <div><Label className="text-xs text-muted-foreground mb-1 block">Reward Description</Label><Input value={prRewardDesc} onChange={e => setPrRewardDesc(e.target.value)} /></div>
                           <div><Label className="text-xs text-muted-foreground mb-1 block">Value (optional)</Label><Input value={prRewardValue} onChange={e => setPrRewardValue(e.target.value)} placeholder="e.g. 10%" /></div>
                         </div>
+                        <div className="rounded-xl bg-muted/30 p-3 text-sm font-semibold text-foreground">
+                          {formatPromotionSummary({
+                            ruleType: prRuleType,
+                            triggerCount: parseInt(prTrigger) || 0,
+                            rewardDescription: prRewardDesc || "Free item",
+                            rewardType: prRewardType,
+                            rewardValue: prRewardValue,
+                          })}
+                        </div>
                         <div className="flex gap-3">
                           <Button variant="outline" size="sm" onClick={() => setShowPromoForm(false)} className="flex-1">Cancel</Button>
                           <Button variant="hero" size="sm" onClick={createPromo} disabled={savingPromo} className="flex-1 gap-1.5"><Save size={14} /> {savingPromo ? "Creating..." : "Create Rule"}</Button>
@@ -518,11 +525,14 @@ const MerchantMarketing = () => {
                       <div key={rule.id} className={`bg-card rounded-2xl p-5 border shadow-card transition-all ${rule.active ? "border-border/50" : "border-border/30 opacity-60"}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
-                            <p className="text-sm font-semibold text-foreground">
-                              {rule.rule_type === "spend_x_get_y" ? `Spend $${rule.trigger_count}` : `${ruleTypeLabel(rule.rule_type).replace("X", String(rule.trigger_count))}`}
-                              {" → "}<span className="text-primary">{rule.reward_description}</span>
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">{rewardTypeLabel(rule.reward_type)}{rule.reward_value ? ` • ${rule.reward_value}` : ""}</p>
+                            <p className="text-sm font-semibold text-foreground">{formatPromotionSummary({
+                              ruleType: rule.rule_type,
+                              triggerCount: rule.trigger_count,
+                              rewardDescription: rule.reward_description,
+                              rewardType: rule.reward_type,
+                              rewardValue: rule.reward_value,
+                            })}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{getRewardTypeLabel(rule.reward_type)}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <button onClick={async () => { await supabase.from("promotion_rules").update({ active: !rule.active }).eq("id", rule.id); setPromoRules(prev => prev.map(r => r.id === rule.id ? { ...r, active: !r.active } : r)); }} className="text-muted-foreground hover:text-foreground">{rule.active ? <ToggleRight size={22} className="text-primary" /> : <ToggleLeft size={22} />}</button>

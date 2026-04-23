@@ -1486,6 +1486,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_merchant: {
+        Args: { _merchant_id: string; _source?: string }
+        Returns: Json
+      }
       join_merchant_by_slug: {
         Args: { _slug: string; _source?: string }
         Returns: Json
