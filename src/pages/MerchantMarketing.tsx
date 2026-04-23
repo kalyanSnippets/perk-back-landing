@@ -25,6 +25,13 @@ import {
   campaignSchema, rewardSchema, promotionSchema,
   monthlyOfferSchema, birthdaySchema, firstZodError,
 } from "@/lib/validationSchemas";
+import {
+  PROMOTION_REWARD_OPTIONS,
+  PROMOTION_RULE_OPTIONS,
+  formatPromotionReward,
+  formatPromotionSummary,
+  getRewardTypeLabel,
+} from "@/lib/rewardFormatting";
 
 // ── Types ──
 interface Campaign { id: string; title: string; description: string | null; active: boolean; created_at: string; }
@@ -37,16 +44,11 @@ interface Offer { id: string; title: string; description: string | null; active:
 interface AiSuggestion { title: string; description: string; target_audience: string; expected_impact: string; confidence: string; }
 interface AiRewardSuggestion { title: string; description: string; reward_type: string; points_required: number; image_prompt: string; }
 
-const RULE_TYPES = [
-  { value: "visit_x_get_y", label: "Visit X times", icon: Footprints },
-  { value: "buy_x_get_y", label: "Buy X items", icon: ShoppingBag },
-  { value: "spend_x_get_y", label: "Spend $X", icon: DollarSign },
-];
-const REWARD_TYPES_PROMO = [
-  { value: "free_item", label: "Free Item" },
-  { value: "discount_percent", label: "Discount %" },
-  { value: "bonus_points", label: "Bonus Points" },
-];
+const RULE_TYPES = PROMOTION_RULE_OPTIONS.map((option) => ({
+  ...option,
+  icon: option.value === "visit_x_get_y" ? Footprints : option.value === "buy_x_get_y" ? ShoppingBag : DollarSign,
+}));
+const REWARD_TYPES_PROMO = PROMOTION_REWARD_OPTIONS;
 
 const confidenceColor: Record<string, string> = {
   high: "bg-green-500/15 text-green-600",
@@ -298,8 +300,13 @@ const MerchantMarketing = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
   }
 
-  const ruleTypeLabel = (type: string) => RULE_TYPES.find(r => r.value === type)?.label || type;
-  const rewardTypeLabel = (type: string) => REWARD_TYPES_PROMO.find(r => r.value === type)?.label || type;
+  const promoPreview = formatPromotionSummary({
+    ruleType: prRuleType,
+    triggerCount: parseInt(prTrigger) || 0,
+    rewardDescription: prRewardDesc || "Free item",
+    rewardType: prRewardType,
+    rewardValue: prRewardValue,
+  });
 
   return (
     <div className="min-h-screen bg-muted/20">
