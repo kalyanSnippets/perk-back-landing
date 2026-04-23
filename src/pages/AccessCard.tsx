@@ -541,16 +541,13 @@ const AccessCard = () => {
     {
       title: "Profile",
       items: [
-        { label: "Full Name", value: customer.full_name || "—", icon: User },
-        { label: "CRN", value: customer.crn || "—", icon: Hash },
-        { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
-      ],
-    },
-    {
-      title: "Account Settings",
-      items: [
-        ...(isMerchant ? [{ label: "Merchant Dashboard", value: "Open", icon: Store, href: "/merchant/dashboard" }] : []),
-        { label: "Log out", value: "Sign out", icon: LogOut, action: handleLogout },
+        {
+          label: "Name & Date of Birth",
+          value: customer.date_of_birth ? formatProfileDate(customer.date_of_birth) : "Add",
+          subvalue: customer.full_name || "Add your name",
+          icon: CalendarDays,
+          action: handleOpenProfileDialog,
+        },
       ],
     },
     {
@@ -647,6 +644,7 @@ const AccessCard = () => {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xl font-bold">{customer.full_name || "PerkBack Member"}</p>
                         <p className="mt-1 text-sm text-primary-foreground/80">Member since {memberSinceLabel} · CRN {customer.crn || "—"}</p>
+                        <p className="mt-3 text-xs text-primary-foreground/78">Card number {customer.loyalty_card_number || "—"}</p>
                       </div>
                     </div>
                   </div>
@@ -686,7 +684,7 @@ const AccessCard = () => {
                                 <ChevronRight size={16} className="text-muted-foreground/80" />
                               </div>
                             </Link>
-                          ) : (
+                          ) : item.action ? (
                             <button
                               key={item.label}
                               type="button"
@@ -705,6 +703,20 @@ const AccessCard = () => {
                                 <ChevronRight size={16} className="text-muted-foreground/80" />
                               </div>
                             </button>
+                          ) : (
+                            <div
+                              key={item.label}
+                              className={`flex items-center gap-3 px-4 py-4 ${index !== section.items.length - 1 ? "border-b border-border/40" : ""}`}
+                            >
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                                <item.icon size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                                {item.subvalue && <p className="truncate text-xs text-muted-foreground">{item.subvalue}</p>}
+                              </div>
+                              <span className="pl-2 text-sm text-muted-foreground">{item.value}</span>
+                            </div>
                           )
                         ))}
                       </div>
@@ -712,12 +724,20 @@ const AccessCard = () => {
                   ))}
 
                   <section className="space-y-3 pt-2">
-                    <Button variant="ghost" className="h-12 w-full justify-between rounded-2xl border border-destructive/20 bg-card px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
-                      <span className="flex items-center gap-2"><XCircle size={16} /> Delete my account</span>
-                      <ChevronRight size={16} />
-                    </Button>
+                    {isMerchant && (
+                      <Button variant="outline" className="h-12 w-full justify-between rounded-2xl border-border/50 bg-card px-4" asChild>
+                        <Link to="/merchant/dashboard">
+                          <span className="flex items-center gap-2"><Store size={16} /> Merchant Dashboard</span>
+                          <ChevronRight size={16} />
+                        </Link>
+                      </Button>
+                    )}
                     <Button className="h-12 w-full justify-between rounded-2xl px-4" onClick={handleLogout}>
                       <span className="flex items-center gap-2"><LogOut size={16} /> Log out</span>
+                      <ChevronRight size={16} />
+                    </Button>
+                    <Button variant="ghost" className="h-12 w-full justify-between rounded-2xl border border-destructive/20 bg-card px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
+                      <span className="flex items-center gap-2"><XCircle size={16} /> Delete my account</span>
                       <ChevronRight size={16} />
                     </Button>
                   </section>
@@ -1045,6 +1065,64 @@ const AccessCard = () => {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit profile</DialogTitle>
+            <DialogDescription>Update your name and date of birth.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Full name</Label>
+              <Input
+                id="profile-name"
+                value={profileFullName}
+                onChange={(event) => {
+                  setProfileFullName(event.target.value);
+                  setProfileErrors((current) => ({ ...current, full_name: undefined }));
+                }}
+                placeholder="Your full name"
+              />
+              {profileErrors.full_name && <p className="text-xs text-destructive">{profileErrors.full_name}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Date of birth</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between rounded-2xl border-border/50 bg-card text-left font-normal">
+                    <span>{profileDateOfBirth ? format(profileDateOfBirth, "PPP") : "Pick a date"}</span>
+                    <PencilLine size={16} className="text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={profileDateOfBirth}
+                    onSelect={(date) => {
+                      setProfileDateOfBirth(date);
+                      setProfileErrors((current) => ({ ...current, date_of_birth: undefined }));
+                    }}
+                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              {profileErrors.date_of_birth && <p className="text-xs text-destructive">{profileErrors.date_of_birth}</p>}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setProfileDialogOpen(false)} disabled={savingProfile}>Cancel</Button>
+              <Button className="flex-1" onClick={handleSaveProfile} disabled={savingProfile}>
+                {savingProfile ? "Saving..." : "Save changes"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
