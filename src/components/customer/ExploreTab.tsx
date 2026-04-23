@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, Compass, Gift, MapPin, Navigation, Search, Store } from "lucide-react";
+import { ArrowLeftRight, Compass, MapPin, Navigation, Search, Store } from "lucide-react";
 import { useUserLocation, haversineDistance, formatDistance } from "@/lib/geo";
 import IndustryFilter from "./IndustryFilter";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -27,6 +27,8 @@ interface ExploreTabProps {
   merchants: ExploreMerchantCard[];
   onOpenMerchant: (merchantId: string) => void;
 }
+
+const normalizeSearch = (value: string) => value.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
 const getDirectionsUrl = (merchant: ExploreMerchantCard) => {
   if (merchant.latitude != null && merchant.longitude != null) {
@@ -60,17 +62,19 @@ const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
   );
 
   const filteredMerchants = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const terms = normalizeSearch(searchQuery);
 
     return merchants.filter((merchant) => {
       const matchesIndustry = industryFilter ? merchant.industry_type === industryFilter : true;
-      const matchesSearch = normalizedQuery.length === 0
-        ? true
-        : [merchant.store_name, merchant.industry_type, merchant.address]
-            .filter(Boolean)
-            .some((value) => value?.toLowerCase().includes(normalizedQuery));
+      if (!matchesIndustry) return false;
+      if (terms.length === 0) return true;
 
-      return matchesIndustry && matchesSearch;
+      const haystack = [merchant.store_name, merchant.industry_type, merchant.address]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return terms.every((term) => haystack.includes(term));
     });
   }, [industryFilter, merchants, searchQuery]);
 
@@ -80,7 +84,18 @@ const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
       : null;
 
     return { ...merchant, distance };
-  }), [filteredMerchants, userLocation.latitude, userLocation.longitude]);
+  }).sort((a, b) => {
+    const query = searchQuery.trim().toLowerCase();
+    const aName = a.store_name.toLowerCase();
+    const bName = b.store_name.toLowerCase();
+    const aStrongMatch = query.length > 0 && aName.includes(query);
+    const bStrongMatch = query.length > 0 && bName.includes(query);
+
+    return Number(bStrongMatch) - Number(aStrongMatch)
+      || Number(b.isJoined) - Number(a.isJoined)
+      || (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY)
+      || a.store_name.localeCompare(b.store_name);
+  }), [filteredMerchants, searchQuery, userLocation.latitude, userLocation.longitude]);
 
   const featuredNearbyMerchant = useMemo(() => merchantsWithDistance
     .filter((merchant) => merchant.distance !== null)
@@ -263,19 +278,6 @@ const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
               </div>
             )}
 
-            <div className="rounded-[24px] border border-border/35 bg-card/90 p-4 shadow-card backdrop-blur-sm">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/10">
-                  <Gift size={18} className="text-secondary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Recommendation</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    For PerkBack, this one-store-per-screen layout works better than a stacked directory because it makes local merchant discovery feel premium while keeping rewards inside the dedicated Rewards tab.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </ScrollReveal>
       )}
