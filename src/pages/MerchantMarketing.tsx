@@ -299,14 +299,6 @@ const MerchantMarketing = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
   }
 
-  const promoPreview = formatPromotionSummary({
-    ruleType: prRuleType,
-    triggerCount: parseInt(prTrigger) || 0,
-    rewardDescription: prRewardDesc || "Free item",
-    rewardType: prRewardType,
-    rewardValue: prRewardValue,
-  });
-
   return (
     <div className="min-h-screen bg-muted/20">
       <Header />
@@ -513,6 +505,15 @@ const MerchantMarketing = () => {
                         <div className="grid grid-cols-2 gap-3">
                           <div><Label className="text-xs text-muted-foreground mb-1 block">Reward Description</Label><Input value={prRewardDesc} onChange={e => setPrRewardDesc(e.target.value)} /></div>
                           <div><Label className="text-xs text-muted-foreground mb-1 block">Value (optional)</Label><Input value={prRewardValue} onChange={e => setPrRewardValue(e.target.value)} placeholder="e.g. 10%" /></div>
+                        </div>
+                        <div className="rounded-xl bg-muted/30 p-3 text-sm font-semibold text-foreground">
+                          {formatPromotionSummary({
+                            ruleType: prRuleType,
+                            triggerCount: parseInt(prTrigger) || 0,
+                            rewardDescription: prRewardDesc || "Free item",
+                            rewardType: prRewardType,
+                            rewardValue: prRewardValue,
+                          })}
                         </div>
                         <div className="flex gap-3">
                           <Button variant="outline" size="sm" onClick={() => setShowPromoForm(false)} className="flex-1">Cancel</Button>
