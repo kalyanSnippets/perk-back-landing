@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Star, MessageSquare } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import PublicPageFrame from "@/components/shared/PublicPageFrame";
+import { useEmbeddedPublicPage } from "@/hooks/useEmbeddedPublicPage";
 
 interface Testimonial {
   id: string;
@@ -18,6 +18,7 @@ interface Testimonial {
 const TestimonialsPage = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isEmbedded, backHref } = useEmbeddedPublicPage();
 
   useEffect(() => {
     const fetchTestimonials = async () => {
@@ -32,9 +33,8 @@ const TestimonialsPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 sm:pt-24 pb-16">
+    <PublicPageFrame isEmbedded={isEmbedded} backHref={backHref} title="Testimonials">
+      <div className={isEmbedded ? "pt-2" : ""}>
         <div className="container mx-auto px-4 max-w-5xl">
           <ScrollReveal>
             <div className="text-center mb-10">
@@ -96,9 +96,8 @@ const TestimonialsPage = () => {
             </div>
           )}
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicPageFrame>
   );
 };
 

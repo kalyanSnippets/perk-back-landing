@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { MessageSquare } from "lucide-react";
 import StarRating from "@/components/StarRating";
-import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
+import PublicPageFrame from "@/components/shared/PublicPageFrame";
+import { useEmbeddedPublicPage } from "@/hooks/useEmbeddedPublicPage";
 
 const ReviewPage = () => {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ const ReviewPage = () => {
   const [rating, setRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { isEmbedded, backHref } = useEmbeddedPublicPage();
 
   const handleSubmit = async () => {
     if (!message.trim()) { toast.error("Please write a review"); return; }
@@ -30,9 +32,8 @@ const ReviewPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <Header />
-      <div className="container mx-auto px-4 py-6 max-w-lg pt-20 sm:pt-24">
+    <PublicPageFrame isEmbedded={isEmbedded} backHref={backHref} title="Reviews">
+      <div className={`container mx-auto max-w-lg px-4 py-6 ${isEmbedded ? "pt-2" : "pt-20 sm:pt-24"}`}>
         <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card border border-border/50">
           {submitted ? (
             <div className="text-center py-8">
@@ -62,7 +63,7 @@ const ReviewPage = () => {
           )}
         </div>
       </div>
-    </div>
+    </PublicPageFrame>
   );
 };
 

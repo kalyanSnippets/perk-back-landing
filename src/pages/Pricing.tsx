@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Loader2 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import PublicPageFrame from "@/components/shared/PublicPageFrame";
+import { useEmbeddedPublicPage } from "@/hooks/useEmbeddedPublicPage";
 
 const plans = [
   {
@@ -67,6 +67,7 @@ const Pricing = () => {
   const { user, isMerchant } = useAuth();
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const { isEmbedded, backHref } = useEmbeddedPublicPage();
 
   const handlePlanClick = async (plan: string) => {
     if (plan === "free") {
@@ -103,9 +104,8 @@ const Pricing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 sm:pt-24 pb-16">
+    <PublicPageFrame isEmbedded={isEmbedded} backHref={backHref} title="Pricing">
+      <div className={isEmbedded ? "pt-2" : ""}>
         <div className="container mx-auto px-4 max-w-6xl">
           <ScrollReveal>
             <div className="text-center mb-12">
@@ -187,9 +187,8 @@ const Pricing = () => {
             ))}
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicPageFrame>
   );
 };
 
