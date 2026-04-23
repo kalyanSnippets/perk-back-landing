@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
-  ArrowRight, Copy, Share2, CheckCircle,
+  ArrowRight, Shield, Copy, Share2, CheckCircle,
   XCircle, Store, MapPin, LogOut, Megaphone,
   ChevronRight, Bell, Gift, Wallet,
 } from "lucide-react";
@@ -14,7 +14,6 @@ import ExploreTab from "@/components/customer/ExploreTab";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDeviceType } from "@/lib/deviceDetection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -555,75 +554,96 @@ const AccessCard = () => {
           {activeMainTab === "profile" ? (
             <>
               <ScrollReveal>
-                <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <User size={16} className="text-secondary" /> Profile
-                  </h3>
-                  <div className="space-y-2">
+                <div className="overflow-hidden rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-card">
+                  <div className="border-b border-primary-foreground/15 p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-background/15 text-lg font-bold">
+                        {customerInitials || "PB"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xl font-bold">{customer.full_name || "PerkBack Member"}</p>
+                        <p className="mt-1 text-sm text-primary-foreground/80">Member since {memberSinceLabel} · CRN {customer.crn || "—"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 p-5">
                     {[
-                      { label: "Full Name", value: customer.full_name || "—", icon: User },
-                      { label: "CRN", value: customer.crn || "—", icon: Hash },
-                      { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
+                      { label: "Points", value: displayPoints.toLocaleString("en-AU") },
+                      { label: "Cards", value: String(customerMerchants.length) },
+                      { label: "Visits", value: String(totalVisits) },
                     ].map((item) => (
-                      <div key={item.label} className="flex items-center justify-between gap-3 border-b border-border/20 py-2 last:border-0">
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><item.icon size={12} /> {item.label}</span>
-                        <span className="break-all text-right font-mono text-xs font-semibold text-foreground">{item.value}</span>
+                      <div key={item.label} className="space-y-1">
+                        <p className="text-2xl font-bold leading-none">{item.value}</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-primary-foreground/72">{item.label}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               </ScrollReveal>
 
-              <ScrollReveal delay={50}>
-                <div className="space-y-4 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
-                  <div className="space-y-1">
-                    <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                      <Shield size={16} className="text-muted-foreground" /> Account Settings
-                    </h3>
-                    <p className="text-xs text-muted-foreground">Manage your session and account controls from one place.</p>
-                  </div>
-                  <div className="grid gap-2">
+              <ScrollReveal delay={40}>
+                <div className="space-y-5">
+                  {profileInfoSections.map((section) => (
+                    <section key={section.title} className="space-y-2.5">
+                      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{section.title}</p>
+                      <div className="overflow-hidden rounded-[22px] border border-border/50 bg-card shadow-card">
+                        {section.items.map((item, index) => (
+                          <div key={item.label} className={`flex items-center gap-3 px-4 py-4 ${index !== section.items.length - 1 ? "border-b border-border/40" : ""}`}>
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                              <item.icon size={18} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                              {item.subvalue && <p className="truncate text-xs text-muted-foreground">{item.subvalue}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 pl-2">
+                              <span className="text-sm text-muted-foreground">{item.value}</span>
+                              <ChevronRight size={16} className="text-muted-foreground/80" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+
+                  <section className="space-y-2.5">
+                    <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Preferences</p>
+                    <div className="overflow-hidden rounded-[22px] border border-border/50 bg-card shadow-card">
+                      {[
+                        { label: "Notifications", icon: Bell, checked: notificationsEnabled, onCheckedChange: setNotificationsEnabled },
+                        { label: "Birthday perks", icon: Gift, checked: birthdayPerksEnabled, onCheckedChange: setBirthdayPerksEnabled },
+                      ].map((item, index) => (
+                        <div key={item.label} className={`flex items-center gap-3 px-4 py-4 ${index !== 1 ? "border-b border-border/40" : ""}`}>
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                            <item.icon size={18} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                          </div>
+                          <Switch checked={item.checked} onCheckedChange={item.onCheckedChange} />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="space-y-3 pt-2">
                     {isMerchant && (
-                      <Button variant="outline" size="sm" className="h-10 justify-start gap-2" asChild>
+                      <Button variant="outline" className="h-12 w-full justify-between rounded-2xl border-border/50 bg-card px-4" asChild>
                         <Link to="/merchant/dashboard">
-                          <Store size={14} /> Merchant Dashboard
+                          <span className="flex items-center gap-2"><Store size={16} /> Merchant Dashboard</span>
+                          <ChevronRight size={16} />
                         </Link>
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="h-10 justify-start gap-2" onClick={handleLogout}>
-                      <LogOut size={14} /> Log out
+                    <Button variant="ghost" className="h-12 w-full justify-between rounded-2xl border border-destructive/20 bg-card px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
+                      <span className="flex items-center gap-2"><XCircle size={16} /> Delete my account</span>
+                      <ChevronRight size={16} />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-10 justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
-                      <XCircle size={14} /> Delete my account
+                    <Button className="h-12 w-full justify-between rounded-2xl px-4" onClick={handleLogout}>
+                      <span className="flex items-center gap-2"><LogOut size={16} /> Log out</span>
+                      <ChevronRight size={16} />
                     </Button>
-                  </div>
-                </div>
-              </ScrollReveal>
-
-              <ScrollReveal delay={100}>
-                <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <Info size={16} className="text-muted-foreground" /> Pages
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: "About Us", href: "/about?web=1" },
-                      { label: "Pricing", href: "/pricing?web=1" },
-                      { label: "Testimonials", href: "/testimonials?web=1" },
-                      { label: "Reviews", href: "/reviews?web=1" },
-                      { label: "Blog", href: "/blog?web=1" },
-                      { label: "Contact", href: "/contact?web=1" },
-                      { label: "Privacy", href: "/privacy?web=1" },
-                    ].map((item) => (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
+                  </section>
                 </div>
               </ScrollReveal>
             </>
@@ -636,7 +656,6 @@ const AccessCard = () => {
                   loyaltyCardNumber={customer.loyalty_card_number}
                   issuedDate={issuedDate}
                   pointsBalance={customer.points_balance}
-                  onCopy={handleCopy}
                 />
               </ScrollReveal>
 
@@ -647,7 +666,7 @@ const AccessCard = () => {
                   )}
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")} disabled={!hasLoyaltyCardNumber}>
-                      <Copy size={13} /> Copy
+                      <Copy size={13} /> Copy card number
                     </Button>
                     <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={handleShare} disabled={!hasLoyaltyCardNumber}>
                       <Share2 size={13} /> Share
