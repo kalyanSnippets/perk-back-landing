@@ -64,7 +64,7 @@ const Blog = () => {
               {posts.map((post, i) => (
                 <ScrollReveal key={post.id} delay={i * 80}>
                   <Link
-                    to={`/blog/${post.slug}`}
+                    to={isEmbedded ? `/blog/${post.slug}?web=1` : `/blog/${post.slug}`}
                     className="group bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:-translate-y-1 hover:shadow-card-hover transition-all duration-300 flex flex-col h-full"
                   >
                     {post.featured_image_url && (
