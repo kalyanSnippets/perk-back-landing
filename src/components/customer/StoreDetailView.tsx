@@ -176,7 +176,22 @@ const StoreDetailView = ({
           <section className="rounded-[28px] border border-border/40 bg-card p-5 shadow-card">
             <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Join this store</p>
             <h3 className="mt-1 text-xl font-bold text-foreground">Unlock this merchant’s rewards and offers</h3>
-            <p className="mt-2 text-sm text-muted-foreground">Join this store to start earning points here and see your live progress on store-specific rewards.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Join this store to start earning points here, keep track of your visits, and unlock live reward progress in one place.</p>
+            <div className="mt-4 rounded-2xl border border-border/40 bg-muted/20 p-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">What opens after you join</p>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                {[
+                  { label: "Points", value: `${merchant.rewardCount}` },
+                  { label: "Offers", value: `${merchant.offerCount}` },
+                  { label: "Visits", value: "Live" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-2xl bg-background px-3 py-3">
+                    <p className="text-base font-bold text-foreground">{item.value}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
             <Button variant="hero" className="mt-4 w-full gap-2" onClick={() => onJoinStore?.(merchant.merchant_id)} disabled={isJoining}>
               {isJoining ? "Joining..." : `Join ${merchant.store_name}`}
             </Button>
