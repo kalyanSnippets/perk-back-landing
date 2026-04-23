@@ -10,6 +10,7 @@ interface LoyaltyCardFlipProps {
   crn: string | null;
   loyaltyCardNumber: string | null;
   issuedDate: string;
+  pointsBalance: number;
   onCopy: (label: string, value: string) => void;
 }
 
@@ -18,6 +19,7 @@ const LoyaltyCardFlip = ({
   crn,
   loyaltyCardNumber,
   issuedDate,
+  pointsBalance,
   onCopy,
 }: LoyaltyCardFlipProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -60,7 +62,7 @@ const LoyaltyCardFlip = ({
                 <div className="space-y-5 pt-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">Points balance</p>
-                    <p className="mt-2 text-[2rem] font-bold leading-none">Live rewards</p>
+                    <p className="mt-2 text-[2rem] font-bold leading-none">{pointsBalance.toLocaleString("en-AU")}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">Member</p>

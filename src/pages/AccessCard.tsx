@@ -587,6 +587,7 @@ const AccessCard = () => {
                   crn={customer.crn}
                   loyaltyCardNumber={customer.loyalty_card_number}
                   issuedDate={issuedDate}
+                  pointsBalance={customer.points_balance}
                   onCopy={handleCopy}
                 />
               </ScrollReveal>
