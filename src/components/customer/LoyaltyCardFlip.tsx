@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Calendar, Copy, CreditCard, Hash, Sparkles, User } from "lucide-react";
+import { Copy, Hash } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
@@ -23,6 +23,10 @@ const LoyaltyCardFlip = ({
   const [isFlipped, setIsFlipped] = useState(false);
 
   const cardHolderName = useMemo(() => fullName || "PerkBack Member", [fullName]);
+  const formattedCardNumber = useMemo(() => {
+    if (!loyaltyCardNumber) return "—";
+    return loyaltyCardNumber.replace(/(.{4})/g, "$1 ").trim();
+  }, [loyaltyCardNumber]);
 
   return (
     <div className="space-y-4">
@@ -33,90 +37,76 @@ const LoyaltyCardFlip = ({
         aria-label="Flip loyalty card"
       >
         <div
-          className="relative h-[240px] w-full transition-transform duration-700 ease-out"
+          className="relative aspect-[1.58/1] w-full max-w-[380px] mx-auto transition-transform duration-700 ease-out"
           style={{ transformStyle: "preserve-3d", transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
         >
           <div
-            className="absolute inset-0 overflow-hidden rounded-[30px] border border-border/20 bg-gradient-to-br from-primary via-secondary to-accent p-5 text-primary-foreground shadow-card-hover"
+            className="absolute inset-0 overflow-hidden rounded-[26px] border border-primary-foreground/15 bg-gradient-to-br from-primary via-secondary to-accent p-5 text-primary-foreground shadow-hero"
             style={{ backfaceVisibility: "hidden" }}
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--background)/0.18),transparent_38%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--background)/0.04),transparent_42%,hsl(var(--background)/0.14))]" />
-            <div className="absolute -right-8 top-6 h-32 w-32 rounded-full border border-primary-foreground/15" />
-            <div className="absolute -left-10 bottom-0 h-28 w-28 rounded-full border border-primary-foreground/10" />
-            <div className="absolute inset-x-6 top-6 h-px bg-primary-foreground/25" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--background)/0.16),transparent_34%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--background)/0.04),transparent_48%,hsl(var(--background)/0.12))]" />
+            <div className="absolute right-[-1.75rem] top-6 h-36 w-36 rounded-full border border-primary-foreground/18" />
+            <div className="absolute right-6 top-10 h-24 w-24 rounded-full border border-primary-foreground/12" />
+            <div className="absolute left-5 top-[4.6rem] h-11 w-16 rounded-2xl border border-primary-foreground/28 bg-background/18 backdrop-blur-sm" />
 
-            <div className="relative z-10 flex h-full flex-col justify-between">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-primary-foreground/70">PerkBack loyalty</p>
-                  <img src={perkbackLogo} alt="PerkBack" className="mt-1 h-7 w-auto brightness-0 invert" />
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-background/15 backdrop-blur-sm">
-                  <CreditCard size={18} className="text-primary-foreground" />
+            <div className="relative z-10 flex h-full flex-col justify-between text-left">
+              <div className="space-y-8">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/72">Digital loyalty</p>
+                  <img src={perkbackLogo} alt="PerkBack" className="h-7 w-auto brightness-0 invert" />
+              </div>
+
+                <div className="space-y-5 pt-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">Points balance</p>
+                    <p className="mt-2 text-[2rem] font-bold leading-none">Live rewards</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">Member</p>
+                    <p className="mt-2 text-[1.2rem] font-bold leading-none text-primary-foreground">{cardHolderName}</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-14 rounded-xl bg-background/80 shadow-inner" />
-                <div className="h-8 w-10 rounded-lg border border-primary-foreground/25 bg-background/20 backdrop-blur-sm" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-left">
-                <div className="col-span-2">
-                  <p className="flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-primary-foreground/70">
-                    <User size={10} /> Member
-                  </p>
-                  <p className="mt-1 text-[1.15rem] font-bold leading-none">{cardHolderName}</p>
-                </div>
-                <div>
-                  <p className="flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-primary-foreground/70">
-                    <Hash size={10} /> CRN
-                  </p>
-                  <p className="mt-1 font-mono text-sm font-semibold">{crn || "—"}</p>
-                </div>
-                <div>
-                  <p className="flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-primary-foreground/70">
-                    <Calendar size={10} /> Issued
-                  </p>
-                  <p className="mt-1 text-sm font-semibold">{issuedDate}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-primary-foreground/70">Card number</p>
-                  <p className="mt-1 font-mono text-base font-semibold tracking-[0.08em]">{loyaltyCardNumber || "—"}</p>
+              <div className="flex items-end justify-between gap-4">
+                <p className="text-[10px] text-primary-foreground/74">Tap card to see QR + barcode</p>
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/70">Card number</p>
+                  <p className="mt-1 font-mono text-[0.95rem] font-semibold tracking-[0.04em] text-primary-foreground">{formattedCardNumber}</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div
-            className="absolute inset-0 overflow-hidden rounded-[30px] border border-border/30 bg-card p-5 shadow-card-hover"
+            className="absolute inset-0 overflow-hidden rounded-[26px] border border-border/40 bg-card p-5 shadow-card"
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
-            <div className="flex h-full flex-col justify-between">
-              <div className="flex items-center justify-between gap-3">
+            <div className="flex h-full flex-col justify-between text-left">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Use at checkout</p>
-                  <h3 className="mt-1 text-lg font-bold text-foreground">Scan your loyalty ID</h3>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Scan at checkout</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">Use your QR or barcode at participating stores.</p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary/10">
-                  <Sparkles size={16} className="text-secondary" />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">Present this code or barcode to earn points in store.</p>
-                <div className="rounded-[22px] border border-border/40 bg-background p-3 shadow-sm">
-                  <Barcode value={loyaltyCardNumber || ""} height={58} className="block h-[102px] w-full" />
-                </div>
-                <div className="flex justify-center rounded-[22px] border border-border/40 bg-background p-3 shadow-sm">
-                  <QRCodeDisplay value={loyaltyCardNumber || ""} size={88} className="flex items-center justify-center" />
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">CRN</p>
+                  <p className="mt-1 font-mono text-sm font-semibold text-foreground">{crn || "—"}</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                <span>{issuedDate}</span>
-                <span className="font-medium text-foreground">{cardHolderName}</span>
+              <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-3 items-center">
+                <div className="flex h-[104px] w-[104px] items-center justify-center rounded-[20px] border border-border/50 bg-background text-foreground shadow-sm">
+                  <QRCodeDisplay value={loyaltyCardNumber || ""} size={84} className="flex h-[84px] w-[84px] items-center justify-center" />
+                </div>
+                <div className="flex min-h-[104px] items-center justify-center rounded-[20px] border border-border/50 bg-background px-3 py-2 text-foreground shadow-sm">
+                  <Barcode value={loyaltyCardNumber || ""} height={56} className="h-[90px] w-[188px]" />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                <span>Issued {issuedDate}</span>
+                <span>Tap card to flip back</span>
               </div>
             </div>
           </div>
