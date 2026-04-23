@@ -837,9 +837,6 @@ const AccessCard = () => {
                       <p className="text-5xl font-bold tabular-nums text-foreground sm:text-6xl">{displayPoints}</p>
                       <p className="mt-2 text-xs text-muted-foreground">Your combined balance across PerkBack stores.</p>
                     </div>
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent/12">
-                      <Star className="fill-accent text-accent" size={24} />
-                    </div>
                   </div>
                 </div>
               </ScrollReveal>
