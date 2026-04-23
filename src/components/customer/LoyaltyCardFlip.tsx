@@ -29,6 +29,7 @@ const LoyaltyCardFlip = ({
   onCopy,
 }: LoyaltyCardFlipProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  const hasScanCode = Boolean(loyaltyCardNumber);
 
   const cardHolderName = useMemo(() => fullName || "PerkBack Member", [fullName]);
   const formattedCardNumber = useMemo(() => {
@@ -55,7 +56,7 @@ const LoyaltyCardFlip = ({
         >
           <div
             className="absolute inset-0 overflow-hidden rounded-[22px] border border-primary-foreground/12 bg-gradient-to-br from-primary via-secondary to-primary-glow p-5 text-primary-foreground shadow-hero"
-            style={faceStyle}
+            style={{ ...faceStyle, zIndex: isFlipped ? 0 : 1, isolation: "isolate" }}
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--background)/0.14),transparent_28%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--background)/0.05),transparent_42%,hsl(var(--background)/0.1))]" />
@@ -106,9 +107,9 @@ const LoyaltyCardFlip = ({
 
           <div
             className="absolute inset-0 overflow-hidden rounded-[22px] border border-border/50 bg-card p-5 text-card-foreground shadow-card"
-            style={{ ...faceStyle, transform: "rotateY(180deg) translateZ(0)" }}
+            style={{ ...faceStyle, transform: "rotateY(180deg) translateZ(1px)", zIndex: isFlipped ? 1 : 0, isolation: "isolate" }}
           >
-            <div className="grid h-full grid-rows-[auto_1fr_auto] gap-4 text-left">
+            <div className="grid h-full grid-rows-[auto_minmax(0,1fr)_auto] gap-4 text-left [transform:translateZ(0)]">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Scan at checkout</p>
@@ -120,20 +121,25 @@ const LoyaltyCardFlip = ({
                 </div>
               </div>
 
-              <div className="grid min-h-0 grid-cols-[98px_minmax(0,1fr)] items-center gap-3">
+              <div className="grid min-h-[116px] grid-cols-[98px_minmax(0,1fr)] items-center gap-3 [transform:translateZ(0)]">
                 <QRCodeDisplay
                   value={loyaltyCardNumber || ""}
                   size={78}
                   className="self-center justify-self-start"
                 />
-                <div className="flex min-h-[106px] items-center justify-center rounded-[18px] border border-border/50 bg-background px-3 py-3 shadow-sm">
+                <div className="flex min-h-[106px] items-center justify-center overflow-hidden rounded-[18px] border border-border/50 bg-background px-3 py-3 shadow-sm [transform:translateZ(0)]">
                   <Barcode value={loyaltyCardNumber || ""} width={1.34} height={50} className="text-foreground" />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+              <div className="space-y-1">
+                {!hasScanCode && (
+                  <p className="text-[11px] text-muted-foreground">Your loyalty card is still loading. Please try again in a moment.</p>
+                )}
+                <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
                 <span>Issued {issuedDate}</span>
                 <span>Tap card to flip back</span>
+                </div>
               </div>
             </div>
           </div>
