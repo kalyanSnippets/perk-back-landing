@@ -556,45 +556,13 @@ const AccessCard = () => {
           ) : activeMainTab === "my-card" ? (
             <>
               <ScrollReveal>
-                <div className="relative overflow-hidden rounded-3xl shadow-card-hover">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-foreground/5 to-transparent" />
-                  <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-primary-foreground/10" />
-                  <div className="absolute -bottom-8 -left-8 h-36 w-36 rounded-full border border-primary-foreground/8" />
-                  <div className="relative z-10 p-5 pb-4 sm:p-6 sm:pb-5">
-                    <div className="mb-4 flex items-start justify-between sm:mb-5">
-                      <div>
-                        <p className="mb-0.5 text-[10px] uppercase tracking-[0.2em] text-primary-foreground/50">Digital Loyalty Card</p>
-                        <img src={perkbackLogo} alt="Perk Back" className="h-6 w-auto brightness-0 invert sm:h-7" />
-                      </div>
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/90 shadow-lg sm:h-10 sm:w-10">
-                        <Star className="text-accent-foreground" size={16} />
-                      </div>
-                    </div>
-                    <div className="mb-4 grid grid-cols-2 gap-x-3 gap-y-2.5 sm:mb-5 sm:gap-x-4 sm:gap-y-3">
-                      <div>
-                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><User size={10} /> Name</p>
-                        <p className="truncate text-xs font-semibold text-primary-foreground sm:text-sm">{customer.full_name || "—"}</p>
-                      </div>
-                      <div className="group cursor-pointer" onClick={() => handleCopy("CRN", customer.crn || "")}>
-                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><Hash size={10} /> CRN <Copy size={8} className="opacity-0 transition-opacity group-hover:opacity-100" /></p>
-                        <p className="font-mono text-xs font-semibold text-primary-foreground sm:text-sm">{customer.crn}</p>
-                      </div>
-                      <div className="group cursor-pointer" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
-                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><CreditCard size={10} /> Card No. <Copy size={8} className="opacity-0 transition-opacity group-hover:opacity-100" /></p>
-                        <p className="font-mono text-[11px] font-semibold tracking-wide text-primary-foreground sm:text-xs">{customer.loyalty_card_number}</p>
-                      </div>
-                      <div>
-                        <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary-foreground/40"><Calendar size={10} /> Issued</p>
-                        <p className="text-xs font-semibold text-primary-foreground sm:text-sm">{issuedDate}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl bg-primary-foreground p-3 sm:flex-row">
-                      <Barcode value={customer.loyalty_card_number || ""} height={55} />
-                      <QRCodeDisplay value={customer.loyalty_card_number || ""} size={80} />
-                    </div>
-                  </div>
-                </div>
+                <LoyaltyCardFlip
+                  fullName={customer.full_name}
+                  crn={customer.crn}
+                  loyaltyCardNumber={customer.loyalty_card_number}
+                  issuedDate={issuedDate}
+                  onCopy={handleCopy}
+                />
               </ScrollReveal>
 
               <ScrollReveal delay={50}>
@@ -611,7 +579,7 @@ const AccessCard = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-10 flex-1 gap-1.5 border-border/50 text-xs bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-[hsl(var(--foreground)/0.9)] hover:text-[hsl(var(--background))]"
+                      className="h-10 flex-1 gap-1.5 border-border/50 bg-foreground text-background hover:bg-foreground/90 hover:text-background text-xs"
                       onClick={handleAddToAppleWallet}
                       disabled={walletLoading === "apple"}
                     >
@@ -766,7 +734,7 @@ const AccessCard = () => {
                               <div className="min-w-0">
                                 {reward.description && <p className="line-clamp-2 text-xs text-muted-foreground">{reward.description}</p>}
                                 <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                                  <span className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">{reward.reward_type}</span>
+                                   <span className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">{getRewardTypeLabel(reward.reward_type)}</span>
                                   {reward.merchant?.isJoined ? (
                                     <span className="rounded-full bg-accent/10 px-2.5 py-1 font-semibold text-accent-foreground">Joined store</span>
                                   ) : (
