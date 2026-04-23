@@ -48,7 +48,7 @@ export const linkCustomerToMerchant = async (options: JoinMerchantOptions) => {
     };
   }
 
-  const payload = response.data as JoinMerchantPayload | null;
+  const payload = response.data as unknown as JoinMerchantPayload | null;
 
   if (!payload?.success) {
     return {
