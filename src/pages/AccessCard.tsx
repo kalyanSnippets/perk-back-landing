@@ -830,10 +830,10 @@ const AccessCard = () => {
           ) : (
             <div className="space-y-4">
               <ScrollReveal>
-                <div className={`${dashboardSectionShell} p-5 sm:p-6`}>
+                <div className={`${dashboardSectionShell} p-5 text-center sm:p-6`}>
                   <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Total Points</p>
-                  <div className="mt-3 flex items-end justify-between gap-4">
-                    <div className={`transition-all duration-700 ${pointsVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}>
+                  <div className="mt-3 flex flex-col items-center justify-center gap-4">
+                    <div className={`flex flex-col items-center transition-all duration-700 ${pointsVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}>
                       <p className="text-5xl font-bold tabular-nums text-foreground sm:text-6xl">{displayPoints}</p>
                       <p className="mt-2 text-xs text-muted-foreground">Your combined balance across PerkBack stores.</p>
                     </div>
