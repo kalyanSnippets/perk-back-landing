@@ -6,7 +6,7 @@ interface QRCodeDisplayProps {
   className?: string;
 }
 
-const QRCodeDisplay = ({ value, size = 120, className }: QRCodeDisplayProps) => {
+const QRCodeDisplay = ({ value, size = 112, className }: QRCodeDisplayProps) => {
   if (!value) return null;
 
   return (
@@ -15,9 +15,10 @@ const QRCodeDisplay = ({ value, size = 120, className }: QRCodeDisplayProps) => 
         value={value}
         size={size}
         level="M"
-        bgColor="#FFFFFF"
-        fgColor="#000000"
+        bgColor="transparent"
+        fgColor="currentColor"
         includeMargin={false}
+        style={{ display: "block", height: size, width: size, shapeRendering: "crispEdges" }}
       />
     </div>
   );
