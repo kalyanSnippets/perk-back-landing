@@ -5,20 +5,23 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
-  ArrowRight, Shield, Copy, Share2,
-  CheckCircle, XCircle, Info, Store, MapPin, LogOut, Megaphone,
+  ArrowRight, Copy, Share2, CheckCircle,
+  XCircle, Store, MapPin, LogOut, Megaphone,
+  ChevronRight, Bell, Gift, Wallet,
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDeviceType } from "@/lib/deviceDetection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { getIndustryImage } from "@/lib/industryImages";
 import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
@@ -27,7 +30,7 @@ import LoyaltyCardFlip from "@/components/customer/LoyaltyCardFlip";
 import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 import { linkCustomerToMerchant } from "@/lib/customerMerchantJoin";
 
-interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
+interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; date_of_birth?: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
 interface MerchantDirectoryData { merchant_id: string; store_name: string; logo_url: string | null; industry_type: string | null; address: string | null; latitude: number | null; longitude: number | null; profile_image_url: string | null; }
 interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
@@ -44,6 +47,7 @@ const getDirectionsUrl = (address?: string | null) => address ? `https://www.goo
 const AccessCard = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [customerMerchants, setCustomerMerchants] = useState<CustomerMerchantData[]>([]);
   const [merchantDirectory, setMerchantDirectory] = useState<MerchantDirectoryData[]>([]);
   const [activeStoreViewMerchantId, setActiveStoreViewMerchantId] = useState<string | null>(null);
@@ -64,6 +68,8 @@ const AccessCard = () => {
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [joiningMerchantId, setJoiningMerchantId] = useState<string | null>(null);
   const [joinedMerchantOverrides, setJoinedMerchantOverrides] = useState<Record<string, true>>({});
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [birthdayPerksEnabled, setBirthdayPerksEnabled] = useState(true);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
@@ -91,6 +97,7 @@ const AccessCard = () => {
     setActiveStoreViewMerchantId(merchantId);
     setActiveStoreViewSource(source);
     setActiveMainTab(source);
+    window.scrollTo({ top: 0, behavior: "auto" });
     trackStoreSwitcherEvent("customer_store_selected", merchant?.store_name, merchantId, source);
   }, [customerMerchants, merchantDirectory, trackStoreSwitcherEvent]);
 
@@ -101,6 +108,7 @@ const AccessCard = () => {
 
     setActiveStoreViewMerchantId(null);
     setActiveMainTab(activeStoreViewSource);
+    window.scrollTo({ top: 0, behavior: "auto" });
     trackStoreSwitcherEvent("customer_store_cleared", merchant?.store_name, merchant?.merchant_id, activeStoreViewSource);
   }, [activeStoreViewMerchantId, activeStoreViewSource, customerMerchants, merchantDirectory, trackStoreSwitcherEvent]);
 
@@ -172,6 +180,7 @@ const AccessCard = () => {
   const fetchData = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) { navigate("/get-started"); return; }
+    setUserEmail(authUser.email ?? null);
     const { data: customerData, error } = await supabase.from("customers").select("*").eq("user_id", authUser.id).maybeSingle();
     if (error || !customerData) { navigate("/get-started"); return; }
     if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
@@ -434,6 +443,27 @@ const AccessCard = () => {
 
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
+  const memberSinceLabel = customer.card_issued_at
+    ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { month: "short", year: "numeric" })
+    : "Recently";
+  const formattedDob = customer.date_of_birth
+    ? new Date(customer.date_of_birth).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    : "Not set";
+  const customerInitials = (customer.full_name || "PerkBack Member")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  const totalVisits = customerMerchants.reduce((sum, merchant) => sum + merchant.visit_count, 0);
+  const savedAddressesCount = customerMerchants.filter((merchant) => merchant.address).length;
+  const linkedWalletsLabel = deviceType === "desktop"
+    ? "Apple · Google"
+    : deviceType === "ios"
+      ? "Apple Wallet"
+      : deviceType === "android"
+        ? "Google Wallet"
+        : "Available";
   const displayPoints = customer.points_balance;
   const hasLoyaltyCardNumber = Boolean(customer.loyalty_card_number);
 
