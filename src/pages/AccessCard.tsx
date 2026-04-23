@@ -466,6 +466,23 @@ const AccessCard = () => {
         : "Available";
   const displayPoints = customer.points_balance;
   const hasLoyaltyCardNumber = Boolean(customer.loyalty_card_number);
+  const profileInfoSections = [
+    {
+      title: "Personal details",
+      items: [
+        { label: "Name & email", value: customer.full_name || userEmail || "—", subvalue: userEmail || "", icon: User },
+        { label: "Date of birth", value: formattedDob, icon: Calendar },
+        { label: "Saved addresses", value: String(savedAddressesCount), subvalue: savedAddressesCount === 1 ? "store saved" : "stores saved", icon: MapPin },
+      ],
+    },
+    {
+      title: "Wallet & payments",
+      items: [
+        { label: "Linked wallets", value: linkedWalletsLabel, icon: Wallet },
+        { label: "Gift cards", value: "0", subvalue: "active", icon: Gift },
+      ],
+    },
+  ];
 
   const rewardMerchant = selectedReward
     ? allMerchantCards.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
