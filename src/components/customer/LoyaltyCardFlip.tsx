@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState } from "react";
 import { Copy, Hash } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
@@ -13,12 +13,6 @@ interface LoyaltyCardFlipProps {
   pointsBalance: number;
   onCopy: (label: string, value: string) => void;
 }
-
-const faceStyle: CSSProperties = {
-  backfaceVisibility: "hidden",
-  WebkitBackfaceVisibility: "hidden",
-  transform: "translateZ(0)",
-};
 
 const LoyaltyCardFlip = ({
   fullName,
@@ -42,21 +36,17 @@ const LoyaltyCardFlip = ({
       <button
         type="button"
         onClick={() => setIsFlipped((current) => !current)}
-        className="group block w-full [perspective:2200px]"
+        className="group block w-full"
         aria-label="Flip loyalty card"
       >
         <div
-          className="relative mx-auto aspect-[1.64/1] w-full max-w-[392px] isolate transition-transform duration-500 ease-out [transform-style:preserve-3d]"
-          style={{
-            transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-            transformStyle: "preserve-3d",
-            WebkitTransformStyle: "preserve-3d",
-            willChange: "transform",
-          }}
+          className="relative mx-auto aspect-[1.64/1] w-full max-w-[392px] isolate"
         >
           <div
-            className="absolute inset-0 overflow-hidden rounded-[22px] border border-primary-foreground/12 bg-gradient-to-br from-primary via-secondary to-primary-glow p-5 text-primary-foreground shadow-hero"
-            style={{ ...faceStyle, zIndex: isFlipped ? 0 : 1, isolation: "isolate" }}
+            className={`absolute inset-0 overflow-hidden rounded-[22px] border border-primary-foreground/12 bg-gradient-to-br from-primary via-secondary to-primary-glow p-5 text-primary-foreground shadow-hero transition-all duration-300 ease-out ${
+              isFlipped ? "pointer-events-none opacity-0 scale-[0.985]" : "opacity-100 scale-100"
+            }`}
+            aria-hidden={isFlipped}
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--background)/0.14),transparent_28%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--background)/0.05),transparent_42%,hsl(var(--background)/0.1))]" />
@@ -106,14 +96,15 @@ const LoyaltyCardFlip = ({
           </div>
 
           <div
-            className="absolute inset-0 overflow-hidden rounded-[22px] border border-border/50 bg-card p-5 text-card-foreground shadow-card"
-            style={{ ...faceStyle, transform: "rotateY(180deg) translateZ(1px)", zIndex: isFlipped ? 1 : 0, isolation: "isolate" }}
+            className={`absolute inset-0 overflow-hidden rounded-[22px] border border-border/50 bg-card p-5 text-card-foreground shadow-card transition-all duration-300 ease-out ${
+              isFlipped ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-[0.985]"
+            }`}
+            aria-hidden={!isFlipped}
           >
-            <div className="grid h-full grid-rows-[auto_minmax(0,1fr)_auto] gap-4 text-left [transform:translateZ(0)]">
+            <div className="grid h-full grid-rows-[auto_minmax(0,1fr)_auto] gap-4 text-left">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Scan at checkout</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">Present either code at participating stores.</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">CRN</p>
@@ -121,13 +112,13 @@ const LoyaltyCardFlip = ({
                 </div>
               </div>
 
-              <div className="grid min-h-[116px] grid-cols-[98px_minmax(0,1fr)] items-center gap-3 [transform:translateZ(0)]">
+              <div className="grid min-h-[116px] grid-cols-[98px_minmax(0,1fr)] items-center gap-3">
                 <QRCodeDisplay
                   value={loyaltyCardNumber || ""}
                   size={78}
                   className="self-center justify-self-start"
                 />
-                <div className="flex min-h-[106px] items-center justify-center overflow-hidden rounded-[18px] border border-border/50 bg-background px-3 py-3 shadow-sm [transform:translateZ(0)]">
+                <div className="flex min-h-[106px] items-center justify-center overflow-hidden rounded-[18px] border border-border/50 bg-background px-3 py-3 shadow-sm">
                   <Barcode value={loyaltyCardNumber || ""} width={1.34} height={50} className="text-foreground" />
                 </div>
               </div>
@@ -137,8 +128,8 @@ const LoyaltyCardFlip = ({
                   <p className="text-[11px] text-muted-foreground">Your loyalty card is still loading. Please try again in a moment.</p>
                 )}
                 <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
-                <span>Issued {issuedDate}</span>
-                <span>Tap card to flip back</span>
+                  <span>Issued {issuedDate}</span>
+                  <span>Tap card to flip back</span>
                 </div>
               </div>
             </div>
