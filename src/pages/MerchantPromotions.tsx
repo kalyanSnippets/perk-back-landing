@@ -11,6 +11,13 @@ import BackToDashboard from "@/components/merchant/BackToDashboard";
 import LockedFeature from "@/components/merchant/LockedFeature";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useMerchantSubscription } from "@/hooks/useMerchantSubscription";
+import {
+  PROMOTION_REWARD_OPTIONS,
+  PROMOTION_RULE_OPTIONS,
+  formatPromotionReward,
+  formatPromotionSummary,
+  getRewardTypeLabel,
+} from "@/lib/rewardFormatting";
 
 interface PromotionRule {
   id: string;
@@ -22,17 +29,12 @@ interface PromotionRule {
   active: boolean;
 }
 
-const RULE_TYPES = [
-  { value: "visit_x_get_y", label: "Visit X times", icon: Footprints },
-  { value: "buy_x_get_y", label: "Buy X items", icon: ShoppingBag },
-  { value: "spend_x_get_y", label: "Spend $X", icon: DollarSign },
-];
+const RULE_TYPES = PROMOTION_RULE_OPTIONS.map((option) => ({
+  ...option,
+  icon: option.value === "visit_x_get_y" ? Footprints : option.value === "buy_x_get_y" ? ShoppingBag : DollarSign,
+}));
 
-const REWARD_TYPES = [
-  { value: "free_item", label: "Free Item" },
-  { value: "discount_percent", label: "Discount %" },
-  { value: "bonus_points", label: "Bonus Points" },
-];
+const REWARD_TYPES = PROMOTION_REWARD_OPTIONS;
 
 const MerchantPromotions = () => {
   const navigate = useNavigate();
@@ -113,8 +115,13 @@ const MerchantPromotions = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm animate-pulse">Loading...</p></div>;
   }
 
-  const ruleTypeLabel = (type: string) => RULE_TYPES.find(r => r.value === type)?.label || type;
-  const rewardTypeLabel = (type: string) => REWARD_TYPES.find(r => r.value === type)?.label || type;
+  const previewSummary = formatPromotionSummary({
+    ruleType,
+    triggerCount: parseInt(triggerCount) || 0,
+    rewardDescription: rewardDesc || "Free item",
+    rewardType,
+    rewardValue,
+  });
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -196,11 +203,7 @@ const MerchantPromotions = () => {
                   {/* Preview */}
                   <div className="bg-muted/40 rounded-xl p-3 text-center">
                     <p className="text-xs text-muted-foreground">Preview</p>
-                    <p className="text-sm font-semibold text-foreground mt-1">
-                      {ruleType === "spend_x_get_y"
-                        ? `Spend $${triggerCount} → ${rewardDesc}`
-                        : `${ruleTypeLabel(ruleType).replace("X", triggerCount)} → ${rewardDesc}`}
-                    </p>
+                      <p className="text-sm font-semibold text-foreground mt-1">{previewSummary}</p>
                   </div>
 
                   <div className="flex gap-3">
@@ -233,8 +236,9 @@ const MerchantPromotions = () => {
                         <span className="text-primary">{rule.reward_description}</span>
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {rewardTypeLabel(rule.reward_type)}
-                        {rule.reward_value ? ` • ${rule.reward_value}` : ""}
+                        {getRewardTypeLabel(rule.reward_type)}
+                        {" • "}
+                        {formatPromotionReward(rule.reward_type, rule.reward_description, rule.reward_value)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
