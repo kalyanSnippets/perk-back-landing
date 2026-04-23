@@ -1,94 +1,91 @@
 
-Remove the back-face text overlay issue and tighten the loyalty card layout so it matches the reference more closely on mobile.
+Check the loyalty card back as a combined rendering + data issue and fix the parts most likely preventing the QR/barcode from appearing.
+
+### What I found from the current code
+
+The back of the card depends entirely on `customer.loyalty_card_number` being present:
+
+- `LoyaltyCardFlip.tsx` passes `loyaltyCardNumber || ""` into both:
+  - `QRCodeDisplay`
+  - `Barcode`
+- `QRCodeDisplay.tsx` returns `null` if the value is empty
+- `Barcode.tsx` clears the SVG if the value is empty
+
+So if the card number is missing at render time, both scan areas become blank.
+
+There is also a second likely issue on mobile:
+- the QR and barcode are rendered inside a 3D-flipped card face
+- SVGs inside transformed/rotated containers can fail to paint reliably on mobile browsers
+- the current barcode sizing logic uses `getBBox()` and then mixes fixed native dimensions with `maxWidth: 100%`, which can create unstable rendering or clipping inside the constrained scan panel
 
 ### What I’ll fix
 
-### 1. Remove the floating chip/accent from the front
-Update `src/components/customer/LoyaltyCardFlip.tsx` to delete the decorative chip block entirely.
+### 1. Verify and harden the card-data path
+Update the Access Card flow so the back never silently renders blank.
+
+What I’ll check and fix:
+- confirm `customer.loyalty_card_number` is populated before the card is shown
+- add a safe fallback UI on the back face if the card number is temporarily unavailable
+- avoid passing an empty string into QR/barcode components without a visible state
+- keep the existing redirect behavior if a customer truly has no loyalty card
 
 Result:
-- cleaner digital-card look
-- less visual clutter between the logo and balance section
-- more space to align the front content properly
+- if data is missing, the UI will clearly say so instead of showing an empty scan area
+- if data exists, the back will always attempt to render both codes
 
-### 2. Rebuild the front with stricter alignment
-The current front uses decorative layers plus loose spacing, which is causing alignment issues and text crowding.
+### 2. Rework QR rendering so it paints reliably inside the card back
+Update `src/components/QRCodeDisplay.tsx`.
 
 What I’ll change:
-- use a clearer vertical content grid:
-  - eyebrow
-  - logo
-  - points block
-  - member block
-  - card number anchored bottom-right
-- add safer inner padding so text never pushes into the curved edges
-- reduce the size/opacity of the decorative circles and move them farther off-canvas
-- constrain long member names so they wrap or truncate cleanly without breaking the card
+- keep a fixed square tile, but simplify the wrapper so it doesn’t depend on flex/stretch behavior
+- give the QR tile an explicit foreground color instead of relying on inherited `currentColor`
+- keep the QR on a solid white surface with stable width/height
+- make the component render a clear fallback state if `value` is missing
 
 Result:
-- no text collision
-- cleaner hierarchy
-- front closer to the uploaded reference
+- QR should render consistently on the flipped back face
+- no invisible QR caused by inheritance or layout collapse
 
-### 3. Remove overlay text on the back of the card
-The back currently shows unwanted text bleed/overlay during the flip.
+### 3. Rework barcode rendering to avoid disappearing/clipped SVG output
+Update `src/components/Barcode.tsx`.
 
-What I’ll change in `src/components/customer/LoyaltyCardFlip.tsx`:
-- strengthen the front/back face isolation during the 3D flip
-- ensure each face has its own clean stacking context
-- prevent hidden face text from visually leaking through on mobile
-- simplify the back so only intentional back-side content is present
+What I’ll change:
+- stop relying on the current `getBBox()` + native-width + `maxWidth: 100%` combination
+- render the barcode with explicit, stable dimensions that match the back layout
+- keep the barcode inside a fixed-width panel so the browser does not over-compress or clip it
+- use a deterministic SVG sizing strategy that is safer inside transformed containers
+- add a visible fallback state if the value is empty or generation fails
 
 Result:
-- no mirrored or overlapping text behind the barcode/QR area
-- cleaner flip animation
-- back face reads as one stable surface
+- barcode will no longer disappear because of unstable SVG sizing math
+- the scan block will be more reliable on mobile
 
-### 4. Rebuild the back using the approved horizontal layout
-The back needs to look like the reference instead of a stacked info panel.
+### 4. Stabilize the flipped back face for SVG content
+Update `src/components/customer/LoyaltyCardFlip.tsx`.
 
-New structure:
+What I’ll change:
+- keep the back face isolated so hidden front-face content cannot interfere
+- simplify the back-face layout around the scan row
+- ensure the QR tile and barcode panel sit in a dedicated middle zone with enough height
+- reduce the risk of SVG paint issues inside the 3D flip by tightening the transform/stacking structure
+
+Result:
+- the back face will behave like one stable surface
+- QR and barcode will have a protected area to render in
+
+### 5. Add a proper “scan unavailable” state instead of blank areas
+If the card number is unavailable or rendering fails, I’ll show a lightweight fallback message in the scan section.
+
+Example behavior:
 ```text
-SCAN AT CHECKOUT         CRN 48123
-
-[ QR ]   [ Barcode ]
-
-Issued 14 Mar 2026 · Tap card to flip back
+QR unavailable
+Barcode unavailable
+Your loyalty card is still loading. Please try again in a moment.
 ```
 
-What I’ll change:
-- move CRN to the top-right
-- place QR on the left in a fixed square tile
-- place barcode on the right in a wider fixed panel
-- remove extra helper wording that makes the back feel crowded
-- keep only one footer line
-
 Result:
-- cleaner composition
-- proper scan layout
-- back side feels like a real loyalty card
-
-### 5. Make QR and barcode render sharply without distortion
-Update `src/components/Barcode.tsx` and `src/components/QRCodeDisplay.tsx`.
-
-What I’ll fix:
-- stop any layout-driven stretching that softens the scan surfaces
-- use explicit native dimensions for both barcode and QR
-- keep them inside fixed white panels
-- preserve crisp edges and readable scan output on high-DPR mobile screens
-
-Result:
-- barcode and QR appear sharp
-- no fuzzy scaling
-- better visual balance between the two scan elements
-
-### 6. Lightly simplify the Card tab around the card
-Update the card section in `src/pages/AccessCard.tsx` so the card remains the main focus.
-
-What I’ll do:
-- keep actions below the card
-- reduce surrounding visual competition if needed
-- preserve existing copy/share functionality
+- no more silent blank back face
+- easier to distinguish data issues from rendering issues
 
 ### Files to update
 - `src/components/customer/LoyaltyCardFlip.tsx`
@@ -98,9 +95,7 @@ What I’ll do:
 
 ### Expected result
 After this pass:
-- the chip/accent will be removed
-- front-side details will align properly
-- decorative circles will stop interfering with content
-- back-side overlay text will be removed
-- QR and barcode will display properly in a clean side-by-side layout
-- the overall card will feel more premium and closer to the provided design reference
+- the back of the card will display the QR and barcode reliably when a loyalty card number exists
+- the scan surfaces will be dimensionally stable and sharper on mobile
+- blank scan areas will be replaced with clear fallback messaging if data is missing
+- the back face will feel more robust and less fragile inside the flip animation
