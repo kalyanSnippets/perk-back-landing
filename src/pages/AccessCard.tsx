@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Star, Calendar, Hash, User, CreditCard,
-  ArrowRight, Shield, Copy, Share2,
-  CheckCircle, XCircle, Info, Store, MapPin, LogOut, Megaphone,
+  ArrowRight, Shield, Copy, Share2, CheckCircle,
+  XCircle, Store, MapPin, LogOut, Megaphone,
+  ChevronRight, Bell, Gift, Wallet,
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
@@ -19,6 +20,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { getIndustryImage } from "@/lib/industryImages";
 import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
@@ -27,7 +29,7 @@ import LoyaltyCardFlip from "@/components/customer/LoyaltyCardFlip";
 import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 import { linkCustomerToMerchant } from "@/lib/customerMerchantJoin";
 
-interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
+interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; date_of_birth?: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
 interface MerchantDirectoryData { merchant_id: string; store_name: string; logo_url: string | null; industry_type: string | null; address: string | null; latitude: number | null; longitude: number | null; profile_image_url: string | null; }
 interface TransactionData { id: string; merchant_name: string; merchant_id: string | null; purchase_amount: number; points_awarded: number; transaction_date: string; }
@@ -44,6 +46,7 @@ const getDirectionsUrl = (address?: string | null) => address ? `https://www.goo
 const AccessCard = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [customerMerchants, setCustomerMerchants] = useState<CustomerMerchantData[]>([]);
   const [merchantDirectory, setMerchantDirectory] = useState<MerchantDirectoryData[]>([]);
   const [activeStoreViewMerchantId, setActiveStoreViewMerchantId] = useState<string | null>(null);
@@ -64,6 +67,8 @@ const AccessCard = () => {
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [joiningMerchantId, setJoiningMerchantId] = useState<string | null>(null);
   const [joinedMerchantOverrides, setJoinedMerchantOverrides] = useState<Record<string, true>>({});
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [birthdayPerksEnabled, setBirthdayPerksEnabled] = useState(true);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
@@ -91,6 +96,7 @@ const AccessCard = () => {
     setActiveStoreViewMerchantId(merchantId);
     setActiveStoreViewSource(source);
     setActiveMainTab(source);
+    window.scrollTo({ top: 0, behavior: "auto" });
     trackStoreSwitcherEvent("customer_store_selected", merchant?.store_name, merchantId, source);
   }, [customerMerchants, merchantDirectory, trackStoreSwitcherEvent]);
 
@@ -101,6 +107,7 @@ const AccessCard = () => {
 
     setActiveStoreViewMerchantId(null);
     setActiveMainTab(activeStoreViewSource);
+    window.scrollTo({ top: 0, behavior: "auto" });
     trackStoreSwitcherEvent("customer_store_cleared", merchant?.store_name, merchant?.merchant_id, activeStoreViewSource);
   }, [activeStoreViewMerchantId, activeStoreViewSource, customerMerchants, merchantDirectory, trackStoreSwitcherEvent]);
 
@@ -172,6 +179,7 @@ const AccessCard = () => {
   const fetchData = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) { navigate("/get-started"); return; }
+    setUserEmail(authUser.email ?? null);
     const { data: customerData, error } = await supabase.from("customers").select("*").eq("user_id", authUser.id).maybeSingle();
     if (error || !customerData) { navigate("/get-started"); return; }
     if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
@@ -434,8 +442,46 @@ const AccessCard = () => {
 
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
+  const memberSinceLabel = customer.card_issued_at
+    ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { month: "short", year: "numeric" })
+    : "Recently";
+  const formattedDob = customer.date_of_birth
+    ? new Date(customer.date_of_birth).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    : "Not set";
+  const customerInitials = (customer.full_name || "PerkBack Member")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  const totalVisits = customerMerchants.reduce((sum, merchant) => sum + merchant.visit_count, 0);
+  const savedAddressesCount = customerMerchants.filter((merchant) => merchant.address).length;
+  const linkedWalletsLabel = deviceType === "desktop"
+    ? "Apple · Google"
+    : deviceType === "ios"
+      ? "Apple Wallet"
+      : deviceType === "android"
+        ? "Google Wallet"
+        : "Available";
   const displayPoints = customer.points_balance;
   const hasLoyaltyCardNumber = Boolean(customer.loyalty_card_number);
+  const profileInfoSections = [
+    {
+      title: "Personal details",
+      items: [
+        { label: "Name & email", value: customer.full_name || userEmail || "—", subvalue: userEmail || "", icon: User },
+        { label: "Date of birth", value: formattedDob, icon: Calendar },
+        { label: "Saved addresses", value: String(savedAddressesCount), subvalue: savedAddressesCount === 1 ? "store saved" : "stores saved", icon: MapPin },
+      ],
+    },
+    {
+      title: "Wallet & payments",
+      items: [
+        { label: "Linked wallets", value: linkedWalletsLabel, icon: Wallet },
+        { label: "Gift cards", value: "0", subvalue: "active", icon: Gift },
+      ],
+    },
+  ];
 
   const rewardMerchant = selectedReward
     ? allMerchantCards.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
@@ -508,75 +554,96 @@ const AccessCard = () => {
           {activeMainTab === "profile" ? (
             <>
               <ScrollReveal>
-                <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <User size={16} className="text-secondary" /> Profile
-                  </h3>
-                  <div className="space-y-2">
+                <div className="overflow-hidden rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-card">
+                  <div className="border-b border-primary-foreground/15 p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-background/15 text-lg font-bold">
+                        {customerInitials || "PB"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xl font-bold">{customer.full_name || "PerkBack Member"}</p>
+                        <p className="mt-1 text-sm text-primary-foreground/80">Member since {memberSinceLabel} · CRN {customer.crn || "—"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 p-5">
                     {[
-                      { label: "Full Name", value: customer.full_name || "—", icon: User },
-                      { label: "CRN", value: customer.crn || "—", icon: Hash },
-                      { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
+                      { label: "Points", value: displayPoints.toLocaleString("en-AU") },
+                      { label: "Cards", value: String(customerMerchants.length) },
+                      { label: "Visits", value: String(totalVisits) },
                     ].map((item) => (
-                      <div key={item.label} className="flex items-center justify-between gap-3 border-b border-border/20 py-2 last:border-0">
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><item.icon size={12} /> {item.label}</span>
-                        <span className="break-all text-right font-mono text-xs font-semibold text-foreground">{item.value}</span>
+                      <div key={item.label} className="space-y-1">
+                        <p className="text-2xl font-bold leading-none">{item.value}</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-primary-foreground/72">{item.label}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               </ScrollReveal>
 
-              <ScrollReveal delay={50}>
-                <div className="space-y-4 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
-                  <div className="space-y-1">
-                    <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                      <Shield size={16} className="text-muted-foreground" /> Account Settings
-                    </h3>
-                    <p className="text-xs text-muted-foreground">Manage your session and account controls from one place.</p>
-                  </div>
-                  <div className="grid gap-2">
+              <ScrollReveal delay={40}>
+                <div className="space-y-5">
+                  {profileInfoSections.map((section) => (
+                    <section key={section.title} className="space-y-2.5">
+                      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{section.title}</p>
+                      <div className="overflow-hidden rounded-[22px] border border-border/50 bg-card shadow-card">
+                        {section.items.map((item, index) => (
+                          <div key={item.label} className={`flex items-center gap-3 px-4 py-4 ${index !== section.items.length - 1 ? "border-b border-border/40" : ""}`}>
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                              <item.icon size={18} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                              {item.subvalue && <p className="truncate text-xs text-muted-foreground">{item.subvalue}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 pl-2">
+                              <span className="text-sm text-muted-foreground">{item.value}</span>
+                              <ChevronRight size={16} className="text-muted-foreground/80" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+
+                  <section className="space-y-2.5">
+                    <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Preferences</p>
+                    <div className="overflow-hidden rounded-[22px] border border-border/50 bg-card shadow-card">
+                      {[
+                        { label: "Notifications", icon: Bell, checked: notificationsEnabled, onCheckedChange: setNotificationsEnabled },
+                        { label: "Birthday perks", icon: Gift, checked: birthdayPerksEnabled, onCheckedChange: setBirthdayPerksEnabled },
+                      ].map((item, index) => (
+                        <div key={item.label} className={`flex items-center gap-3 px-4 py-4 ${index !== 1 ? "border-b border-border/40" : ""}`}>
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                            <item.icon size={18} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                          </div>
+                          <Switch checked={item.checked} onCheckedChange={item.onCheckedChange} />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="space-y-3 pt-2">
                     {isMerchant && (
-                      <Button variant="outline" size="sm" className="h-10 justify-start gap-2" asChild>
+                      <Button variant="outline" className="h-12 w-full justify-between rounded-2xl border-border/50 bg-card px-4" asChild>
                         <Link to="/merchant/dashboard">
-                          <Store size={14} /> Merchant Dashboard
+                          <span className="flex items-center gap-2"><Store size={16} /> Merchant Dashboard</span>
+                          <ChevronRight size={16} />
                         </Link>
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="h-10 justify-start gap-2" onClick={handleLogout}>
-                      <LogOut size={14} /> Log out
+                    <Button variant="ghost" className="h-12 w-full justify-between rounded-2xl border border-destructive/20 bg-card px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
+                      <span className="flex items-center gap-2"><XCircle size={16} /> Delete my account</span>
+                      <ChevronRight size={16} />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-10 justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
-                      <XCircle size={14} /> Delete my account
+                    <Button className="h-12 w-full justify-between rounded-2xl px-4" onClick={handleLogout}>
+                      <span className="flex items-center gap-2"><LogOut size={16} /> Log out</span>
+                      <ChevronRight size={16} />
                     </Button>
-                  </div>
-                </div>
-              </ScrollReveal>
-
-              <ScrollReveal delay={100}>
-                <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-5 shadow-card">
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <Info size={16} className="text-muted-foreground" /> Pages
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: "About Us", href: "/about?web=1" },
-                      { label: "Pricing", href: "/pricing?web=1" },
-                      { label: "Testimonials", href: "/testimonials?web=1" },
-                      { label: "Reviews", href: "/reviews?web=1" },
-                      { label: "Blog", href: "/blog?web=1" },
-                      { label: "Contact", href: "/contact?web=1" },
-                      { label: "Privacy", href: "/privacy?web=1" },
-                    ].map((item) => (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/50"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
+                  </section>
                 </div>
               </ScrollReveal>
             </>
@@ -589,7 +656,6 @@ const AccessCard = () => {
                   loyaltyCardNumber={customer.loyalty_card_number}
                   issuedDate={issuedDate}
                   pointsBalance={customer.points_balance}
-                  onCopy={handleCopy}
                 />
               </ScrollReveal>
 
@@ -600,7 +666,7 @@ const AccessCard = () => {
                   )}
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")} disabled={!hasLoyaltyCardNumber}>
-                      <Copy size={13} /> Copy
+                      <Copy size={13} /> Copy card number
                     </Button>
                     <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={handleShare} disabled={!hasLoyaltyCardNumber}>
                       <Share2 size={13} /> Share

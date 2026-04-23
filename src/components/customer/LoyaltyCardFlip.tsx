@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
-import { Copy, Hash } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
-import { Button } from "@/components/ui/button";
 
 interface LoyaltyCardFlipProps {
   fullName: string | null;
@@ -11,7 +9,6 @@ interface LoyaltyCardFlipProps {
   loyaltyCardNumber: string | null;
   issuedDate: string;
   pointsBalance: number;
-  onCopy: (label: string, value: string) => void;
 }
 
 const LoyaltyCardFlip = ({
@@ -20,7 +17,6 @@ const LoyaltyCardFlip = ({
   loyaltyCardNumber,
   issuedDate,
   pointsBalance,
-  onCopy,
 }: LoyaltyCardFlipProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const hasScanCode = Boolean(loyaltyCardNumber);
@@ -54,17 +50,17 @@ const LoyaltyCardFlip = ({
             <div className="absolute right-7 top-6 h-20 w-20 rounded-full border border-primary-foreground/10" />
 
             <div className="relative z-10 grid h-full grid-rows-[auto_1fr_auto] text-left">
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/72">Digital loyalty</p>
-                <img src={perkbackLogo} alt="PerkBack" className="h-7 w-auto brightness-0 invert" />
+                <img src={perkbackLogo} alt="PerkBack" className="h-6 w-auto brightness-0 invert" />
               </div>
 
-              <div className="flex min-h-0 flex-col justify-center gap-5 py-4">
-                <div className="space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/68">Points balance</p>
+              <div className="flex min-h-0 flex-col justify-center gap-4 py-3">
+                <div className="space-y-1">
                   <p className="tabular-nums text-[2.15rem] font-bold leading-none text-primary-foreground">
                     {pointsBalance.toLocaleString("en-AU")}
                   </p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/68">Points balance</p>
                 </div>
 
                 <div className="max-w-[76%] space-y-1.5">
@@ -137,14 +133,6 @@ const LoyaltyCardFlip = ({
         </div>
       </button>
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" className="h-10 flex-1 gap-2" onClick={() => onCopy("CRN", crn || "") }>
-          <Hash size={14} /> Copy CRN
-        </Button>
-        <Button variant="outline" size="sm" className="h-10 flex-1 gap-2" onClick={() => onCopy("Card Number", loyaltyCardNumber || "") }>
-          <Copy size={14} /> Copy Card
-        </Button>
-      </div>
     </div>
   );
 };
