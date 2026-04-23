@@ -140,7 +140,6 @@ const Header = () => {
 
         {/* Mobile Toggle */}
         <div className="lg:hidden flex items-center gap-2">
-          <ThemeToggle size="sm" />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="text-foreground p-2"
