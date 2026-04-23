@@ -387,6 +387,7 @@ const CustomerJoin = () => {
   const [identity, setIdentity] = useState<CardIdentity | null>(null);
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [joinRetryKey, setJoinRetryKey] = useState(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setStep("intro"), SPLASH_DURATION_MS);
@@ -410,7 +411,7 @@ const CustomerJoin = () => {
   }, [merchantSlug]);
 
   useEffect(() => {
-    if (!authReady || !user || !merchant || linking || step === "splash") return;
+    if (!authReady || !user || !merchant || linking || step === "splash" || !!linkError) return;
 
     setLinking(true);
     (async () => {
@@ -430,7 +431,7 @@ const CustomerJoin = () => {
         setLinking(false);
       }
     })();
-  }, [authReady, linking, merchant, merchantSlug, navigate, step, user]);
+  }, [authReady, joinRetryKey, linkError, linking, merchant, merchantSlug, navigate, step, user]);
 
   const signInPath = `/get-started?app=1&next=${encodeURIComponent(`/join/${merchantSlug}`)}`;
 
@@ -480,6 +481,17 @@ const CustomerJoin = () => {
           <p className="mt-3 text-sm text-muted-foreground">{linkError}</p>
           <div className="mt-6 space-y-3">
             <Button variant="hero" size="lg" className="w-full" onClick={() => setLinking(false)}>
+              Try again
+            </Button>
+            <Button
+              variant="hero"
+              size="lg"
+              className="hidden"
+              onClick={() => {
+                setLinkError(null);
+                setJoinRetryKey((current) => current + 1);
+              }}
+            >
               Try again
             </Button>
             <Button variant="outline" size="lg" className="w-full" onClick={() => navigate(signInPath)}>
