@@ -1,175 +1,165 @@
 
-## Rework customer discovery so Rewards owns all rewards, and Explore becomes a cleaner store-browsing experience
+Implement a focused polish pass across rewards logic, the loyalty card experience, and Explore so the customer flow feels premium and the merchant reward setup produces sensible copy.
 
-### Recommended product direction
-For PerkBack, the cleanest flow is:
+### 1. Fix reward and promotion wording so merchants can’t create confusing logic
+Update the merchant-facing reward/promotion setup so labels and previews always match the selected rule type.
 
+What to change:
+- Separate plain rewards from promotion rules conceptually:
+  - `rewards` = redeemable perks with points required
+  - `promotion_rules` = earn/visit/spend triggers like “Buy 5, get 1 free”
+- Replace unclear combinations like “buy one and get 10% points” with type-safe combinations:
+  - Buy X items → Free item / Discount % / Bonus points
+  - Spend $X → Free item / Discount % / Bonus points
+  - Visit X times → Free item / Discount % / Bonus points
+- Add clearer preview text in merchant promotion screens so the sentence reads naturally before saving.
+- Normalize customer-facing reward chips so raw enum values like `discount_percent` or `bonus_points` become premium readable labels.
+
+Recommended implementation:
+- Add formatting helpers in a shared utility for:
+  - reward type labels
+  - promotion rule summaries
+  - promotion reward summaries
+- Use the same helper in:
+  - `src/pages/MerchantPromotions.tsx`
+  - `src/pages/MerchantMarketing.tsx`
+  - customer reward/store views where reward types are shown
+
+### 2. Upgrade the Card tab into a premium interactive loyalty card
+Redesign the current card section so it feels like a real digital loyalty card instead of a static panel.
+
+What to build:
+- A front side:
+  - PerkBack branding
+  - member name
+  - CRN
+  - card number
+  - subtle chip / gloss / layered gradients
+- A back side:
+  - barcode
+  - QR code
+  - issued date
+  - “ready at checkout” style supporting copy
+- Tap-to-flip interaction:
+  - tap the card to rotate
+  - smooth 3D flip
+  - keep action buttons below the card
+
+Recommended implementation:
+- Extract the card UI into a dedicated component, e.g. `src/components/customer/LoyaltyCardFlip.tsx`
+- Keep wallet, copy, and share buttons outside the flip surface
+- Reuse current `Barcode` and `QRCodeDisplay` components
+- Follow the existing prototype direction from `MobileCustomerPrototype` but adapt it to live data
+
+### 3. Make Explore search simpler and more accurate
+Simplify the Explore top controls so search feels useful immediately.
+
+What to change:
+- Keep a single strong search bar as the primary control
+- Improve merchant matching to search against:
+  - store name
+  - industry
+  - address
+- Normalize search:
+  - trim whitespace
+  - lowercase
+  - split terms so multi-word queries behave better
+- Sort results more intentionally:
+  1. exact/strong name matches
+  2. joined stores
+  3. closest stores when location is available
+  4. then alphabetical
+
+Recommended Explore layout:
 ```text
-Rewards tab = loyalty destination
-- total points
-- My Stores
-- all rewards across joined / available stores
-- tap any reward -> store-aware reward action
-
-Explore tab = discovery destination
-- search + industry filter
-- swipe through one merchant per screen
-- tap merchant -> open the same dedicated store detail view used by My Stores
+Search bar
+Closest store CTA (if location available)
+Swipeable merchant card
+Dots / swipe indicator
 ```
 
-This keeps the app easy to understand:
-- Rewards = what I can earn/redeem
-- Explore = where I can discover stores
+Also refine the “Closest to you” behavior:
+- make it more prominent
+- let the CTA jump directly into the store detail view
+- if location permission is missing, simply hide this block gracefully
 
----
+### 4. Add a Join Store action for not-yet-joined customers
+When a customer opens a store from Explore and hasn’t joined it yet, give them a clear way to join that store and unlock the full rewards relationship.
 
-## What I will change
+What to build:
+- In the shared store detail view:
+  - if joined: show normal store info/rewards state
+  - if not joined: show a primary “Join Store” CTA
+- After joining:
+  - create the customer-store relationship
+  - update the UI immediately
+  - switch the store into joined mode
+  - allow rewards/details to behave like My Store
 
-### 1. Remove “Hot Rewards” from Explore
-I’ll remove the current Hot Rewards carousel from `ExploreTab`.
+Important backend note:
+- The current access rules only allow customers to read `customer_merchants`, not insert into it.
+- This requires a backend change before the Explore join action can work safely.
 
-### 2. Move all rewards into the Rewards section
-I’ll make the Rewards tab the single place where reward cards live:
-- show all rewards there
-- include the items currently shown in “Hot Rewards”
-- remove duplicate reward surfacing from Explore
+Recommended backend approach:
+- Add a secure database function or policy for customer self-join
+- Validate that:
+  - the authenticated user owns the customer profile
+  - the merchant exists
+  - duplicates are prevented
+- Prefer an RPC or controlled backend function over broad open insert rules
 
-Recommended ordering in Rewards:
-1. Total points summary
-2. My Stores
-3. All Rewards
-4. Optional offers/campaign highlights only if they support the rewards journey
+### 5. Remove the recommendation panel from Explore
+Delete the recommendation message at the bottom of `ExploreTab` so the screen ends cleanly after the merchant browser.
 
-Reward sorting recommendation:
-- ready to redeem first
-- then closest-to-unlock
-- then the rest
+### 6. Keep one shared store detail flow for both My Stores and Explore
+Continue using the same dedicated in-dashboard store page for:
+- joined stores from My Stores
+- discovered stores from Explore
 
-That makes the section more useful for customers than a random “hot” list.
+Refine it so:
+- joined stores show points, offers, rewards, visits, and directions
+- not-joined stores show store details and a Join Store action first
+- back behavior still returns to the correct source tab
 
-### 3. Make Explore merchant browsing one-card-per-screen
-Instead of stacking merchant cards vertically, I’ll redesign Explore so:
-- one merchant fills the main viewport at a time
-- users can swipe left/right to browse merchants
-- each merchant feels more premium and easier to focus on
-- the card layout visually matches the simpler My Store style
-
-Recommended card structure:
-- full image / banner
-- gradient overlay
-- logo badge
-- store name
-- industry
-- address or distance
-- reward count / member badge at the bottom
-
-### 4. Add merchant search to Explore
-I’ll add a search input above the swipeable merchant browser so customers can quickly find a store by:
-- store name
-- industry
-- possibly address text
-
-This will work together with the existing industry filter.
-
-### 5. Make Explore merchant tap open the same store detail experience as My Stores
-Right now Explore uses its own merchant preview dialog. I’ll replace that behavior so clicking a merchant from Explore opens the same dedicated store detail view already used by My Stores.
-
-That means:
-- one consistent store page experience
-- same hero, offers, rewards, directions, and actions
-- no separate lightweight preview that feels disconnected
-
-### 6. Preserve source-aware navigation
-When a store is opened from Explore:
-- the customer enters the shared store detail view
-- tapping Back returns them to Explore, not My Stores
-
-When a store is opened from My Stores:
-- Back returns them to Rewards
-
-This will make the experience feel intentional instead of confusing.
-
-### 7. Keep Store Detail as the shared destination
-The existing `StoreDetailView` already has the right direction. I’ll use it as the shared store destination for both entry points:
-- My Stores
-- Explore
-
-I’ll refine it only where needed so it works naturally regardless of where the customer came from.
-
----
-
-## Implementation approach
-
-### In `src/pages/AccessCard.tsx`
-I’ll centralize store-opening behavior so the page can:
-- track the active tab
-- track the active store detail merchant
-- track where the store was opened from (`my-rewards` or `explore`)
-- render the same store detail screen for both flows
-- move the full rewards list into the Rewards tab only
-
-### In `src/components/customer/ExploreTab.tsx`
-I’ll refactor Explore to:
-- remove Hot Rewards
-- remove the current stacked Browse Merchants list
-- remove the separate merchant preview dialog behavior
-- add search
-- build a swipeable one-merchant-per-screen carousel
-- notify `AccessCard` when a merchant is opened
-
-### In `src/components/customer/MyStoreCard.tsx`
-I’ll align the Explore merchant visual treatment with the simpler My Store direction:
-- cleaner image-led card
-- details anchored at the bottom
-- less clutter
-- stronger consistency between My Stores and Explore
-
-### In `src/components/customer/StoreDetailView.tsx`
-I’ll keep the shared store-detail experience and adjust only what is needed for:
-- source-aware back behavior
-- consistent use from both Explore and My Stores
-- rewards/offers/campaigns display staying merchant-specific
-
-### Likely cleanup
-- remove or stop using `src/components/customer/MerchantPreview.tsx` if the shared store-detail flow fully replaces it
-
----
-
-## Files to update
+### 7. Files to update
+Frontend:
 - `src/pages/AccessCard.tsx`
 - `src/components/customer/ExploreTab.tsx`
-- `src/components/customer/MyStoreCard.tsx`
 - `src/components/customer/StoreDetailView.tsx`
-- possibly `src/components/customer/MerchantPreview.tsx` for removal or deprecation
-- use existing `src/components/ui/input.tsx` for search
+- `src/components/customer/StoreRewardActionDialog.tsx`
+- new `src/components/customer/LoyaltyCardFlip.tsx`
+- new shared formatter utility, e.g. `src/lib/rewardFormatting.ts`
 
----
+Merchant reward logic:
+- `src/pages/MerchantPromotions.tsx`
+- `src/pages/MerchantMarketing.tsx`
+- optionally `src/pages/MerchantRewards.tsx` for reward type label consistency
 
-## Design recommendations for this project
-For a loyalty platform like PerkBack, I recommend:
+Backend:
+- new database migration to support customer self-join safely for `customer_merchants`
 
-### Rewards tab
-Keep it practical and action-based:
-- customer points
-- joined stores
-- redeemable / near-unlock rewards
-- minimal distractions
+### 8. Recommended final UX
+Best direction for PerkBack:
 
-### Explore tab
-Make it feel like browsing premium local merchants:
-- one store at a time
-- swipe interaction
-- search + industry filter
-- strong image-led presentation
-- tap to enter full store view
+```text
+Rewards
+- total points
+- My Stores
+- clear rewards
 
-This fits the product better than long stacked cards, because customers are discovering lifestyle/local brands, not scanning a dense admin-style directory.
+Card
+- premium flip loyalty card
+- barcode + QR on reverse
 
----
+Explore
+- one search bar
+- closest store prompt
+- swipe one merchant at a time
+- open shared store page
+- join store if not yet joined
+```
 
-## Technical notes
-- No database changes are required.
-- No auth changes are required.
-- Existing merchant/reward/campaign/offer queries can be reused.
-- Existing in-dashboard store-detail architecture can be extended instead of rebuilt.
-- The main change is UI flow consolidation so customers get one consistent store-opening experience across Rewards and Explore.
+This keeps the app elegant and easy to understand:
+- Rewards = what I’ve earned
+- Card = my wallet credential
+- Explore = where I want to join next
