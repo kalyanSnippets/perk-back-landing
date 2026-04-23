@@ -2,6 +2,7 @@ import { Clock, Gift, MapPin, Navigation, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 
 interface StoreRewardActionDialogProps {
   open: boolean;
@@ -78,7 +79,7 @@ const StoreRewardActionDialog = ({
             <Progress value={progress} className="mt-3 h-2" />
             <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
-                <Gift size={12} className="text-secondary" /> {reward.reward_type}
+                <Gift size={12} className="text-secondary" /> {getRewardTypeLabel(reward.reward_type)}
               </span>
               {reward.is_limited_time && reward.expires_at && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">

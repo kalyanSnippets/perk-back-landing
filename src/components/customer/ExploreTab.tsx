@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, Compass, MapPin, Navigation, Search, Store } from "lucide-react";
 import { useUserLocation, haversineDistance, formatDistance } from "@/lib/geo";
-import IndustryFilter from "./IndustryFilter";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +40,6 @@ const getDirectionsUrl = (merchant: ExploreMerchantCard) => {
 };
 
 const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
-  const [industryFilter, setIndustryFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -56,17 +54,10 @@ const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
     carouselApi.on("reInit", syncSlide);
   }, [carouselApi]);
 
-  const uniqueIndustries = useMemo(
-    () => [...new Set(merchants.map((merchant) => merchant.industry_type).filter(Boolean) as string[])].sort(),
-    [merchants],
-  );
-
   const filteredMerchants = useMemo(() => {
     const terms = normalizeSearch(searchQuery);
 
     return merchants.filter((merchant) => {
-      const matchesIndustry = industryFilter ? merchant.industry_type === industryFilter : true;
-      if (!matchesIndustry) return false;
       if (terms.length === 0) return true;
 
       const haystack = [merchant.store_name, merchant.industry_type, merchant.address]
@@ -76,7 +67,7 @@ const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
 
       return terms.every((term) => haystack.includes(term));
     });
-  }, [industryFilter, merchants, searchQuery]);
+  }, [merchants, searchQuery]);
 
   const merchantsWithDistance = useMemo(() => filteredMerchants.map((merchant) => {
     const distance = userLocation.latitude && userLocation.longitude && merchant.latitude != null && merchant.longitude != null
@@ -137,10 +128,6 @@ const ExploreTab = ({ merchants, onOpenMerchant }: ExploreTabProps) => {
               placeholder="Search stores, industries, or locations"
               className="h-11 rounded-xl border-border/50 bg-background pl-9"
             />
-          </div>
-
-          <div className="mt-3">
-            <IndustryFilter selected={industryFilter} onChange={setIndustryFilter} industries={uniqueIndustries} />
           </div>
         </div>
       </ScrollReveal>
