@@ -1,101 +1,142 @@
 
-Check the loyalty card back as a combined rendering + data issue and fix the parts most likely preventing the QR/barcode from appearing.
+Refine the customer access card experience across the card, explore flow, and profile tab so it feels cleaner, simpler, and closer to the shared mobile reference.
 
-### What I found from the current code
+### What to change
 
-The back of the card depends entirely on `customer.loyalty_card_number` being present:
+### 1. Fix the loyalty card front layout
+Update `src/components/customer/LoyaltyCardFlip.tsx` so the points section no longer competes with the logo.
 
-- `LoyaltyCardFlip.tsx` passes `loyaltyCardNumber || ""` into both:
-  - `QRCodeDisplay`
-  - `Barcode`
-- `QRCodeDisplay.tsx` returns `null` if the value is empty
-- `Barcode.tsx` clears the SVG if the value is empty
-
-So if the card number is missing at render time, both scan areas become blank.
-
-There is also a second likely issue on mobile:
-- the QR and barcode are rendered inside a 3D-flipped card face
-- SVGs inside transformed/rotated containers can fail to paint reliably on mobile browsers
-- the current barcode sizing logic uses `getBBox()` and then mixes fixed native dimensions with `maxWidth: 100%`, which can create unstable rendering or clipping inside the constrained scan panel
-
-### What I’ll fix
-
-### 1. Verify and harden the card-data path
-Update the Access Card flow so the back never silently renders blank.
-
-What I’ll check and fix:
-- confirm `customer.loyalty_card_number` is populated before the card is shown
-- add a safe fallback UI on the back face if the card number is temporarily unavailable
-- avoid passing an empty string into QR/barcode components without a visible state
-- keep the existing redirect behavior if a customer truly has no loyalty card
+What to adjust:
+- restructure the front face into a stricter vertical layout:
+  - eyebrow
+  - logo
+  - points value
+  - points label directly under the points value
+  - member details
+  - card number
+- reduce the visual height taken by the logo block
+- add a clear spacing gap between logo and points block
+- keep the card premium, but remove any layout choices that let the logo overlap or visually crowd the points content
 
 Result:
-- if data is missing, the UI will clearly say so instead of showing an empty scan area
-- if data exists, the back will always attempt to render both codes
+- points and points label read clearly
+- front face feels aligned and intentional
+- layout matches the cleaner digital-card look you want
 
-### 2. Rework QR rendering so it paints reliably inside the card back
-Update `src/components/QRCodeDisplay.tsx`.
+### 2. Remove duplicate copy actions and simplify card actions
+Right now copy actions appear both inside the flip card and again below it.
 
-What I’ll change:
-- keep a fixed square tile, but simplify the wrapper so it doesn’t depend on flex/stretch behavior
-- give the QR tile an explicit foreground color instead of relying on inherited `currentColor`
-- keep the QR on a solid white surface with stable width/height
-- make the component render a clear fallback state if `value` is missing
+Update:
+- `src/components/customer/LoyaltyCardFlip.tsx`
+- `src/pages/AccessCard.tsx`
 
-Result:
-- QR should render consistently on the flipped back face
-- no invisible QR caused by inheritance or layout collapse
-
-### 3. Rework barcode rendering to avoid disappearing/clipped SVG output
-Update `src/components/Barcode.tsx`.
-
-What I’ll change:
-- stop relying on the current `getBBox()` + native-width + `maxWidth: 100%` combination
-- render the barcode with explicit, stable dimensions that match the back layout
-- keep the barcode inside a fixed-width panel so the browser does not over-compress or clip it
-- use a deterministic SVG sizing strategy that is safer inside transformed containers
-- add a visible fallback state if the value is empty or generation fails
+What to change:
+- remove the inline action row from `LoyaltyCardFlip.tsx` entirely
+- keep only one simplified copy action in the card tab action panel below the card
+- keep Share and wallet actions grouped cleanly below the card
+- if useful, rename the surviving button more clearly, such as “Copy card number”
 
 Result:
-- barcode will no longer disappear because of unstable SVG sizing math
-- the scan block will be more reliable on mobile
+- no repeated copy controls
+- cleaner card tab
+- one obvious place for card actions
 
-### 4. Stabilize the flipped back face for SVG content
-Update `src/components/customer/LoyaltyCardFlip.tsx`.
+### 3. Fix scroll position when opening a store from Explore
+The current store open flow changes internal state but does not reset scroll, so the user can land midway down the page.
 
-What I’ll change:
-- keep the back face isolated so hidden front-face content cannot interfere
-- simplify the back-face layout around the scan row
-- ensure the QR tile and barcode panel sit in a dedicated middle zone with enough height
-- reduce the risk of SVG paint issues inside the 3D flip by tightening the transform/stacking structure
+Update `src/pages/AccessCard.tsx`:
+- add an explicit scroll reset inside `openStoreView`
+- scroll to the top immediately after switching into the store detail state
+- also reset scroll when closing the store detail if needed so returning to Explore/Rewards feels stable
 
-Result:
-- the back face will behave like one stable surface
-- QR and barcode will have a protected area to render in
-
-### 5. Add a proper “scan unavailable” state instead of blank areas
-If the card number is unavailable or rendering fails, I’ll show a lightweight fallback message in the scan section.
-
-Example behavior:
+Recommended behavior:
 ```text
-QR unavailable
-Barcode unavailable
-Your loyalty card is still loading. Please try again in a moment.
+Open store -> page scrolls to top
+Back to Explore/Rewards -> page scrolls to top
 ```
 
 Result:
-- no more silent blank back face
-- easier to distinguish data issues from rendering issues
+- store detail always opens from the beginning
+- no landing in the middle or bottom of the page
+- navigation feels deliberate on mobile
+
+### 4. Redesign the profile tab to match the shared reference
+Rebuild the profile section in `src/pages/AccessCard.tsx` so it follows the visual structure from the uploaded screenshot instead of the current utility-style cards.
+
+### New profile structure
+Use a top summary card, then grouped settings sections.
+
+#### A. Header summary card
+Create a blue profile summary card with:
+- initials/avatar circle on the left
+- customer full name
+- member since month/year
+- CRN on the same metadata line
+- a bottom stat row for:
+  - points
+  - cards
+  - visits
+
+Notes:
+- points can come from `customer.points_balance`
+- cards can be a simple derived count based on joined merchants or a safe MVP count
+- visits can use a derived total from `customerMerchants`
+
+#### B. Simplified grouped list sections
+Replace the current:
+- Profile info card
+- Account settings card
+- Pages card
+
+With grouped rows closer to the reference, such as:
+
+```text
+PERSONAL DETAILS
+- Name & email
+- Date of birth
+- Saved addresses
+
+WALLET & PAYMENTS
+- Linked wallets
+- Gift cards
+
+PREFERENCES
+- Notifications
+- Birthday perks
+```
+
+Implementation approach:
+- use reusable row styling with icon, title, right-side value, and chevron/toggle
+- populate with real available customer data where it exists
+- use safe placeholder/future-ready values only where the app does not yet support a full detail screen
+- keep the options visually simplified even if some are non-editable for now
+
+#### C. Logout button anchored at the bottom
+Move logout out of the middle of the settings content and place it at the bottom of the profile tab.
+
+What to do:
+- keep the destructive delete-account action separate and lower priority
+- place “Log out” as the final main action at the bottom of the profile page
+- ensure spacing makes it feel detached from normal settings rows
+
+Result:
+- profile feels like a proper mobile account screen
+- options are simplified and easier to scan
+- logout is where users expect it
 
 ### Files to update
 - `src/components/customer/LoyaltyCardFlip.tsx`
-- `src/components/Barcode.tsx`
-- `src/components/QRCodeDisplay.tsx`
 - `src/pages/AccessCard.tsx`
 
 ### Expected result
 After this pass:
-- the back of the card will display the QR and barcode reliably when a loyalty card number exists
-- the scan surfaces will be dimensionally stable and sharper on mobile
-- blank scan areas will be replaced with clear fallback messaging if data is missing
-- the back face will feel more robust and less fragile inside the flip animation
+- the points label will sit properly under the points value
+- duplicate copy controls will be removed
+- opening a store from Explore will always start at the top of the page
+- the profile section will look much closer to the shared design
+- logout will appear at the bottom instead of mixed into the settings cards
+
+### Technical notes
+- `ScrollToTop.tsx` already handles route changes, but the Explore/store-detail issue is state-driven inside `AccessCard.tsx`, so the fix belongs in the local `openStoreView` / `closeStoreView` handlers.
+- The current profile tab is built directly inside `AccessCard.tsx`; this redesign can either stay inline or be extracted into smaller presentational subcomponents if the file needs cleanup.
+- The customer table already exposes fields like `full_name`, `phone`, and `date_of_birth`, so the redesigned profile can use real account data without backend changes.
