@@ -3,22 +3,22 @@ import { QRCodeSVG } from "qrcode.react";
 interface QRCodeDisplayProps {
   value: string;
   size?: number;
+  className?: string;
 }
 
-const QRCodeDisplay = ({ value, size = 120 }: QRCodeDisplayProps) => {
+const QRCodeDisplay = ({ value, size = 120, className }: QRCodeDisplayProps) => {
   if (!value) return null;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className={className}>
       <QRCodeSVG
         value={value}
         size={size}
         level="M"
-        bgColor="transparent"
-        fgColor="#0A2472"
+        bgColor="#FFFFFF"
+        fgColor="#000000"
         includeMargin={false}
       />
-      <p className="text-[10px] text-muted-foreground">Scan to identify</p>
     </div>
   );
 };

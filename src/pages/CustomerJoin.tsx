@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import perkbackLogo from "@/assets/perkback-logo-224.webp";
 import merchantHero from "@/assets/prototype/merchant-welcome-hero.jpg";
 import introImage from "@/assets/prototype/onboarding-scan.jpg";
+import { linkCustomerToMerchant } from "@/lib/customerMerchantJoin";
 
 type Step = "splash" | "intro" | "questions" | "wallet" | "ready";
 
@@ -385,6 +386,8 @@ const CustomerJoin = () => {
   const [profile, setProfile] = useState({ firstName: "", phone: "", dob: "" });
   const [identity, setIdentity] = useState<CardIdentity | null>(null);
   const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [joinRetryKey, setJoinRetryKey] = useState(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setStep("intro"), SPLASH_DURATION_MS);
@@ -408,24 +411,27 @@ const CustomerJoin = () => {
   }, [merchantSlug]);
 
   useEffect(() => {
-    if (!authReady || !user || !merchant || linking || step === "splash") return;
+    if (!authReady || !user || !merchant || linking || step === "splash" || !!linkError) return;
 
     setLinking(true);
     (async () => {
       try {
-        const { data, error } = await supabase.rpc("join_merchant_by_slug", {
-          _slug: merchantSlug,
-          _source: "qr-poster",
-        });
+        setLinkError(null);
+        const result = await linkCustomerToMerchant({ merchantSlug, source: "qr-poster" });
 
-        if (!error && (data as any)?.success) {
-          toast.success(`You're now earning at ${(data as any).merchant_name}`);
+        if (!result.success) {
+          setLinkError(result.error);
+          toast.error(result.error);
+          return;
         }
-      } finally {
+
+        toast.success(`You're now earning at ${result.data?.merchant_name ?? merchant.store_name}`);
         navigate("/customer/access-card", { replace: true });
+      } finally {
+        setLinking(false);
       }
     })();
-  }, [authReady, linking, merchant, merchantSlug, navigate, step, user]);
+  }, [authReady, joinRetryKey, linkError, linking, merchant, merchantSlug, navigate, step, user]);
 
   const signInPath = `/get-started?app=1&next=${encodeURIComponent(`/join/${merchantSlug}`)}`;
 
@@ -439,23 +445,21 @@ const CustomerJoin = () => {
       return;
     }
 
-    const { data, error } = await supabase.rpc("join_merchant_by_slug", {
-      _slug: merchantSlug,
-      _source: "qr-poster",
-    });
+    const result = await linkCustomerToMerchant({ merchantSlug, source: "qr-poster" });
 
-    if (error || !(data as any)?.success) {
-      toast.error("Could not link to merchant");
+    if (!result.success || !result.data) {
+      setLinkError(result.error);
+      toast.error(result.error);
       return;
     }
 
-    const result = data as any;
     setIdentity({
-      crn: result.crn,
-      loyalty_card_number: result.loyalty_card_number,
-      full_name: result.full_name ?? profile.firstName,
-      merchant_name: result.merchant_name,
+      crn: result.data.crn ?? "",
+      loyalty_card_number: result.data.loyalty_card_number ?? "",
+      full_name: result.data.full_name ?? profile.firstName,
+      merchant_name: result.data.merchant_name ?? merchant?.store_name ?? "PerkBack Store",
     });
+    setLinkError(null);
     setStep("ready");
   };
 
@@ -466,6 +470,34 @@ const CustomerJoin = () => {
           <h2 className="text-xl font-black">Store not found</h2>
           <p className="mt-2 text-sm text-muted-foreground">{merchantError}</p>
           <Button className="mt-6" onClick={() => navigate("/")}>Back to PerkBack</Button>
+        </div>
+      );
+    }
+
+    if (linkError && merchant) {
+      return (
+        <div className="flex-1 flex flex-col justify-center px-6 text-center">
+          <h2 className="text-2xl font-black text-foreground">We couldn’t join {merchant.store_name}</h2>
+          <p className="mt-3 text-sm text-muted-foreground">{linkError}</p>
+          <div className="mt-6 space-y-3">
+            <Button
+              variant="hero"
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                setLinkError(null);
+                setJoinRetryKey((current) => current + 1);
+              }}
+            >
+              Try again
+            </Button>
+            <Button variant="outline" size="lg" className="w-full" onClick={() => navigate(signInPath)}>
+              Sign in
+            </Button>
+            <Button variant="ghost" size="lg" className="w-full" onClick={() => navigate("/customer/access-card")}>
+              Continue to wallet
+            </Button>
+          </div>
         </div>
       );
     }

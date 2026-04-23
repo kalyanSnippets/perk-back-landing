@@ -25,6 +25,7 @@ import StoreDetailView from "@/components/customer/StoreDetailView";
 import StoreRewardActionDialog from "@/components/customer/StoreRewardActionDialog";
 import LoyaltyCardFlip from "@/components/customer/LoyaltyCardFlip";
 import { getRewardTypeLabel } from "@/lib/rewardFormatting";
+import { linkCustomerToMerchant } from "@/lib/customerMerchantJoin";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
@@ -62,6 +63,7 @@ const AccessCard = () => {
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [joiningMerchantId, setJoiningMerchantId] = useState<string | null>(null);
+  const [joinedMerchantOverrides, setJoinedMerchantOverrides] = useState<Record<string, true>>({});
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
@@ -287,17 +289,19 @@ const AccessCard = () => {
   const handleJoinStore = async (merchantId: string) => {
     setJoiningMerchantId(merchantId);
     try {
-      const { data, error } = await supabase.rpc("join_merchant", { _merchant_id: merchantId, _source: "explore" });
-      if (error) throw error;
-      const result = data as { success?: boolean; error?: string } | null;
-      if (!result?.success) {
-        toast.error(result?.error || "Unable to join store");
+      const joinResult = await linkCustomerToMerchant({ merchantId, source: "explore" });
+      if (!joinResult.success) {
+        toast.error(joinResult.error);
         return;
       }
-      toast.success("Store joined successfully");
+
+      const merchantName = joinResult.data?.merchant_name
+        ?? merchantDirectory.find((merchant) => merchant.merchant_id === merchantId)?.store_name
+        ?? "store";
+
+      setJoinedMerchantOverrides((current) => ({ ...current, [merchantId]: true }));
+      toast.success(`You joined ${merchantName}`);
       await fetchData();
-      setActiveStoreViewSource("my-rewards");
-      setActiveMainTab("my-rewards");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Unable to join store");
     } finally {
@@ -412,7 +416,7 @@ const AccessCard = () => {
         bannerImage: merchant.profile_image_url ?? merchantCampaignImage ?? merchantRewardImage ?? getIndustryImage(merchant.industry_type),
         latitude: merchant.latitude,
         longitude: merchant.longitude,
-        isJoined: !!joinedMerchant,
+        isJoined: !!joinedMerchant || !!joinedMerchantOverrides[merchant.merchant_id],
       };
     })
     .sort((a, b) => Number(b.isJoined) - Number(a.isJoined) || b.rewardCount - a.rewardCount || a.store_name.localeCompare(b.store_name));
