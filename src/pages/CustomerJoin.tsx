@@ -480,13 +480,10 @@ const CustomerJoin = () => {
           <h2 className="text-2xl font-black text-foreground">We couldn’t join {merchant.store_name}</h2>
           <p className="mt-3 text-sm text-muted-foreground">{linkError}</p>
           <div className="mt-6 space-y-3">
-            <Button variant="hero" size="lg" className="w-full" onClick={() => setLinking(false)}>
-              Try again
-            </Button>
             <Button
               variant="hero"
               size="lg"
-              className="hidden"
+              className="w-full"
               onClick={() => {
                 setLinkError(null);
                 setJoinRetryKey((current) => current + 1);
