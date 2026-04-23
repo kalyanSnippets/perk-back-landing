@@ -52,7 +52,7 @@ const LoyaltyCardFlip = ({
             <div className="relative z-10 grid h-full grid-rows-[auto_1fr_auto] text-left">
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/72">Digital loyalty</p>
-                <img src={perkbackLogo} alt="PerkBack" className="h-6 w-auto brightness-0 invert" />
+                <img src={perkbackLogo} alt="PerkBack" className="mx-auto h-6 w-auto translate-x-5 brightness-0 invert" />
               </div>
 
               <div className="flex min-h-0 flex-col justify-center gap-4 py-3">
