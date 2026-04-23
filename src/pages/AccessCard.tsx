@@ -464,18 +464,30 @@ const AccessCard = () => {
   const hasLoyaltyCardNumber = Boolean(customer.loyalty_card_number);
   const profileInfoSections = [
     {
-      title: "Personal details",
+      title: "Profile",
       items: [
-        { label: "Name & email", value: customer.full_name || userEmail || "—", subvalue: userEmail || "", icon: User },
-        { label: "Date of birth", value: formattedDob, icon: Calendar },
-        { label: "Saved addresses", value: String(savedAddressesCount), subvalue: savedAddressesCount === 1 ? "store saved" : "stores saved", icon: MapPin },
+        { label: "Full Name", value: customer.full_name || "—", icon: User },
+        { label: "CRN", value: customer.crn || "—", icon: Hash },
+        { label: "Card Number", value: customer.loyalty_card_number || "—", icon: CreditCard },
       ],
     },
     {
-      title: "Wallet & payments",
+      title: "Account Settings",
       items: [
-        { label: "Linked wallets", value: linkedWalletsLabel, icon: Wallet },
-        { label: "Gift cards", value: "0", subvalue: "active", icon: Gift },
+        ...(isMerchant ? [{ label: "Merchant Dashboard", value: "Open", icon: Store, href: "/merchant/dashboard" }] : []),
+        { label: "Log out", value: "Sign out", icon: LogOut, action: handleLogout },
+      ],
+    },
+    {
+      title: "Pages",
+      items: [
+        { label: "About Us", value: "Open", icon: Info, href: "/about?web=1" },
+        { label: "Pricing", value: "Open", icon: Info, href: "/pricing?web=1" },
+        { label: "Testimonials", value: "Open", icon: Info, href: "/testimonials?web=1" },
+        { label: "Reviews", value: "Open", icon: Info, href: "/reviews?web=1" },
+        { label: "Blog", value: "Open", icon: Info, href: "/blog?web=1" },
+        { label: "Contact", value: "Open", icon: Info, href: "/contact?web=1" },
+        { label: "Privacy", value: "Open", icon: Info, href: "/privacy?web=1" },
       ],
     },
   ];
@@ -585,53 +597,46 @@ const AccessCard = () => {
                       <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{section.title}</p>
                       <div className="overflow-hidden rounded-[22px] border border-border/50 bg-card shadow-card">
                         {section.items.map((item, index) => (
-                          <div key={item.label} className={`flex items-center gap-3 px-4 py-4 ${index !== section.items.length - 1 ? "border-b border-border/40" : ""}`}>
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
-                              <item.icon size={18} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                              {item.subvalue && <p className="truncate text-xs text-muted-foreground">{item.subvalue}</p>}
-                            </div>
-                            <div className="flex items-center gap-2 pl-2">
-                              <span className="text-sm text-muted-foreground">{item.value}</span>
-                              <ChevronRight size={16} className="text-muted-foreground/80" />
-                            </div>
-                          </div>
+                          item.href ? (
+                            <Link key={item.label} to={item.href} className={`flex items-center gap-3 px-4 py-4 transition-colors hover:bg-muted/30 ${index !== section.items.length - 1 ? "border-b border-border/40" : ""}`}>
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                                <item.icon size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                                {item.subvalue && <p className="truncate text-xs text-muted-foreground">{item.subvalue}</p>}
+                              </div>
+                              <div className="flex items-center gap-2 pl-2">
+                                <span className="text-sm text-muted-foreground">{item.value}</span>
+                                <ChevronRight size={16} className="text-muted-foreground/80" />
+                              </div>
+                            </Link>
+                          ) : (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={item.action}
+                              className={`flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-muted/30 ${index !== section.items.length - 1 ? "border-b border-border/40" : ""}`}
+                            >
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
+                                <item.icon size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                                {item.subvalue && <p className="truncate text-xs text-muted-foreground">{item.subvalue}</p>}
+                              </div>
+                              <div className="flex items-center gap-2 pl-2">
+                                <span className="text-sm text-muted-foreground">{item.value}</span>
+                                <ChevronRight size={16} className="text-muted-foreground/80" />
+                              </div>
+                            </button>
+                          )
                         ))}
                       </div>
                     </section>
                   ))}
 
-                  <section className="space-y-2.5">
-                    <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Preferences</p>
-                    <div className="overflow-hidden rounded-[22px] border border-border/50 bg-card shadow-card">
-                      {[
-                        { label: "Notifications", icon: Bell, checked: notificationsEnabled, onCheckedChange: setNotificationsEnabled },
-                        { label: "Birthday perks", icon: Gift, checked: birthdayPerksEnabled, onCheckedChange: setBirthdayPerksEnabled },
-                      ].map((item, index) => (
-                        <div key={item.label} className={`flex items-center gap-3 px-4 py-4 ${index !== 1 ? "border-b border-border/40" : ""}`}>
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-primary">
-                            <item.icon size={18} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                          </div>
-                          <Switch checked={item.checked} onCheckedChange={item.onCheckedChange} />
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
                   <section className="space-y-3 pt-2">
-                    {isMerchant && (
-                      <Button variant="outline" className="h-12 w-full justify-between rounded-2xl border-border/50 bg-card px-4" asChild>
-                        <Link to="/merchant/dashboard">
-                          <span className="flex items-center gap-2"><Store size={16} /> Merchant Dashboard</span>
-                          <ChevronRight size={16} />
-                        </Link>
-                      </Button>
-                    )}
                     <Button variant="ghost" className="h-12 w-full justify-between rounded-2xl border border-destructive/20 bg-card px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setShowDeleteAccountDialog(true)}>
                       <span className="flex items-center gap-2"><XCircle size={16} /> Delete my account</span>
                       <ChevronRight size={16} />
