@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Calendar, ArrowRight, BookOpen } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import PublicPageFrame from "@/components/shared/PublicPageFrame";
+import { useEmbeddedPublicPage } from "@/hooks/useEmbeddedPublicPage";
 
 interface BlogPost {
   id: string;
@@ -19,6 +19,7 @@ interface BlogPost {
 const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isEmbedded, backHref } = useEmbeddedPublicPage();
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -33,9 +34,8 @@ const Blog = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 sm:pt-24 pb-16">
+    <PublicPageFrame isEmbedded={isEmbedded} backHref={backHref} title="Blog">
+      <div className={isEmbedded ? "pt-2" : ""}>
         <div className="container mx-auto px-4 max-w-5xl">
           <ScrollReveal>
             <div className="text-center mb-10">
@@ -105,9 +105,8 @@ const Blog = () => {
             </div>
           )}
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicPageFrame>
   );
 };
 
