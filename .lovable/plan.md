@@ -1,149 +1,106 @@
 
-Refine the loyalty card so it matches the uploaded reference more closely: cleaner alignment on the front, a more realistic premium card feel, and a properly laid-out back with crisp QR/barcode rendering.
+Remove the back-face text overlay issue and tighten the loyalty card layout so it matches the reference more closely on mobile.
 
-### What to change
+### What I’ll fix
 
-### 1. Rebuild the front of the loyalty card around the reference layout
-Update `src/components/customer/LoyaltyCardFlip.tsx` so the front side looks like a real digital loyalty card instead of an information panel.
+### 1. Remove the floating chip/accent from the front
+Update `src/components/customer/LoyaltyCardFlip.tsx` to delete the decorative chip block entirely.
 
-Target front-side structure:
+Result:
+- cleaner digital-card look
+- less visual clutter between the logo and balance section
+- more space to align the front content properly
+
+### 2. Rebuild the front with stricter alignment
+The current front uses decorative layers plus loose spacing, which is causing alignment issues and text crowding.
+
+What I’ll change:
+- use a clearer vertical content grid:
+  - eyebrow
+  - logo
+  - points block
+  - member block
+  - card number anchored bottom-right
+- add safer inner padding so text never pushes into the curved edges
+- reduce the size/opacity of the decorative circles and move them farther off-canvas
+- constrain long member names so they wrap or truncate cleanly without breaking the card
+
+Result:
+- no text collision
+- cleaner hierarchy
+- front closer to the uploaded reference
+
+### 3. Remove overlay text on the back of the card
+The back currently shows unwanted text bleed/overlay during the flip.
+
+What I’ll change in `src/components/customer/LoyaltyCardFlip.tsx`:
+- strengthen the front/back face isolation during the 3D flip
+- ensure each face has its own clean stacking context
+- prevent hidden face text from visually leaking through on mobile
+- simplify the back so only intentional back-side content is present
+
+Result:
+- no mirrored or overlapping text behind the barcode/QR area
+- cleaner flip animation
+- back face reads as one stable surface
+
+### 4. Rebuild the back using the approved horizontal layout
+The back needs to look like the reference instead of a stacked info panel.
+
+New structure:
 ```text
-DIGITAL LOYALTY
-PerkBack
-
-POINTS BALANCE
-1,284
-
-MEMBER
-Customer Name
-
-Card number aligned bottom-right
-```
-
-Implementation details:
-- use a cleaner blue gradient with softer decorative rings, closer to the reference
-- remove the current crowded CRN / issued split layout from the front
-- keep the front focused on:
-  - brand
-  - points balance
-  - member name
-  - card number
-- align content in larger blocks with more negative space
-- place the card number at the bottom-right like the reference
-- reduce icon clutter on the front and replace the current generic card icon treatment with a more premium chip/orb accent
-
-### 2. Rebuild the back of the card into a horizontal scan layout
-The current back stacks barcode and QR vertically, which is why it does not resemble the reference and feels misaligned.
-
-New back layout:
-```text
-SCAN AT CHECKOUT           CRN 48123
+SCAN AT CHECKOUT         CRN 48123
 
 [ QR ]   [ Barcode ]
 
 Issued 14 Mar 2026 · Tap card to flip back
 ```
 
-Implementation details:
-- place QR and barcode side-by-side on mobile, matching the reference
-- make QR left-aligned and barcode take the wider right section
-- move CRN into the top-right corner
-- keep only one footer line with issued date + flip hint
-- remove duplicated helper wording and oversized heading block
-- use a white card face with restrained grey labels, similar to the uploaded screenshot
+What I’ll change:
+- move CRN to the top-right
+- place QR on the left in a fixed square tile
+- place barcode on the right in a wider fixed panel
+- remove extra helper wording that makes the back feel crowded
+- keep only one footer line
 
-### 3. Make barcode rendering crisp and dimensionally stable
-Update `src/components/Barcode.tsx` so the barcode renders at a fixed native size without soft scaling blur.
+Result:
+- cleaner composition
+- proper scan layout
+- back side feels like a real loyalty card
 
-What to adjust:
-- stop forcing `width="100%"` on the barcode SVG
-- generate the barcode with explicit dimensions appropriate for the card back layout
-- wrap the barcode in a fixed-size container so the browser does not stretch it
-- tune:
-  - bar width
-  - bar height
-  - display value spacing
-  - margin
-  - font size
-- ensure white background is preserved and that the barcode remains readable on high-DPR mobile screens
+### 5. Make QR and barcode render sharply without distortion
+Update `src/components/Barcode.tsx` and `src/components/QRCodeDisplay.tsx`.
 
-Recommended result:
-- barcode sits cleanly in the right half of the card
-- number label is centered beneath the bars
-- no fuzzy edges caused by container scaling
+What I’ll fix:
+- stop any layout-driven stretching that softens the scan surfaces
+- use explicit native dimensions for both barcode and QR
+- keep them inside fixed white panels
+- preserve crisp edges and readable scan output on high-DPR mobile screens
 
-### 4. Make QR rendering crisp and visually balanced
-Update `src/components/QRCodeDisplay.tsx` to behave like a fixed-size code tile rather than a responsive block.
+Result:
+- barcode and QR appear sharp
+- no fuzzy scaling
+- better visual balance between the two scan elements
 
-What to adjust:
-- render QR at an explicit size suited to the left column of the back layout
-- add a solid white background tile with controlled padding
-- avoid extra scaling from parent flex/stretch behavior
-- keep margins consistent with the barcode block
+### 6. Lightly simplify the Card tab around the card
+Update the card section in `src/pages/AccessCard.tsx` so the card remains the main focus.
 
-Recommended result:
-- QR is square, sharp, and vertically aligned with the barcode block
-- both scan surfaces look like part of one designed card face
+What I’ll do:
+- keep actions below the card
+- reduce surrounding visual competition if needed
+- preserve existing copy/share functionality
 
-### 5. Clean up the data hierarchy on both sides
-The current details feel scattered.
-
-Recommended information split:
-- Front:
-  - PerkBack branding
-  - points balance
-  - member name
-  - loyalty card number
-- Back:
-  - scan instruction
-  - CRN
-  - QR
-  - barcode
-  - issued date
-
-Do not show:
-- duplicate “scan your loyalty ID” style copy
-- too many labels at once
-- front-side issued date if it makes the design busier
-
-### 6. Make the card proportions feel closer to a real wallet card
-Refine the flip container and spacing in `LoyaltyCardFlip.tsx`:
-- use a more card-like aspect ratio
-- slightly wider and less tall feel
-- tighten corner radius and surface shadows
-- use subtle depth instead of heavy panel styling
-- keep the tap-to-flip interaction, but make the transition calmer and more premium
-
-### 7. Simplify the surrounding Card tab content so the card stands out
-In `src/pages/AccessCard.tsx`, reduce visual competition around the loyalty card.
-
-Recommended cleanup:
-- keep wallet buttons and copy/share buttons below the card
-- reduce or remove the extra “Card Details” panel if it duplicates what the card already communicates
-- preserve actions, but visually prioritize the card itself first
-
-### 8. Files to update
+### Files to update
 - `src/components/customer/LoyaltyCardFlip.tsx`
 - `src/components/Barcode.tsx`
 - `src/components/QRCodeDisplay.tsx`
 - `src/pages/AccessCard.tsx`
 
-### 9. Reference alignment
-Use the uploaded screenshots as the design reference:
-- `IMG_6426.jpeg` for the front-side composition
-- `IMG_6427.png` for the back-side composition
-
-Key visual traits to mirror:
-- larger, simpler typography blocks
-- more whitespace
-- card number anchored bottom-right
-- QR + barcode on one row
-- understated grey helper text on the back
-- premium blue front with soft highlights
-
-### 10. Expected result
-After this update:
-- the loyalty card front will look closer to the reference design
-- details will be aligned cleanly and feel intentional
-- the back will display QR and barcode properly in a premium horizontal scan layout
-- the card will feel like an actual digital loyalty card rather than a generic info panel
+### Expected result
+After this pass:
+- the chip/accent will be removed
+- front-side details will align properly
+- decorative circles will stop interfering with content
+- back-side overlay text will be removed
+- QR and barcode will display properly in a clean side-by-side layout
+- the overall card will feel more premium and closer to the provided design reference
