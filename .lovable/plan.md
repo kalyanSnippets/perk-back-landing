@@ -1,165 +1,179 @@
 
-Implement a focused polish pass across rewards logic, the loyalty card experience, and Explore so the customer flow feels premium and the merchant reward setup produces sensible copy.
+Polish the loyalty card rendering and harden the merchant join flow so both feel reliable and premium on mobile.
 
-### 1. Fix reward and promotion wording so merchants can’t create confusing logic
-Update the merchant-facing reward/promotion setup so labels and previews always match the selected rule type.
+### 1. Fix the loyalty card visual quality
+Refine `src/components/customer/LoyaltyCardFlip.tsx`, `src/components/Barcode.tsx`, and `src/components/QRCodeDisplay.tsx` so the card looks crisp instead of soft or blurred.
 
-What to change:
-- Separate plain rewards from promotion rules conceptually:
-  - `rewards` = redeemable perks with points required
-  - `promotion_rules` = earn/visit/spend triggers like “Buy 5, get 1 free”
-- Replace unclear combinations like “buy one and get 10% points” with type-safe combinations:
-  - Buy X items → Free item / Discount % / Bonus points
-  - Spend $X → Free item / Discount % / Bonus points
-  - Visit X times → Free item / Discount % / Bonus points
-- Add clearer preview text in merchant promotion screens so the sentence reads naturally before saving.
-- Normalize customer-facing reward chips so raw enum values like `discount_percent` or `bonus_points` become premium readable labels.
+What to fix:
+- remove visually blurry barcode/QR presentation caused by transparent backgrounds and SVG scaling inside soft containers
+- replace tiny low-contrast copy on the card back with cleaner wording
+- improve the card proportions and spacing so it reads like a real loyalty card, not a panel
 
 Recommended implementation:
-- Add formatting helpers in a shared utility for:
-  - reward type labels
-  - promotion rule summaries
-  - promotion reward summaries
-- Use the same helper in:
-  - `src/pages/MerchantPromotions.tsx`
-  - `src/pages/MerchantMarketing.tsx`
-  - customer reward/store views where reward types are shown
+- give the barcode and QR code solid white surfaces instead of transparent rendering
+- set explicit SVG dimensions / classes so barcode and QR render at native size without browser scaling blur
+- tighten front-side typography:
+  - reduce excessive letter spacing on the card number
+  - prevent cramped text blocks
+  - improve contrast on labels
+- update back-side copy to something clearer, e.g.:
+  - eyebrow: `Use at checkout`
+  - title: `Scan your loyalty ID`
+  - helper: `Present this code or barcode to earn points in store`
+- keep the flip interaction, but make the back layout cleaner:
+  - barcode first
+  - QR secondary
+  - concise footer with name + issued date
 
-### 2. Upgrade the Card tab into a premium interactive loyalty card
-Redesign the current card section so it feels like a real digital loyalty card instead of a static panel.
-
-What to build:
-- A front side:
-  - PerkBack branding
-  - member name
-  - CRN
-  - card number
-  - subtle chip / gloss / layered gradients
-- A back side:
-  - barcode
-  - QR code
-  - issued date
-  - “ready at checkout” style supporting copy
-- Tap-to-flip interaction:
-  - tap the card to rotate
-  - smooth 3D flip
-  - keep action buttons below the card
-
-Recommended implementation:
-- Extract the card UI into a dedicated component, e.g. `src/components/customer/LoyaltyCardFlip.tsx`
-- Keep wallet, copy, and share buttons outside the flip surface
-- Reuse current `Barcode` and `QRCodeDisplay` components
-- Follow the existing prototype direction from `MobileCustomerPrototype` but adapt it to live data
-
-### 3. Make Explore search simpler and more accurate
-Simplify the Explore top controls so search feels useful immediately.
+### 2. Make the card back feel intentional, not duplicated
+The current back side repeats “Scan to identify” and feels generic.
 
 What to change:
-- Keep a single strong search bar as the primary control
-- Improve merchant matching to search against:
-  - store name
-  - industry
-  - address
-- Normalize search:
-  - trim whitespace
-  - lowercase
-  - split terms so multi-word queries behave better
-- Sort results more intentionally:
-  1. exact/strong name matches
-  2. joined stores
-  3. closest stores when location is available
-  4. then alphabetical
+- remove duplicate helper wording beneath the QR if the screen already says it above
+- treat barcode as the primary checkout identifier
+- make QR the secondary fast-scan option
+- keep only one supporting message
 
-Recommended Explore layout:
+Recommended card-back structure:
 ```text
-Search bar
-Closest store CTA (if location available)
-Swipeable merchant card
-Dots / swipe indicator
+Use at checkout
+Scan your loyalty ID
+
+[ Barcode panel ]
+[ QR panel ]
+
+Present this at participating stores
+Issued date • member name
 ```
 
-Also refine the “Closest to you” behavior:
-- make it more prominent
-- let the CTA jump directly into the store detail view
-- if location permission is missing, simply hide this block gracefully
+### 3. Fix the Explore join-store logic in the dashboard
+The existing backend function already exists (`join_merchant`), so the main work is making the frontend flow robust and obvious.
 
-### 4. Add a Join Store action for not-yet-joined customers
-When a customer opens a store from Explore and hasn’t joined it yet, give them a clear way to join that store and unlock the full rewards relationship.
+Likely issue in current dashboard flow:
+- the join action depends on a refetch to refresh membership state
+- after join, the UI switches tabs but does not guarantee a clean “joined store” state transition
+- loading/error handling is minimal, so failed joins are hard to diagnose in the UI
 
 What to build:
-- In the shared store detail view:
-  - if joined: show normal store info/rewards state
-  - if not joined: show a primary “Join Store” CTA
-- After joining:
-  - create the customer-store relationship
-  - update the UI immediately
-  - switch the store into joined mode
-  - allow rewards/details to behave like My Store
+- add an explicit join flow in `src/pages/AccessCard.tsx` and `src/components/customer/StoreDetailView.tsx`
+- when user taps Join Store:
+  - disable the button immediately
+  - call `join_merchant`
+  - update local joined-store state optimistically
+  - keep the selected store open
+  - switch the store detail into joined mode without making the user reopen it
+  - then optionally move the user into Rewards context after success
 
-Important backend note:
-- The current access rules only allow customers to read `customer_merchants`, not insert into it.
-- This requires a backend change before the Explore join action can work safely.
+Recommended behavior after success:
+- stay on the same store detail screen
+- replace the join prompt with:
+  - points
+  - rewards
+  - offers
+  - gamification / progress (if enabled)
+- show a success toast like:
+  - `You joined {store_name}`
 
-Recommended backend approach:
-- Add a secure database function or policy for customer self-join
-- Validate that:
-  - the authenticated user owns the customer profile
-  - the merchant exists
-  - duplicates are prevented
-- Prefer an RPC or controlled backend function over broad open insert rules
+### 4. Harden join-state detection before and after RPC
+Make sure the UI correctly knows whether the customer is already joined.
 
-### 5. Remove the recommendation panel from Explore
-Delete the recommendation message at the bottom of `ExploreTab` so the screen ends cleanly after the merchant browser.
+Implementation details:
+- derive `isJoined` from `customerMerchants` as today, but also introduce a temporary local joined override immediately after a successful join
+- avoid waiting only on `fetchData()` to change the UI
+- preserve selected merchant id when refetching
+- if the RPC returns success but the relationship already existed, treat it as success and update the UI the same way
 
-### 6. Keep one shared store detail flow for both My Stores and Explore
-Continue using the same dedicated in-dashboard store page for:
-- joined stores from My Stores
-- discovered stores from Explore
+Recommended state additions in `AccessCard.tsx`:
+- a local set/map for merchants joined in-session
+- a dedicated success path that:
+  - marks merchant joined locally
+  - refreshes customer + merchant relationship data
+  - keeps `activeStoreViewMerchantId` unchanged
 
-Refine it so:
-- joined stores show points, offers, rewards, visits, and directions
-- not-joined stores show store details and a Join Store action first
-- back behavior still returns to the correct source tab
+### 5. Improve error handling for join-store failures
+Make join failures visible and actionable.
 
-### 7. Files to update
-Frontend:
-- `src/pages/AccessCard.tsx`
-- `src/components/customer/ExploreTab.tsx`
-- `src/components/customer/StoreDetailView.tsx`
-- `src/components/customer/StoreRewardActionDialog.tsx`
-- new `src/components/customer/LoyaltyCardFlip.tsx`
-- new shared formatter utility, e.g. `src/lib/rewardFormatting.ts`
+What to add:
+- better parsing of RPC response errors
+- clearer messages for:
+  - not authenticated
+  - customer profile missing
+  - merchant not found
+  - generic join failure
+- a fallback retry action in the join section if needed
 
-Merchant reward logic:
-- `src/pages/MerchantPromotions.tsx`
-- `src/pages/MerchantMarketing.tsx`
-- optionally `src/pages/MerchantRewards.tsx` for reward type label consistency
+Recommended user-facing copy:
+- `Please sign in to join this store.`
+- `We couldn’t link your loyalty profile yet. Please try again.`
+- `This store is unavailable right now.`
 
-Backend:
-- new database migration to support customer self-join safely for `customer_merchants`
+### 6. Fix the QR poster / slug-based join flow so failures aren’t hidden
+The QR entry flow in `src/pages/CustomerJoin.tsx` has a reliability problem: it navigates away in `finally`, which can hide actual link failures.
 
-### 8. Recommended final UX
-Best direction for PerkBack:
+What to change:
+- do not redirect to `/customer/access-card` unconditionally in the auto-link effect
+- only redirect after confirmed success
+- if linking fails:
+  - keep the user on the join screen
+  - show the error
+  - offer retry / sign-in / continue options
+- if already linked, treat it as success and continue
+
+Recommended improvement:
+- extract a shared `linkCustomerToMerchant` helper used by:
+  - `CustomerJoin.tsx`
+  - dashboard Explore join flow
+- normalize success/error handling across both entry points
+
+### 7. Add a simple join-flow wireframe in the implementation
+Use the following flow as the target UX:
 
 ```text
-Rewards
-- total points
-- My Stores
-- clear rewards
-
-Card
-- premium flip loyalty card
-- barcode + QR on reverse
-
 Explore
-- one search bar
-- closest store prompt
-- swipe one merchant at a time
-- open shared store page
-- join store if not yet joined
+  -> Open store detail
+      -> If not joined:
+         [Hero]
+         [Join Store CTA]
+         [Preview of rewards/offers]
+      -> Tap Join Store
+         [Joining...]
+      -> Success
+         [Same store detail stays open]
+         [Points / rewards / offers now visible]
+         [Back returns to Explore]
 ```
 
-This keeps the app elegant and easy to understand:
-- Rewards = what I’ve earned
-- Card = my wallet credential
-- Explore = where I want to join next
+QR / poster flow:
+```text
+Poster QR
+  -> Join landing
+  -> Sign in / create wallet
+  -> Link to merchant
+  -> Success screen
+  -> Open Access Card
+```
+
+### 8. Files to update
+Frontend:
+- `src/components/customer/LoyaltyCardFlip.tsx`
+- `src/components/Barcode.tsx`
+- `src/components/QRCodeDisplay.tsx`
+- `src/pages/AccessCard.tsx`
+- `src/components/customer/StoreDetailView.tsx`
+- `src/pages/CustomerJoin.tsx`
+
+Optional shared helper:
+- new shared utility for merchant-linking flow if needed, e.g. `src/lib/customerMerchantJoin.ts`
+
+### 9. Technical notes
+- no new database migration is required because `join_merchant` and `join_merchant_by_slug` already exist
+- the main fixes are frontend state handling, redirect logic, and clearer UI states
+- keep auth/session behavior unchanged
+- preserve the existing in-dashboard shared store detail flow
+
+### 10. Expected final result
+After this pass:
+- the loyalty card will render sharply with cleaner wording and a more premium feel
+- the back of the card will look intentional and readable
+- joining a merchant from Explore will work reliably and update the store page immediately
+- joining from QR/slug flow will no longer hide failures behind an automatic redirect
