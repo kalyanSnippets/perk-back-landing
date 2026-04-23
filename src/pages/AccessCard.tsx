@@ -435,6 +435,7 @@ const AccessCard = () => {
   const dashboardSectionShell = "rounded-[28px] border border-border/35 bg-card/90 shadow-card backdrop-blur-sm";
   const issuedDate = customer.card_issued_at ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const displayPoints = customer.points_balance;
+  const hasLoyaltyCardNumber = Boolean(customer.loyalty_card_number);
 
   const rewardMerchant = selectedReward
     ? allMerchantCards.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
@@ -594,11 +595,14 @@ const AccessCard = () => {
 
               <ScrollReveal delay={50}>
                 <div className="space-y-3 rounded-[22px] border border-border/40 bg-muted/20 p-3 shadow-card">
+                  {!hasLoyaltyCardNumber && (
+                    <p className="text-xs text-muted-foreground">Your scan code is still syncing. It should appear on the back of the card shortly.</p>
+                  )}
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")}>
+                    <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={() => handleCopy("Card Number", customer.loyalty_card_number || "")} disabled={!hasLoyaltyCardNumber}>
                       <Copy size={13} /> Copy
                     </Button>
-                    <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={handleShare}>
+                    <Button variant="outline" size="sm" className="h-9 flex-1 gap-1.5 border-border/50 bg-card text-xs" onClick={handleShare} disabled={!hasLoyaltyCardNumber}>
                       <Share2 size={13} /> Share
                     </Button>
                   </div>
