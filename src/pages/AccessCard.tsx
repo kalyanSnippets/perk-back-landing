@@ -41,6 +41,7 @@ interface TransactionData { id: string; merchant_name: string; merchant_id: stri
 interface RewardData { id: string; title: string; description: string | null; points_required: number; reward_type: string; is_limited_time: boolean; expires_at: string | null; merchant_id: string; store_name?: string; image_url?: string | null; }
 interface CampaignData { id: string; title: string; description: string | null; ai_generated: boolean | null; image_url: string | null; target_segment: string | null; merchant_id: string; store_name?: string; }
 interface MonthlyOfferData { id: string; title: string; description: string | null; valid_from: string | null; valid_to: string | null; merchant_id: string; store_name?: string; }
+interface RedemptionData { id: string; reward_id: string; reward_title: string; redemption_code: string; points_spent: number; status: string; redeemed_at: string | null; expires_at: string; }
 interface MerchantCardData extends CustomerMerchantData { rewardCount: number; offerCount: number; bannerImage: string; latitude?: number | null; longitude?: number | null; isJoined?: boolean; }
 type MainTab = "my-rewards" | "my-card" | "explore" | "profile";
 type StoreViewSource = "my-rewards" | "explore";
@@ -72,6 +73,7 @@ const AccessCard = () => {
   const [rewards, setRewards] = useState<RewardData[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [monthlyOffers, setMonthlyOffers] = useState<MonthlyOfferData[]>([]);
+  const [redemptions, setRedemptions] = useState<RedemptionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [pointsVisible, setPointsVisible] = useState(false);
   const { isAdmin, isMerchant, logout } = useAuth();
@@ -219,7 +221,7 @@ const AccessCard = () => {
     if (!customerData.loyalty_card_number) { navigate("/customer/confirmation"); return; }
     setCustomer(customerData);
 
-    const [cmRes, txRes, merchantsRes, rewardsRes, campaignsRes, offersRes] = await Promise.all([
+    const [cmRes, txRes, merchantsRes, rewardsRes, campaignsRes, offersRes, redemptionsRes] = await Promise.all([
       supabase
         .from("customer_merchants")
         .select("merchant_id, points_balance, total_spend, visit_count, last_visit_at")
@@ -229,6 +231,7 @@ const AccessCard = () => {
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
+      supabase.from("redemptions").select("id, reward_id, reward_title, redemption_code, points_spent, status, redeemed_at, expires_at").eq("customer_id", customerData.id).order("created_at", { ascending: false }),
     ]);
 
     setTransactions(txRes.data || []);
@@ -268,6 +271,7 @@ const AccessCard = () => {
     setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
     setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
+    setRedemptions((redemptionsRes.data as RedemptionData[] | null) || []);
 
     const merchantIds = cmList.map((merchant) => merchant.merchant_id);
     if (merchantIds.length > 0) {
@@ -566,6 +570,9 @@ const AccessCard = () => {
 
   const rewardMerchant = selectedReward
     ? allMerchantCards.find((merchant) => merchant.merchant_id === selectedReward.merchant_id) ?? null
+    : null;
+  const selectedRewardRedemption = selectedReward
+    ? redemptions.find((redemption) => redemption.reward_id === selectedReward.id) ?? null
     : null;
   const rewardDirectionsUrl = getDirectionsUrl(rewardMerchant?.address);
 
@@ -960,6 +967,7 @@ const AccessCard = () => {
           onOpenChange={(open) => !open && setSelectedReward(null)}
           reward={selectedReward}
           pointsBalance={rewardMerchant?.points_balance ?? 0}
+          redemption={selectedRewardRedemption}
           directionsUrl={rewardDirectionsUrl}
           address={rewardMerchant?.address}
           redeeming={redeeming === selectedReward?.id}
