@@ -1,142 +1,69 @@
 
-Refine the customer access card experience across the card, explore flow, and profile tab so it feels cleaner, simpler, and closer to the shared mobile reference.
+Restore the profile tab’s original information architecture while keeping the newer visual styling aligned to your reference image.
 
 ### What to change
 
-### 1. Fix the loyalty card front layout
-Update `src/components/customer/LoyaltyCardFlip.tsx` so the points section no longer competes with the logo.
+### 1. Keep the existing profile options and data exactly as before
+Update `src/pages/AccessCard.tsx` so the profile tab preserves the same content set that existed before the redesign.
 
-What to adjust:
-- restructure the front face into a stricter vertical layout:
-  - eyebrow
-  - logo
-  - points value
-  - points label directly under the points value
-  - member details
-  - card number
-- reduce the visual height taken by the logo block
-- add a clear spacing gap between logo and points block
-- keep the card premium, but remove any layout choices that let the logo overlap or visually crowd the points content
+What this means:
+- keep the original profile information/options already available in the profile section
+- do not replace them with new categories or substitute different settings
+- do not remove any existing profile information that was previously shown
+- if any labels or values were changed during the redesign, restore them to the prior profile content model
 
 Result:
-- points and points label read clearly
-- front face feels aligned and intentional
-- layout matches the cleaner digital-card look you want
+- the profile section keeps the same options and account information as before
+- only the appearance changes, not the profile content structure
 
-### 2. Remove duplicate copy actions and simplify card actions
-Right now copy actions appear both inside the flip card and again below it.
+### 2. Restyle the profile screen to match the shared mobile reference
+Apply the visual language from your screenshot to the existing profile content.
 
-Update:
-- `src/components/customer/LoyaltyCardFlip.tsx`
-- `src/pages/AccessCard.tsx`
-
-What to change:
-- remove the inline action row from `LoyaltyCardFlip.tsx` entirely
-- keep only one simplified copy action in the card tab action panel below the card
-- keep Share and wallet actions grouped cleanly below the card
-- if useful, rename the surviving button more clearly, such as “Copy card number”
-
-Result:
-- no repeated copy controls
-- cleaner card tab
-- one obvious place for card actions
-
-### 3. Fix scroll position when opening a store from Explore
-The current store open flow changes internal state but does not reset scroll, so the user can land midway down the page.
-
-Update `src/pages/AccessCard.tsx`:
-- add an explicit scroll reset inside `openStoreView`
-- scroll to the top immediately after switching into the store detail state
-- also reset scroll when closing the store detail if needed so returning to Explore/Rewards feels stable
-
-Recommended behavior:
-```text
-Open store -> page scrolls to top
-Back to Explore/Rewards -> page scrolls to top
-```
+What to update:
+- keep the blue summary/header card at the top
+- keep the cleaner grouped card/list presentation
+- use simplified row styling with:
+  - left icon
+  - label/value content
+  - right-side chevron or control
+- tighten spacing, borders, radii, and shadows so it feels closer to the mobile design reference
+- make the profile page feel visually modern and simplified without inventing new settings
 
 Result:
-- store detail always opens from the beginning
-- no landing in the middle or bottom of the page
-- navigation feels deliberate on mobile
+- same profile options as before
+- cleaner design that reflects the image you shared
 
-### 4. Redesign the profile tab to match the shared reference
-Rebuild the profile section in `src/pages/AccessCard.tsx` so it follows the visual structure from the uploaded screenshot instead of the current utility-style cards.
+### 3. Preserve real account data and prior actions
+Use the real data already available in the page and make sure prior actions remain accessible.
 
-### New profile structure
-Use a top summary card, then grouped settings sections.
-
-#### A. Header summary card
-Create a blue profile summary card with:
-- initials/avatar circle on the left
-- customer full name
-- member since month/year
-- CRN on the same metadata line
-- a bottom stat row for:
-  - points
-  - cards
-  - visits
-
-Notes:
-- points can come from `customer.points_balance`
-- cards can be a simple derived count based on joined merchants or a safe MVP count
-- visits can use a derived total from `customerMerchants`
-
-#### B. Simplified grouped list sections
-Replace the current:
-- Profile info card
-- Account settings card
-- Pages card
-
-With grouped rows closer to the reference, such as:
-
-```text
-PERSONAL DETAILS
-- Name & email
-- Date of birth
-- Saved addresses
-
-WALLET & PAYMENTS
-- Linked wallets
-- Gift cards
-
-PREFERENCES
-- Notifications
-- Birthday perks
-```
-
-Implementation approach:
-- use reusable row styling with icon, title, right-side value, and chevron/toggle
-- populate with real available customer data where it exists
-- use safe placeholder/future-ready values only where the app does not yet support a full detail screen
-- keep the options visually simplified even if some are non-editable for now
-
-#### C. Logout button anchored at the bottom
-Move logout out of the middle of the settings content and place it at the bottom of the profile tab.
-
-What to do:
-- keep the destructive delete-account action separate and lower priority
-- place “Log out” as the final main action at the bottom of the profile page
-- ensure spacing makes it feel detached from normal settings rows
+Keep:
+- customer identity/account details already shown in the old profile
+- any existing navigational/account rows that were part of the prior profile section
+- logout at the bottom
+- delete account separate and lower priority
 
 Result:
-- profile feels like a proper mobile account screen
-- options are simplified and easier to scan
-- logout is where users expect it
+- nothing important disappears from the profile
+- the page looks updated, but functionality stays familiar
+
+### 4. Review section ordering so styling changes do not alter meaning
+Reorder only if needed for visual polish, but do not change what the user can access.
+
+Implementation rule:
+- styling/layout can be modernized
+- content inventory must match the earlier profile experience
+- no newly invented replacement sections unless they map directly to the old rows/options
 
 ### Files to update
-- `src/components/customer/LoyaltyCardFlip.tsx`
 - `src/pages/AccessCard.tsx`
 
 ### Expected result
 After this pass:
-- the points label will sit properly under the points value
-- duplicate copy controls will be removed
-- opening a store from Explore will always start at the top of the page
-- the profile section will look much closer to the shared design
-- logout will appear at the bottom instead of mixed into the settings cards
+- the profile screen will look like the design reference
+- the profile options/information will remain the same as the earlier version
+- logout will stay at the bottom
+- the redesign will be visual only, not a change to what the profile contains
 
 ### Technical notes
-- `ScrollToTop.tsx` already handles route changes, but the Explore/store-detail issue is state-driven inside `AccessCard.tsx`, so the fix belongs in the local `openStoreView` / `closeStoreView` handlers.
-- The current profile tab is built directly inside `AccessCard.tsx`; this redesign can either stay inline or be extracted into smaller presentational subcomponents if the file needs cleanup.
-- The customer table already exposes fields like `full_name`, `phone`, and `date_of_birth`, so the redesigned profile can use real account data without backend changes.
+- The current profile tab in `AccessCard.tsx` already has a newer visual shell; the fix is to restore the previous profile content/options inside that styled presentation.
+- The safest approach is to keep the summary card and polished row styling, but swap the current rewritten section definitions back to the earlier profile rows/data model.
