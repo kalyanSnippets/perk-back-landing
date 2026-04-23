@@ -19,6 +19,13 @@ interface StoreRewardActionDialogProps {
     image_url?: string | null;
   } | null;
   pointsBalance: number;
+  redemption?: {
+    redemption_code: string;
+    points_spent: number;
+    status: string;
+    redeemed_at: string | null;
+    expires_at: string;
+  } | null;
   directionsUrl: string | null;
   address?: string | null;
   redeeming: boolean;
@@ -30,6 +37,7 @@ const StoreRewardActionDialog = ({
   onOpenChange,
   reward,
   pointsBalance,
+  redemption,
   directionsUrl,
   address,
   redeeming,
@@ -40,6 +48,7 @@ const StoreRewardActionDialog = ({
   const progress = Math.min((pointsBalance / reward.points_required) * 100, 100);
   const readyToRedeem = progress >= 100;
   const remainingPoints = Math.max(reward.points_required - pointsBalance, 0);
+  const hasRedemption = !!redemption;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,19 +77,53 @@ const StoreRewardActionDialog = ({
           </DialogHeader>
 
           <div className="rounded-2xl border border-border/40 bg-muted/25 p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Your store points</span>
-              <span className="font-bold text-foreground">{pointsBalance}</span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Required</span>
-              <span className="font-bold text-foreground">{reward.points_required}</span>
-            </div>
-            <Progress value={progress} className="mt-3 h-2" />
+            {hasRedemption ? (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Voucher code</span>
+                  <span className="font-mono font-bold tracking-[0.18em] text-foreground">{redemption.redemption_code}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Redeemed</span>
+                  <span className="font-bold text-foreground">
+                    {redemption.redeemed_at
+                      ? new Date(redemption.redeemed_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+                      : "Just now"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Expires</span>
+                  <span className="font-bold text-foreground">
+                    {new Date(redemption.expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Points spent</span>
+                  <span className="font-bold text-foreground">{redemption.points_spent}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Your store points</span>
+                  <span className="font-bold text-foreground">{pointsBalance}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Required</span>
+                  <span className="font-bold text-foreground">{reward.points_required}</span>
+                </div>
+                <Progress value={progress} className="mt-3 h-2" />
+              </>
+            )}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
                 <Gift size={12} className="text-secondary" /> {getRewardTypeLabel(reward.reward_type)}
               </span>
+              {hasRedemption && redemption?.status && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
+                  <Ticket size={12} className="text-secondary" /> {redemption.status}
+                </span>
+              )}
               {reward.is_limited_time && reward.expires_at && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
                   <Clock size={12} className="text-accent-foreground" />
@@ -99,7 +142,7 @@ const StoreRewardActionDialog = ({
             </div>
           )}
 
-          {!readyToRedeem && (
+          {!hasRedemption && !readyToRedeem && (
             <p className="text-sm text-muted-foreground">
               You need <span className="font-semibold text-foreground">{remainingPoints} more points</span> before this reward is ready.
             </p>
@@ -113,7 +156,7 @@ const StoreRewardActionDialog = ({
                 </a>
               </Button>
             )}
-            {readyToRedeem && (
+            {!hasRedemption && readyToRedeem && (
               <Button variant="outline" className="w-full gap-2" onClick={() => onRedeem(reward.id)} disabled={redeeming}>
                 <Ticket size={16} /> {redeeming ? "Redeeming..." : "Redeem Reward"}
               </Button>
