@@ -8,9 +8,6 @@ import {
   ArrowRight, Shield, Copy, Share2,
   CheckCircle, XCircle, Info, Store, MapPin, LogOut, Megaphone,
 } from "lucide-react";
-import perkbackLogo from "@/assets/perkback-logo.webp";
-import Barcode from "@/components/Barcode";
-import QRCodeDisplay from "@/components/QRCodeDisplay";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +23,8 @@ import { getIndustryImage } from "@/lib/industryImages";
 import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
 import StoreRewardActionDialog from "@/components/customer/StoreRewardActionDialog";
+import LoyaltyCardFlip from "@/components/customer/LoyaltyCardFlip";
+import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 
 interface CustomerData { id: string; full_name: string | null; crn: string | null; loyalty_card_number: string | null; card_issued_at: string | null; points_balance: number; }
 interface CustomerMerchantData { merchant_id: string; store_name: string; points_balance: number; total_spend: number; visit_count: number; last_visit_at: string | null; logo_url?: string | null; industry_type?: string | null; address?: string | null; }
