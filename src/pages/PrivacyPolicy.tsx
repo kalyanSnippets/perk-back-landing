@@ -1,15 +1,15 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import PublicPageFrame from "@/components/shared/PublicPageFrame";
+import { useEmbeddedPublicPage } from "@/hooks/useEmbeddedPublicPage";
 
 const PrivacyPolicy = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
+  const { isEmbedded, backHref } = useEmbeddedPublicPage();
 
-      <div className="pt-24 pb-16 sm:pt-32">
+  return (
+    <PublicPageFrame isEmbedded={isEmbedded} backHref={backHref} title="Privacy Policy">
+      <div className={isEmbedded ? "pb-10 pt-2" : "pt-24 pb-16 sm:pt-32"}>
         <div className="container mx-auto px-4 lg:px-8 max-w-3xl">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">Privacy Policy</h1>
           <p className="text-sm text-muted-foreground mb-8">Last updated: March 2026</p>
@@ -82,14 +82,12 @@ const PrivacyPolicy = () => {
 
           <div className="mt-10">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/"><ArrowLeft size={16} /> Back to Home</Link>
+              <Link to={isEmbedded ? backHref : "/"}><ArrowLeft size={16} /> {isEmbedded ? "Back" : "Back to Home"}</Link>
             </Button>
           </div>
         </div>
       </div>
-
-      <Footer />
-    </div>
+    </PublicPageFrame>
   );
 };
 
