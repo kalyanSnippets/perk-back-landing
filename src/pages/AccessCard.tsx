@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  Star, Calendar, Hash, User, CreditCard,
+  Star, Hash, User, CreditCard,
   ArrowRight, Shield, Copy, Share2, CheckCircle,
   XCircle, Store, MapPin, LogOut, Megaphone,
-  ChevronRight, Bell, Gift, Wallet,
+  ChevronRight, Info,
 } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import ExploreTab from "@/components/customer/ExploreTab";
@@ -20,7 +20,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
 import { getIndustryImage } from "@/lib/industryImages";
 import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
@@ -67,8 +66,6 @@ const AccessCard = () => {
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [joiningMerchantId, setJoiningMerchantId] = useState<string | null>(null);
   const [joinedMerchantOverrides, setJoinedMerchantOverrides] = useState<Record<string, true>>({});
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [birthdayPerksEnabled, setBirthdayPerksEnabled] = useState(true);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
