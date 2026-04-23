@@ -1,179 +1,149 @@
 
-Polish the loyalty card rendering and harden the merchant join flow so both feel reliable and premium on mobile.
+Refine the loyalty card so it matches the uploaded reference more closely: cleaner alignment on the front, a more realistic premium card feel, and a properly laid-out back with crisp QR/barcode rendering.
 
-### 1. Fix the loyalty card visual quality
-Refine `src/components/customer/LoyaltyCardFlip.tsx`, `src/components/Barcode.tsx`, and `src/components/QRCodeDisplay.tsx` so the card looks crisp instead of soft or blurred.
+### What to change
 
-What to fix:
-- remove visually blurry barcode/QR presentation caused by transparent backgrounds and SVG scaling inside soft containers
-- replace tiny low-contrast copy on the card back with cleaner wording
-- improve the card proportions and spacing so it reads like a real loyalty card, not a panel
+### 1. Rebuild the front of the loyalty card around the reference layout
+Update `src/components/customer/LoyaltyCardFlip.tsx` so the front side looks like a real digital loyalty card instead of an information panel.
 
-Recommended implementation:
-- give the barcode and QR code solid white surfaces instead of transparent rendering
-- set explicit SVG dimensions / classes so barcode and QR render at native size without browser scaling blur
-- tighten front-side typography:
-  - reduce excessive letter spacing on the card number
-  - prevent cramped text blocks
-  - improve contrast on labels
-- update back-side copy to something clearer, e.g.:
-  - eyebrow: `Use at checkout`
-  - title: `Scan your loyalty ID`
-  - helper: `Present this code or barcode to earn points in store`
-- keep the flip interaction, but make the back layout cleaner:
-  - barcode first
-  - QR secondary
-  - concise footer with name + issued date
-
-### 2. Make the card back feel intentional, not duplicated
-The current back side repeats “Scan to identify” and feels generic.
-
-What to change:
-- remove duplicate helper wording beneath the QR if the screen already says it above
-- treat barcode as the primary checkout identifier
-- make QR the secondary fast-scan option
-- keep only one supporting message
-
-Recommended card-back structure:
+Target front-side structure:
 ```text
-Use at checkout
-Scan your loyalty ID
+DIGITAL LOYALTY
+PerkBack
 
-[ Barcode panel ]
-[ QR panel ]
+POINTS BALANCE
+1,284
 
-Present this at participating stores
-Issued date • member name
+MEMBER
+Customer Name
+
+Card number aligned bottom-right
 ```
-
-### 3. Fix the Explore join-store logic in the dashboard
-The existing backend function already exists (`join_merchant`), so the main work is making the frontend flow robust and obvious.
-
-Likely issue in current dashboard flow:
-- the join action depends on a refetch to refresh membership state
-- after join, the UI switches tabs but does not guarantee a clean “joined store” state transition
-- loading/error handling is minimal, so failed joins are hard to diagnose in the UI
-
-What to build:
-- add an explicit join flow in `src/pages/AccessCard.tsx` and `src/components/customer/StoreDetailView.tsx`
-- when user taps Join Store:
-  - disable the button immediately
-  - call `join_merchant`
-  - update local joined-store state optimistically
-  - keep the selected store open
-  - switch the store detail into joined mode without making the user reopen it
-  - then optionally move the user into Rewards context after success
-
-Recommended behavior after success:
-- stay on the same store detail screen
-- replace the join prompt with:
-  - points
-  - rewards
-  - offers
-  - gamification / progress (if enabled)
-- show a success toast like:
-  - `You joined {store_name}`
-
-### 4. Harden join-state detection before and after RPC
-Make sure the UI correctly knows whether the customer is already joined.
 
 Implementation details:
-- derive `isJoined` from `customerMerchants` as today, but also introduce a temporary local joined override immediately after a successful join
-- avoid waiting only on `fetchData()` to change the UI
-- preserve selected merchant id when refetching
-- if the RPC returns success but the relationship already existed, treat it as success and update the UI the same way
+- use a cleaner blue gradient with softer decorative rings, closer to the reference
+- remove the current crowded CRN / issued split layout from the front
+- keep the front focused on:
+  - brand
+  - points balance
+  - member name
+  - card number
+- align content in larger blocks with more negative space
+- place the card number at the bottom-right like the reference
+- reduce icon clutter on the front and replace the current generic card icon treatment with a more premium chip/orb accent
 
-Recommended state additions in `AccessCard.tsx`:
-- a local set/map for merchants joined in-session
-- a dedicated success path that:
-  - marks merchant joined locally
-  - refreshes customer + merchant relationship data
-  - keeps `activeStoreViewMerchantId` unchanged
+### 2. Rebuild the back of the card into a horizontal scan layout
+The current back stacks barcode and QR vertically, which is why it does not resemble the reference and feels misaligned.
 
-### 5. Improve error handling for join-store failures
-Make join failures visible and actionable.
-
-What to add:
-- better parsing of RPC response errors
-- clearer messages for:
-  - not authenticated
-  - customer profile missing
-  - merchant not found
-  - generic join failure
-- a fallback retry action in the join section if needed
-
-Recommended user-facing copy:
-- `Please sign in to join this store.`
-- `We couldn’t link your loyalty profile yet. Please try again.`
-- `This store is unavailable right now.`
-
-### 6. Fix the QR poster / slug-based join flow so failures aren’t hidden
-The QR entry flow in `src/pages/CustomerJoin.tsx` has a reliability problem: it navigates away in `finally`, which can hide actual link failures.
-
-What to change:
-- do not redirect to `/customer/access-card` unconditionally in the auto-link effect
-- only redirect after confirmed success
-- if linking fails:
-  - keep the user on the join screen
-  - show the error
-  - offer retry / sign-in / continue options
-- if already linked, treat it as success and continue
-
-Recommended improvement:
-- extract a shared `linkCustomerToMerchant` helper used by:
-  - `CustomerJoin.tsx`
-  - dashboard Explore join flow
-- normalize success/error handling across both entry points
-
-### 7. Add a simple join-flow wireframe in the implementation
-Use the following flow as the target UX:
-
+New back layout:
 ```text
-Explore
-  -> Open store detail
-      -> If not joined:
-         [Hero]
-         [Join Store CTA]
-         [Preview of rewards/offers]
-      -> Tap Join Store
-         [Joining...]
-      -> Success
-         [Same store detail stays open]
-         [Points / rewards / offers now visible]
-         [Back returns to Explore]
+SCAN AT CHECKOUT           CRN 48123
+
+[ QR ]   [ Barcode ]
+
+Issued 14 Mar 2026 · Tap card to flip back
 ```
 
-QR / poster flow:
-```text
-Poster QR
-  -> Join landing
-  -> Sign in / create wallet
-  -> Link to merchant
-  -> Success screen
-  -> Open Access Card
-```
+Implementation details:
+- place QR and barcode side-by-side on mobile, matching the reference
+- make QR left-aligned and barcode take the wider right section
+- move CRN into the top-right corner
+- keep only one footer line with issued date + flip hint
+- remove duplicated helper wording and oversized heading block
+- use a white card face with restrained grey labels, similar to the uploaded screenshot
+
+### 3. Make barcode rendering crisp and dimensionally stable
+Update `src/components/Barcode.tsx` so the barcode renders at a fixed native size without soft scaling blur.
+
+What to adjust:
+- stop forcing `width="100%"` on the barcode SVG
+- generate the barcode with explicit dimensions appropriate for the card back layout
+- wrap the barcode in a fixed-size container so the browser does not stretch it
+- tune:
+  - bar width
+  - bar height
+  - display value spacing
+  - margin
+  - font size
+- ensure white background is preserved and that the barcode remains readable on high-DPR mobile screens
+
+Recommended result:
+- barcode sits cleanly in the right half of the card
+- number label is centered beneath the bars
+- no fuzzy edges caused by container scaling
+
+### 4. Make QR rendering crisp and visually balanced
+Update `src/components/QRCodeDisplay.tsx` to behave like a fixed-size code tile rather than a responsive block.
+
+What to adjust:
+- render QR at an explicit size suited to the left column of the back layout
+- add a solid white background tile with controlled padding
+- avoid extra scaling from parent flex/stretch behavior
+- keep margins consistent with the barcode block
+
+Recommended result:
+- QR is square, sharp, and vertically aligned with the barcode block
+- both scan surfaces look like part of one designed card face
+
+### 5. Clean up the data hierarchy on both sides
+The current details feel scattered.
+
+Recommended information split:
+- Front:
+  - PerkBack branding
+  - points balance
+  - member name
+  - loyalty card number
+- Back:
+  - scan instruction
+  - CRN
+  - QR
+  - barcode
+  - issued date
+
+Do not show:
+- duplicate “scan your loyalty ID” style copy
+- too many labels at once
+- front-side issued date if it makes the design busier
+
+### 6. Make the card proportions feel closer to a real wallet card
+Refine the flip container and spacing in `LoyaltyCardFlip.tsx`:
+- use a more card-like aspect ratio
+- slightly wider and less tall feel
+- tighten corner radius and surface shadows
+- use subtle depth instead of heavy panel styling
+- keep the tap-to-flip interaction, but make the transition calmer and more premium
+
+### 7. Simplify the surrounding Card tab content so the card stands out
+In `src/pages/AccessCard.tsx`, reduce visual competition around the loyalty card.
+
+Recommended cleanup:
+- keep wallet buttons and copy/share buttons below the card
+- reduce or remove the extra “Card Details” panel if it duplicates what the card already communicates
+- preserve actions, but visually prioritize the card itself first
 
 ### 8. Files to update
-Frontend:
 - `src/components/customer/LoyaltyCardFlip.tsx`
 - `src/components/Barcode.tsx`
 - `src/components/QRCodeDisplay.tsx`
 - `src/pages/AccessCard.tsx`
-- `src/components/customer/StoreDetailView.tsx`
-- `src/pages/CustomerJoin.tsx`
 
-Optional shared helper:
-- new shared utility for merchant-linking flow if needed, e.g. `src/lib/customerMerchantJoin.ts`
+### 9. Reference alignment
+Use the uploaded screenshots as the design reference:
+- `IMG_6426.jpeg` for the front-side composition
+- `IMG_6427.png` for the back-side composition
 
-### 9. Technical notes
-- no new database migration is required because `join_merchant` and `join_merchant_by_slug` already exist
-- the main fixes are frontend state handling, redirect logic, and clearer UI states
-- keep auth/session behavior unchanged
-- preserve the existing in-dashboard shared store detail flow
+Key visual traits to mirror:
+- larger, simpler typography blocks
+- more whitespace
+- card number anchored bottom-right
+- QR + barcode on one row
+- understated grey helper text on the back
+- premium blue front with soft highlights
 
-### 10. Expected final result
-After this pass:
-- the loyalty card will render sharply with cleaner wording and a more premium feel
-- the back of the card will look intentional and readable
-- joining a merchant from Explore will work reliably and update the store page immediately
-- joining from QR/slug flow will no longer hide failures behind an automatic redirect
+### 10. Expected result
+After this update:
+- the loyalty card front will look closer to the reference design
+- details will be aligned cleanly and feel intentional
+- the back will display QR and barcode properly in a premium horizontal scan layout
+- the card will feel like an actual digital loyalty card rather than a generic info panel
