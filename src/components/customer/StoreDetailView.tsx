@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import StampCardProgress from "@/components/customer/StampCardProgress";
 import NfcTapButton from "@/components/customer/NfcTapButton";
 import MerchantStatusCard from "@/components/customer/MerchantStatusCard";
+import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 
 interface RewardData {
   id: string;
@@ -70,7 +71,11 @@ interface StoreDetailViewProps {
   loyaltyCardNumber: string;
   directionsUrl: string | null;
   gamification?: { stamp: boolean; streak: boolean; levels: boolean };
+  isJoined: boolean;
+  isJoining?: boolean;
+  backLabel?: string;
   onBack: () => void;
+  onJoinStore?: (merchantId: string) => void;
   onRewardSelect: (reward: RewardData) => void;
   onCampaignSelect: (campaign: CampaignData) => void;
 }
@@ -90,7 +95,11 @@ const StoreDetailView = ({
   loyaltyCardNumber,
   directionsUrl,
   gamification,
+  isJoined,
+  isJoining,
+  backLabel = "Back",
   onBack,
+  onJoinStore,
   onRewardSelect,
   onCampaignSelect,
 }: StoreDetailViewProps) => {
@@ -108,7 +117,7 @@ const StoreDetailView = ({
     <div className="space-y-4">
       <ScrollReveal>
         <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-          <ArrowLeft size={16} /> Back to My Rewards
+          <ArrowLeft size={16} /> {backLabel}
         </button>
       </ScrollReveal>
 
@@ -148,19 +157,32 @@ const StoreDetailView = ({
           <div className="grid grid-cols-3 gap-3 border-t border-border/30 bg-card p-5">
             <div>
               <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Points</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{merchant.points_balance}</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{isJoined ? merchant.points_balance : "—"}</p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Visits</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{merchant.visit_count}</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{isJoined ? merchant.visit_count : "—"}</p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Spend</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">${merchant.total_spend.toFixed(0)}</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{isJoined ? `$${merchant.total_spend.toFixed(0)}` : "—"}</p>
             </div>
           </div>
         </section>
       </ScrollReveal>
+
+      {!isJoined && (
+        <ScrollReveal delay={30}>
+          <section className="rounded-[28px] border border-border/40 bg-card p-5 shadow-card">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Join this store</p>
+            <h3 className="mt-1 text-xl font-bold text-foreground">Unlock this merchant’s rewards and offers</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Join this store to start earning points here and see your live progress on store-specific rewards.</p>
+            <Button variant="hero" className="mt-4 w-full gap-2" onClick={() => onJoinStore?.(merchant.merchant_id)} disabled={isJoining}>
+              {isJoining ? "Joining..." : `Join ${merchant.store_name}`}
+            </Button>
+          </section>
+        </ScrollReveal>
+      )}
 
       <ScrollReveal delay={40}>
         <section className="rounded-[28px] border border-border/40 bg-card p-5 shadow-card">
@@ -191,7 +213,7 @@ const StoreDetailView = ({
         </section>
       </ScrollReveal>
 
-      {gamification && (gamification.levels || gamification.streak) && (
+      {isJoined && gamification && (gamification.levels || gamification.streak) && (
         <ScrollReveal delay={60}>
           <MerchantStatusCard
             merchantId={merchant.merchant_id}
@@ -204,12 +226,12 @@ const StoreDetailView = ({
         </ScrollReveal>
       )}
 
-      <ScrollReveal delay={80}>
+      {isJoined && <ScrollReveal delay={80}>
         <div className="space-y-3">
           <StampCardProgress customerId={customerId} merchantId={merchant.merchant_id} merchantName={merchant.store_name} />
           <NfcTapButton customerId={customerId} customerCardNumber={loyaltyCardNumber} />
         </div>
-      </ScrollReveal>
+      </ScrollReveal>}
 
       {campaigns.length > 0 && (
         <ScrollReveal delay={100}>
@@ -314,7 +336,7 @@ const StoreDetailView = ({
                           {reward.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{reward.description}</p>}
                         </div>
                         <div className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                          {reward.reward_type}
+                          {getRewardTypeLabel(reward.reward_type)}
                         </div>
                       </div>
                       <div>
