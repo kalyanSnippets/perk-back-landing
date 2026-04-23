@@ -442,9 +442,6 @@ const AccessCard = () => {
   const memberSinceLabel = customer.card_issued_at
     ? new Date(customer.card_issued_at).toLocaleDateString("en-AU", { month: "short", year: "numeric" })
     : "Recently";
-  const formattedDob = customer.date_of_birth
-    ? new Date(customer.date_of_birth).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-    : "Not set";
   const customerInitials = (customer.full_name || "PerkBack Member")
     .split(" ")
     .filter(Boolean)
@@ -452,14 +449,6 @@ const AccessCard = () => {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
   const totalVisits = customerMerchants.reduce((sum, merchant) => sum + merchant.visit_count, 0);
-  const savedAddressesCount = customerMerchants.filter((merchant) => merchant.address).length;
-  const linkedWalletsLabel = deviceType === "desktop"
-    ? "Apple · Google"
-    : deviceType === "ios"
-      ? "Apple Wallet"
-      : deviceType === "android"
-        ? "Google Wallet"
-        : "Available";
   const displayPoints = customer.points_balance;
   const hasLoyaltyCardNumber = Boolean(customer.loyalty_card_number);
   const profileInfoSections = [
