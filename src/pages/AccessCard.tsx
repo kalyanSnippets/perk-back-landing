@@ -61,6 +61,7 @@ const AccessCard = () => {
   const [activeMainTab, setActiveMainTab] = useState<MainTab>("my-rewards");
   const [gamificationByMerchant, setGamificationByMerchant] = useState<Record<string, { stamp: boolean; streak: boolean; levels: boolean }>>({});
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [joiningMerchantId, setJoiningMerchantId] = useState<string | null>(null);
 
   const trackStoreSwitcherEvent = useCallback((eventName: string, merchantName?: string | null, merchantId?: string | null, source?: StoreViewSource) => {
     if (typeof window === "undefined") return;
@@ -281,6 +282,27 @@ const AccessCard = () => {
     await logout();
     toast.success("Logged out successfully");
     navigate("/get-started", { replace: true });
+  };
+
+  const handleJoinStore = async (merchantId: string) => {
+    setJoiningMerchantId(merchantId);
+    try {
+      const { data, error } = await supabase.rpc("join_merchant", { _merchant_id: merchantId, _source: "explore" });
+      if (error) throw error;
+      const result = data as { success?: boolean; error?: string } | null;
+      if (!result?.success) {
+        toast.error(result?.error || "Unable to join store");
+        return;
+      }
+      toast.success("Store joined successfully");
+      await fetchData();
+      setActiveStoreViewSource("my-rewards");
+      setActiveMainTab("my-rewards");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Unable to join store");
+    } finally {
+      setJoiningMerchantId(null);
+    }
   };
 
   const [walletLoading, setWalletLoading] = useState<string | null>(null);
@@ -633,7 +655,11 @@ const AccessCard = () => {
               loyaltyCardNumber={customer.loyalty_card_number || ""}
               directionsUrl={getDirectionsUrl(activeStoreCard.address)}
               gamification={gamificationByMerchant[activeStoreCard.merchant_id]}
+              isJoined={!!activeStoreCard.isJoined}
+              isJoining={joiningMerchantId === activeStoreCard.merchant_id}
+              backLabel={activeStoreViewSource === "explore" ? "Back to Explore" : "Back to Rewards"}
               onBack={closeStoreView}
+              onJoinStore={handleJoinStore}
               onRewardSelect={setSelectedReward}
               onCampaignSelect={(campaign) => setSelectedCampaign(campaign)}
             />
