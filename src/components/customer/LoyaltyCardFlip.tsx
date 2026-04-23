@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { Copy, Hash } from "lucide-react";
 import perkbackLogo from "@/assets/perkback-logo.webp";
 import Barcode from "@/components/Barcode";
@@ -13,6 +13,12 @@ interface LoyaltyCardFlipProps {
   pointsBalance: number;
   onCopy: (label: string, value: string) => void;
 }
+
+const faceStyle: CSSProperties = {
+  backfaceVisibility: "hidden",
+  WebkitBackfaceVisibility: "hidden",
+  transform: "translateZ(0)",
+};
 
 const LoyaltyCardFlip = ({
   fullName,
@@ -35,74 +41,93 @@ const LoyaltyCardFlip = ({
       <button
         type="button"
         onClick={() => setIsFlipped((current) => !current)}
-        className="group block w-full [perspective:1800px]"
+        className="group block w-full [perspective:2200px]"
         aria-label="Flip loyalty card"
       >
         <div
-          className="relative aspect-[1.58/1] w-full max-w-[380px] mx-auto transition-transform duration-700 ease-out"
-          style={{ transformStyle: "preserve-3d", transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
+          className="relative mx-auto aspect-[1.64/1] w-full max-w-[392px] isolate transition-transform duration-500 ease-out [transform-style:preserve-3d]"
+          style={{
+            transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            transformStyle: "preserve-3d",
+            WebkitTransformStyle: "preserve-3d",
+            willChange: "transform",
+          }}
         >
           <div
-            className="absolute inset-0 overflow-hidden rounded-[26px] border border-primary-foreground/15 bg-gradient-to-br from-primary via-secondary to-accent p-5 text-primary-foreground shadow-hero"
-            style={{ backfaceVisibility: "hidden" }}
+            className="absolute inset-0 overflow-hidden rounded-[22px] border border-primary-foreground/12 bg-gradient-to-br from-primary via-secondary to-primary-glow p-5 text-primary-foreground shadow-hero"
+            style={faceStyle}
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--background)/0.16),transparent_34%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--background)/0.04),transparent_48%,hsl(var(--background)/0.12))]" />
-            <div className="absolute right-[-1.75rem] top-6 h-36 w-36 rounded-full border border-primary-foreground/18" />
-            <div className="absolute right-6 top-10 h-24 w-24 rounded-full border border-primary-foreground/12" />
-            <div className="absolute left-5 top-[4.6rem] h-11 w-16 rounded-2xl border border-primary-foreground/28 bg-background/18 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--background)/0.14),transparent_28%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--background)/0.05),transparent_42%,hsl(var(--background)/0.1))]" />
+            <div className="absolute -right-10 -top-7 h-36 w-36 rounded-full border border-primary-foreground/14" />
+            <div className="absolute right-7 top-6 h-20 w-20 rounded-full border border-primary-foreground/10" />
 
-            <div className="relative z-10 flex h-full flex-col justify-between text-left">
-              <div className="space-y-8">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/72">Digital loyalty</p>
-                  <img src={perkbackLogo} alt="PerkBack" className="h-7 w-auto brightness-0 invert" />
+            <div className="relative z-10 grid h-full grid-rows-[auto_1fr_auto] text-left">
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/72">Digital loyalty</p>
+                <img src={perkbackLogo} alt="PerkBack" className="h-7 w-auto brightness-0 invert" />
               </div>
 
-                <div className="space-y-5 pt-3">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">Points balance</p>
-                    <p className="mt-2 text-[2rem] font-bold leading-none">{pointsBalance.toLocaleString("en-AU")}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">Member</p>
-                    <p className="mt-2 text-[1.2rem] font-bold leading-none text-primary-foreground">{cardHolderName}</p>
-                  </div>
+              <div className="flex min-h-0 flex-col justify-center gap-5 py-4">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/68">Points balance</p>
+                  <p className="tabular-nums text-[2.15rem] font-bold leading-none text-primary-foreground">
+                    {pointsBalance.toLocaleString("en-AU")}
+                  </p>
+                </div>
+
+                <div className="max-w-[76%] space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/68">Member</p>
+                  <p
+                    className="text-[1.15rem] font-bold leading-[1.12] text-primary-foreground"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 2,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {cardHolderName}
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-end justify-between gap-4">
-                <p className="text-[10px] text-primary-foreground/74">Tap card to see QR + barcode</p>
-                <div className="text-right">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/70">Card number</p>
-                  <p className="mt-1 font-mono text-[0.95rem] font-semibold tracking-[0.04em] text-primary-foreground">{formattedCardNumber}</p>
+                <p className="text-[10px] text-primary-foreground/72">Tap card to see QR + barcode</p>
+                <div className="max-w-[48%] text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/68">Card number</p>
+                  <p className="mt-1 font-mono text-[0.9rem] font-semibold tracking-[0.05em] text-primary-foreground">
+                    {formattedCardNumber}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           <div
-            className="absolute inset-0 overflow-hidden rounded-[26px] border border-border/40 bg-card p-5 shadow-card"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+            className="absolute inset-0 overflow-hidden rounded-[22px] border border-border/50 bg-card p-5 text-card-foreground shadow-card"
+            style={{ ...faceStyle, transform: "rotateY(180deg) translateZ(0)" }}
           >
-            <div className="flex h-full flex-col justify-between text-left">
-              <div className="flex items-start justify-between gap-3">
-                <div>
+            <div className="grid h-full grid-rows-[auto_1fr_auto] gap-4 text-left">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Scan at checkout</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">Use your QR or barcode at participating stores.</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">Present either code at participating stores.</p>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">CRN</p>
                   <p className="mt-1 font-mono text-sm font-semibold text-foreground">{crn || "—"}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-3 items-center">
-                <div className="flex h-[104px] w-[104px] items-center justify-center rounded-[20px] border border-border/50 bg-background text-foreground shadow-sm">
-                  <QRCodeDisplay value={loyaltyCardNumber || ""} size={84} className="flex h-[84px] w-[84px] items-center justify-center" />
-                </div>
-                <div className="flex min-h-[104px] items-center justify-center rounded-[20px] border border-border/50 bg-background px-3 py-2 text-foreground shadow-sm">
-                  <Barcode value={loyaltyCardNumber || ""} height={56} className="h-[90px] w-[188px]" />
+              <div className="grid min-h-0 grid-cols-[98px_minmax(0,1fr)] items-center gap-3">
+                <QRCodeDisplay
+                  value={loyaltyCardNumber || ""}
+                  size={78}
+                  className="self-center justify-self-start"
+                />
+                <div className="flex min-h-[106px] items-center justify-center rounded-[18px] border border-border/50 bg-background px-3 py-3 shadow-sm">
+                  <Barcode value={loyaltyCardNumber || ""} width={1.34} height={50} className="text-foreground" />
                 </div>
               </div>
 
