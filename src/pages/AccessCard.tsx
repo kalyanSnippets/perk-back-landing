@@ -227,7 +227,7 @@ const AccessCard = () => {
         .select("merchant_id, points_balance, total_spend, visit_count, last_visit_at")
         .eq("customer_id", customerData.id),
       supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false }),
-      supabase.from("merchants").select("id, store_name, logo_url, industry_type, address, latitude, longitude, profile_image_url"),
+      supabase.from("merchants_public" as any).select("id, store_name, logo_url, industry_type, address, latitude, longitude, profile_image_url"),
       supabase.from("rewards").select("*").eq("active", true),
       supabase.from("campaigns").select("*").eq("active", true),
       supabase.from("monthly_offers").select("*").eq("active", true),
