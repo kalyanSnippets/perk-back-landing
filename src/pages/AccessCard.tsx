@@ -236,7 +236,7 @@ const AccessCard = () => {
 
     setTransactions(txRes.data || []);
 
-    const merchantRows = merchantsRes.data || [];
+    const merchantRows = (merchantsRes.data as any[]) || [];
     const merchantDirectoryData: MerchantDirectoryData[] = merchantRows.map((merchant) => ({
       merchant_id: merchant.id,
       store_name: merchant.store_name,
