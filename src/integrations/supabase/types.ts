@@ -59,6 +59,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "birthday_offer_settings_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       blogs: {
@@ -151,6 +158,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaigns_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contact_messages: {
@@ -235,6 +249,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_merchants_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_stamps: {
@@ -287,6 +308,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_stamps_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -463,6 +491,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "external_customer_mappings_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       gamification_settings: {
@@ -511,6 +546,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: true
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gamification_settings_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -617,6 +659,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "merchant_feature_overrides_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       merchant_subscriptions: {
@@ -671,6 +720,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: true
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_subscriptions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -768,6 +824,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "monthly_offers_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nfc_tap_tokens: {
@@ -798,6 +861,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfc_tap_tokens_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -862,6 +932,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pos_connections_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       product_offers: {
@@ -918,6 +995,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_offers_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       promotion_rules: {
@@ -963,6 +1047,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_rules_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1073,6 +1164,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "redemptions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "redemptions_reward_id_fkey"
             columns: ["reward_id"]
             isOneToOne: false
@@ -1130,6 +1228,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rewards_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1252,6 +1357,13 @@ export type Database = {
             referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       unmatched_transactions: {
@@ -1297,6 +1409,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unmatched_transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1362,6 +1481,51 @@ export type Database = {
       }
     }
     Views: {
+      merchants_public: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string | null
+          industry_type: string | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          points_per_dollar: number | null
+          profile_image_url: string | null
+          slug: string | null
+          store_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string | null
+          industry_type?: string | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          points_per_dollar?: number | null
+          profile_image_url?: string | null
+          slug?: string | null
+          store_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string | null
+          industry_type?: string | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          points_per_dollar?: number | null
+          profile_image_url?: string | null
+          slug?: string | null
+          store_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       safe_pos_connections: {
         Row: {
           connected_at: string | null
@@ -1408,6 +1572,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_connections_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants_public"
             referencedColumns: ["id"]
           },
         ]
