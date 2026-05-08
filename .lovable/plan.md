@@ -1,147 +1,115 @@
-Refine the customer profile and mobile page-navigation flow so the profile only shows meaningful options, the editable field is date of birth, and profile-linked pages open in a phone-friendly in-app view without the public header/footer.
 
-### What to change
+# White-labelled per-merchant loyalty cards
 
-### 1. Clean up the profile rows so only real actions look clickable
+Move from one global PerkBack card to a **wallet of merchant-branded cards**, one per enrolled merchant, with each merchant controlling its visual identity.
 
-Update `src/pages/AccessCard.tsx` so the current non-working chevrons disappear from rows that are only informational.
+---
 
-What to adjust:
+## Recommendations on the open questions
 
-- remove the `Full Name`, `CRN`, and `Card Number` rows from the tappable profile list
-- keep those values visible only in the top summary/profile card where they belong
-- make informational content non-clickable and remove the chevron from non-action rows
-- keep the list focused on things the user can actually do
+### 1. Card identifier — three options explained
 
-Result:
+**A. Per-merchant unique number** — Generate a fresh 10-digit number per `(customer, merchant)` pair.
+- Pros: Most "white-label". Each merchant's POS sees only its own customer IDs. Cleanest data isolation. Mirrors how big chains (Coles Flybuys, Woolworths Everyday Rewards) issue their own card numbers.
+- Cons: Customer juggles many numbers. POS systems already integrated against the global number need migration. More numbers to keep unique.
 
-- no fake arrows
-- no confusing non-working rows
-- cleaner profile structure
+**B. Reuse the global card number** — Same 10-digit number on every card; only branding changes.
+- Pros: Zero POS impact. Simplest migration. One barcode works everywhere — already how Square and our existing pos-webhook flow match customers.
+- Cons: Less "true" white-label. A merchant scanning the barcode could theoretically derive that the customer also shops elsewhere on PerkBack (though they can't see *where* due to RLS).
 
-### 2. Add editable Name and Date of Birth to the profile
+**C. Merchant prefix + CRN** — e.g. `CAFE042-37281`.
+- Pros: Visually merchant-specific, deterministic, no extra storage.
+- Cons: Worst of both worlds for POS — not a clean numeric barcode, and still encodes the global CRN.
 
-Use the existing customer `date_of_birth` field and current customer RLS policy to let the logged-in customer update their own DOB from the profile.
+**Market reality:** Most modern white-label loyalty platforms (Stamp Me, Loyverse, Square Loyalty, Como, LoyaltyLion) actually use **option B** under the hood — a single customer identifier reused across merchant-branded card faces. The "white-label" promise is about **branding and experience**, not unique numbers. Issuing fresh numbers per merchant (option A) is reserved for closed-loop programs (a single chain), not multi-merchant networks.
 
-Update `src/pages/AccessCard.tsx`:
+> **Recommendation: Option B — reuse the global card number.** It preserves your existing POS integration (Square webhook, `add_points_to_customer` RPC, NFC tap), avoids a painful data migration, and matches industry norm for SaaS loyalty networks. The "white-label" feel is delivered through visual branding, not a different number.
 
-- add a `Date of Birth` row to the profile section
-- make that row open an edit UI (dialog or bottom sheet on mobile)
-- save the updated DOB back to the `customers` table
-- refresh local customer state after save and show success/error feedback
+### 2. Wallet passes — explained
 
-Implementation notes:
+**One pass per merchant** — Customer adds Café Luna's pass + Bowery Books' pass + Sushi Co's pass. Each pass shows that merchant's logo, colors, and points balance.
+- Pros: Truly white-label. Customer's Apple/Google Wallet looks like a stack of real merchant cards, no PerkBack branding visible.
+- Cons: Customers may add 5–20 passes. Each pass = one Apple/Google API object to maintain and update on every points change. More complex push updates. PerkBack brand becomes invisible inside the wallet.
 
-- use a proper form flow with validation
-- use the shadcn datepicker for the DOB editor
-- ensure the calendar uses `pointer-events-auto` as required
-- prevent future dates and clearly display the currently saved DOB
+**Single unified pass** — One PerkBack pass; in-app shows per-merchant cards.
+- Pros: Simple, one object per customer, consistent push updates. Keeps PerkBack brand top-of-mind.
+- Cons: The wallet pass itself is *not* white-labelled — defeats the purpose for merchants who want their card visible when the customer opens their wallet at the counter.
 
-Result:
+**Defer wallet changes** — Ship in-app per-merchant cards now; revisit wallet passes after observing usage.
+- Pros: Faster ship, smaller blast radius, lets you see which merchants actually request wallet branding before paying the engineering cost.
+- Cons: Wallet pass remains the unified PerkBack one in the meantime — a visible inconsistency for power users.
 
-- DOB is editable
-- name/CRN/card number are no longer misleadingly shown as editable items
+> **Recommendation: Defer wallet changes (Phase 2), then move to one pass per merchant as a Pro-tier feature.** PerkBack's vision is a multi-merchant network where customers discover stores via Explore — meaning most customers will start with 1–2 cards and grow over time. Shipping per-merchant wallet passes upfront is heavy (Apple Pass Type ID per merchant is impractical; you'll use one PerkBack Pass Type ID with merchant branding inside the pass JSON). Doing this *after* the in-app experience lands lets you validate demand and gate it behind Growth/Pro plans, keeping Free-tier merchants on the unified pass.
 
-### 3. Remove the Account Settings section and move Merchant Dashboard near logout
+---
 
-Update the profile grouping in `src/pages/AccessCard.tsx`:
+## What gets built
 
-What to change:
+### Database changes
 
-- remove the `Account Settings` section entirely
-- keep the existing `Pages` section
-- place `Merchant Dashboard` as a standalone action near the bottom if the logged-in user is also a merchant
-- order the bottom actions as:
-  - Merchant Dashboard (if applicable)
-  - Log out
-  - Delete my account
+**New table `merchant_card_designs`** (1 row per merchant):
+- `merchant_id` (FK), `primary_color`, `secondary_color`, `text_color`, `background_image_url`, `card_style` (`gradient` / `solid` / `image`), `show_logo`, `show_points`, `barcode_format` (`code128` / `qr` / `both`), `created_at`, `updated_at`.
+- RLS: merchants manage own design; customers can SELECT designs of merchants they're enrolled with (via `customer_merchants` join).
 
-Result:
+**No changes** to `customers.loyalty_card_number` or `customer_merchants` — keep the global card number and per-merchant points balance as-is (option B).
 
-- less clutter in the profile
-- merchant shortcut stays available
-- bottom actions match the intended hierarchy
+**New storage path** in existing `profile-images` bucket: `card-backgrounds/{merchant_id}/...` for uploaded card art.
 
-### 4. Make profile-linked pages open in a mobile in-app content mode
+### Merchant Settings — new "Card Design" tab
 
-The current profile links go to full public pages, which still render the website chrome. Add a mobile-specific embedded mode for pages opened from the profile.
+Add to `MerchantSettings.tsx` as a new tab alongside Profile/Plan/etc:
+- Color pickers (primary, secondary, text) with live preview
+- Optional background image upload (PNG/JPG, validated)
+- Toggle: show logo, show points balance, barcode format
+- Live preview of the actual card customers will see
+- Plan gating: Free = colors only; Growth/Pro = colors + background image + custom layout
 
-Update:
+### Customer-side: "Wallet of cards"
 
-- `src/pages/AboutUs.tsx`
-- likely the other profile-linked public pages as well:
-  - `src/pages/Pricing.tsx`
-  - `src/pages/TestimonialsPage.tsx`
-  - `src/pages/ReviewPage.tsx`
-  - `src/pages/Blog.tsx`
-  - `src/pages/ContactUs.tsx`
-  - `src/pages/PrivacyPolicy.tsx`
+Replace the current single-card "My Card" tab with a **stacked/swipeable wallet**:
+- New component `MerchantLoyaltyCard.tsx` — renders the existing `LoyaltyCardFlip` design but driven by `merchant_card_designs` (colors/bg/logo replace the navy-blue PerkBack gradient). Falls back to merchant's `logo_url` + auto-derived accent if no design row exists.
+- New page section `MerchantCardWallet.tsx` — fetches all `customer_merchants` for the user with joined `merchants_public` + `merchant_card_designs`, renders as a vertical stack (top card peeking, tap to expand) on mobile and a carousel on desktop.
+- Each card flips to reveal the same global barcode/QR + merchant-specific points balance.
+- Empty state: "Visit a store on Explore to add your first card."
+- Update `src/pages/AccessCard.tsx` to use the new wallet view.
 
-What to implement:
+### What stays the same
 
-- keep using the `?web=1` query flag from the profile links
-- detect mobile + `web=1`
-- in that mode:
-  - hide `Header`
-  - hide `Footer`
-  - render only the content area
-  - add a top `Back` button that returns to `/customer/access-card` with the profile tab active
-- on desktop/tablet:
-  - preserve the current full public-page layout with header/footer
+- Global `loyalty_card_number` and CRN (still on `customers`)
+- POS integration, Square webhook, `add_points_to_customer`, NFC tap flow
+- `customer_merchants.points_balance` per-merchant accounting
+- Reward redemption (`redeem_reward` RPC) — already merchant-scoped
+- Wallet passes (Apple/Google) — unchanged in this phase
 
-Recommended routing behavior:
+### Phase 2 (not in this plan, deferred)
 
-```text
-Mobile profile -> page link -> embedded page view
-Back button -> returns to customer access card profile
-Desktop/tablet -> normal website layout remains unchanged
-```
+- Per-merchant Apple/Google Wallet passes (Pro tier)
+- Push updates on points balance change per pass
 
-Result:
+---
 
-- profile-linked pages feel like part of the mobile app
-- no extra website chrome on phone
-- desktop and tablet keep the normal marketing-site presentation
+## Files to create / edit
 
-### 5. Preserve current routing and tab context when returning from embedded pages
+**New:**
+- `supabase/migrations/<ts>_merchant_card_designs.sql`
+- `src/components/customer/MerchantLoyaltyCard.tsx`
+- `src/components/customer/MerchantCardWallet.tsx`
+- `src/components/merchant/CardDesignTab.tsx`
+- `src/components/merchant/CardDesignPreview.tsx`
 
-To make the back flow feel correct, update the access-card page so it can reopen directly on the Profile tab when navigated back from an embedded page.
+**Edit:**
+- `src/pages/AccessCard.tsx` — swap `LoyaltyCardFlip` for `MerchantCardWallet`
+- `src/pages/MerchantSettings.tsx` — add "Card Design" tab
+- `src/integrations/supabase/types.ts` — auto-regenerated
 
-Update `src/pages/AccessCard.tsx`:
+**Untouched:** `LoyaltyCardFlip.tsx` (kept for backwards-compat / fallback), all POS / wallet / reward code.
 
-- read a lightweight route/search hint like `?tab=profile`
-- initialize `activeMainTab` from that value when present
-- keep existing default behavior for normal visits
+---
 
-Result:
+## Risks & notes
 
-- tapping Back from About/Pricing/etc returns users to the Profile tab instead of a different section
+- **Visual quality control**: Merchants with poor color choices can produce unreadable cards. Include accessibility check (contrast ratio ≥ 4.5:1) on the design tab and warn if failing.
+- **No data migration needed**: Existing customers keep their global card number; new wallet view simply renders merchant-branded *faces* over the same identifier.
+- **Brand identity**: PerkBack logo will appear small in a corner of each card (e.g., "Powered by PerkBack") to preserve network identity — toggleable for Pro merchants.
 
-### Files to update
-
-- `src/pages/AccessCard.tsx`
-- `src/pages/AboutUs.tsx`
-- `src/pages/Pricing.tsx`
-- `src/pages/TestimonialsPage.tsx`
-- `src/pages/ReviewPage.tsx`
-- `src/pages/Blog.tsx`
-- `src/pages/ContactUs.tsx`
-- `src/pages/PrivacyPolicy.tsx`
-
-### Expected result
-
-After this pass:
-
-- the profile will no longer show non-working arrows for name/CRN/card number
-- date of birth will be editable
-- the Account Settings section will be removed
-- Merchant Dashboard will sit near the bottom above logout
-- profile-linked pages will open without header/footer on phone
-- those pages will include a Back button to return to the profile section
-- desktop/tablet will still use the normal full-site page layout
-
-### Technical notes
-
-- No database schema change is needed: `customers.date_of_birth` already exists and customers already have permission to update their own record.
-- The cleanest implementation is to reuse the existing `?web=1` intent and combine it with `useIsMobile()` so only phone-sized embedded views suppress the public site chrome.
-- If multiple public pages share the same mobile embedded behavior, extracting a small reusable “embedded public page” wrapper will keep the code consistent and easier to maintain.
+Approve this plan and I'll implement Phase 1 (everything above except wallet passes).

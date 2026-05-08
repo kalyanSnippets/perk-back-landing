@@ -596,6 +596,51 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_card_designs: {
+        Row: {
+          background_image_url: string | null
+          barcode_format: string
+          card_style: string
+          created_at: string
+          id: string
+          merchant_id: string
+          primary_color: string
+          secondary_color: string
+          show_logo: boolean
+          show_points: boolean
+          text_color: string
+          updated_at: string
+        }
+        Insert: {
+          background_image_url?: string | null
+          barcode_format?: string
+          card_style?: string
+          created_at?: string
+          id?: string
+          merchant_id: string
+          primary_color?: string
+          secondary_color?: string
+          show_logo?: boolean
+          show_points?: boolean
+          text_color?: string
+          updated_at?: string
+        }
+        Update: {
+          background_image_url?: string | null
+          barcode_format?: string
+          card_style?: string
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          primary_color?: string
+          secondary_color?: string
+          show_logo?: boolean
+          show_points?: boolean
+          text_color?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       merchant_feature_overrides: {
         Row: {
           allow_advanced_reports: boolean
