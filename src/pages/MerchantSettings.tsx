@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Lock, Building2, User, Save, Eye, EyeOff,
-  Phone, MapPin, Upload, CreditCard, Check, Trash2, ArrowUpRight, AlertTriangle, Image, QrCode,
+  Phone, MapPin, Upload, CreditCard, Check, Trash2, ArrowUpRight, AlertTriangle, Image, QrCode, Palette,
 } from "lucide-react";
 import CounterQrPoster from "@/components/merchant/CounterQrPoster";
+import CardDesignTab from "@/components/merchant/CardDesignTab";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -206,6 +207,7 @@ const MerchantSettings = () => {
               <TabsList className="w-full justify-start overflow-x-auto flex-wrap">
                 <TabsTrigger value="business">Business</TabsTrigger>
                 <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="card-design">Card Design</TabsTrigger>
                 <TabsTrigger value="qr">Counter QR</TabsTrigger>
                 <TabsTrigger value="password">Password</TabsTrigger>
                 <TabsTrigger value="pos">POS</TabsTrigger>
@@ -325,6 +327,11 @@ const MerchantSettings = () => {
                     <p className="text-xs text-muted-foreground">{merchant.industry_type || "Business"}</p>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Card Design */}
+              <TabsContent value="card-design">
+                <CardDesignTab merchantId={merchant.id} storeName={merchant.store_name} storeLogoUrl={merchant.logo_url} />
               </TabsContent>
 
               {/* Counter QR */}
