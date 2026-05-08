@@ -27,6 +27,7 @@ import MyStoreCard from "@/components/customer/MyStoreCard";
 import StoreDetailView from "@/components/customer/StoreDetailView";
 import StoreRewardActionDialog from "@/components/customer/StoreRewardActionDialog";
 import LoyaltyCardFlip from "@/components/customer/LoyaltyCardFlip";
+import MerchantCardWallet from "@/components/customer/MerchantCardWallet";
 import { getRewardTypeLabel } from "@/lib/rewardFormatting";
 import { linkCustomerToMerchant } from "@/lib/customerMerchantJoin";
 import { Input } from "@/components/ui/input";
@@ -754,12 +755,16 @@ const AccessCard = () => {
           ) : activeMainTab === "my-card" ? (
             <>
               <ScrollReveal>
-                <LoyaltyCardFlip
+                <MerchantCardWallet
+                  customerId={customer.id}
                   fullName={customer.full_name}
-                  crn={customer.crn}
                   loyaltyCardNumber={customer.loyalty_card_number}
-                  issuedDate={issuedDate}
-                  pointsBalance={customer.points_balance}
+                  merchants={customerMerchants.map((m) => ({
+                    merchant_id: m.merchant_id,
+                    store_name: m.store_name,
+                    logo_url: m.logo_url,
+                    points_balance: m.points_balance,
+                  }))}
                 />
               </ScrollReveal>
 
