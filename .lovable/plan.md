@@ -1,115 +1,114 @@
+# Merchant Auth & Access — Gap Closure Plan
 
-# White-labelled per-merchant loyalty cards
-
-Move from one global PerkBack card to a **wallet of merchant-branded cards**, one per enrolled merchant, with each merchant controlling its visual identity.
-
----
-
-## Recommendations on the open questions
-
-### 1. Card identifier — three options explained
-
-**A. Per-merchant unique number** — Generate a fresh 10-digit number per `(customer, merchant)` pair.
-- Pros: Most "white-label". Each merchant's POS sees only its own customer IDs. Cleanest data isolation. Mirrors how big chains (Coles Flybuys, Woolworths Everyday Rewards) issue their own card numbers.
-- Cons: Customer juggles many numbers. POS systems already integrated against the global number need migration. More numbers to keep unique.
-
-**B. Reuse the global card number** — Same 10-digit number on every card; only branding changes.
-- Pros: Zero POS impact. Simplest migration. One barcode works everywhere — already how Square and our existing pos-webhook flow match customers.
-- Cons: Less "true" white-label. A merchant scanning the barcode could theoretically derive that the customer also shops elsewhere on PerkBack (though they can't see *where* due to RLS).
-
-**C. Merchant prefix + CRN** — e.g. `CAFE042-37281`.
-- Pros: Visually merchant-specific, deterministic, no extra storage.
-- Cons: Worst of both worlds for POS — not a clean numeric barcode, and still encodes the global CRN.
-
-**Market reality:** Most modern white-label loyalty platforms (Stamp Me, Loyverse, Square Loyalty, Como, LoyaltyLion) actually use **option B** under the hood — a single customer identifier reused across merchant-branded card faces. The "white-label" promise is about **branding and experience**, not unique numbers. Issuing fresh numbers per merchant (option A) is reserved for closed-loop programs (a single chain), not multi-merchant networks.
-
-> **Recommendation: Option B — reuse the global card number.** It preserves your existing POS integration (Square webhook, `add_points_to_customer` RPC, NFC tap), avoids a painful data migration, and matches industry norm for SaaS loyalty networks. The "white-label" feel is delivered through visual branding, not a different number.
-
-### 2. Wallet passes — explained
-
-**One pass per merchant** — Customer adds Café Luna's pass + Bowery Books' pass + Sushi Co's pass. Each pass shows that merchant's logo, colors, and points balance.
-- Pros: Truly white-label. Customer's Apple/Google Wallet looks like a stack of real merchant cards, no PerkBack branding visible.
-- Cons: Customers may add 5–20 passes. Each pass = one Apple/Google API object to maintain and update on every points change. More complex push updates. PerkBack brand becomes invisible inside the wallet.
-
-**Single unified pass** — One PerkBack pass; in-app shows per-merchant cards.
-- Pros: Simple, one object per customer, consistent push updates. Keeps PerkBack brand top-of-mind.
-- Cons: The wallet pass itself is *not* white-labelled — defeats the purpose for merchants who want their card visible when the customer opens their wallet at the counter.
-
-**Defer wallet changes** — Ship in-app per-merchant cards now; revisit wallet passes after observing usage.
-- Pros: Faster ship, smaller blast radius, lets you see which merchants actually request wallet branding before paying the engineering cost.
-- Cons: Wallet pass remains the unified PerkBack one in the meantime — a visible inconsistency for power users.
-
-> **Recommendation: Defer wallet changes (Phase 2), then move to one pass per merchant as a Pro-tier feature.** PerkBack's vision is a multi-merchant network where customers discover stores via Explore — meaning most customers will start with 1–2 cards and grow over time. Shipping per-merchant wallet passes upfront is heavy (Apple Pass Type ID per merchant is impractical; you'll use one PerkBack Pass Type ID with merchant branding inside the pass JSON). Doing this *after* the in-app experience lands lets you validate demand and gate it behind Growth/Pro plans, keeping Free-tier merchants on the unified pass.
+Implements the four selected gaps from the audit of User Stories 1.1, 1.2, and 1.3.
 
 ---
 
-## What gets built
+## 1. Story 1.1 — Owner Name + Onboarding Redirect
 
-### Database changes
+**Database**
+- Add `owner_name TEXT` column to `public.merchants` (nullable for backward compat).
+- Update `handle_new_user` trigger to read `raw_user_meta_data->>'owner_name'` and persist it.
 
-**New table `merchant_card_designs`** (1 row per merchant):
-- `merchant_id` (FK), `primary_color`, `secondary_color`, `text_color`, `background_image_url`, `card_style` (`gradient` / `solid` / `image`), `show_logo`, `show_points`, `barcode_format` (`code128` / `qr` / `both`), `created_at`, `updated_at`.
-- RLS: merchants manage own design; customers can SELECT designs of merchants they're enrolled with (via `customer_merchants` join).
+**UI — `src/pages/MerchantAuth.tsx`**
+- Add "Owner Name" input (required) above Store Name in signup form.
+- Pass `owner_name` in `signUp` metadata.
+- After successful signup, navigate to a new `/merchant/confirmation` route (instead of just toast).
 
-**No changes** to `customers.loyalty_card_number` or `customer_merchants` — keep the global card number and per-merchant points balance as-is (option B).
+**New page — `src/pages/MerchantConfirmation.tsx`**
+- Mirrors `CustomerConfirmation` styling.
+- "Check your email to verify your account" message + Resend link.
+- After the user confirms email and logs in, the existing post-login flow takes them to `/merchant/dashboard`. First-time merchants whose profile is incomplete will already land in the onboarding banner inside `MerchantSettings` (already in the codebase).
 
-**New storage path** in existing `profile-images` bucket: `card-backgrounds/{merchant_id}/...` for uploaded card art.
-
-### Merchant Settings — new "Card Design" tab
-
-Add to `MerchantSettings.tsx` as a new tab alongside Profile/Plan/etc:
-- Color pickers (primary, secondary, text) with live preview
-- Optional background image upload (PNG/JPG, validated)
-- Toggle: show logo, show points balance, barcode format
-- Live preview of the actual card customers will see
-- Plan gating: Free = colors only; Growth/Pro = colors + background image + custom layout
-
-### Customer-side: "Wallet of cards"
-
-Replace the current single-card "My Card" tab with a **stacked/swipeable wallet**:
-- New component `MerchantLoyaltyCard.tsx` — renders the existing `LoyaltyCardFlip` design but driven by `merchant_card_designs` (colors/bg/logo replace the navy-blue PerkBack gradient). Falls back to merchant's `logo_url` + auto-derived accent if no design row exists.
-- New page section `MerchantCardWallet.tsx` — fetches all `customer_merchants` for the user with joined `merchants_public` + `merchant_card_designs`, renders as a vertical stack (top card peeking, tap to expand) on mobile and a carousel on desktop.
-- Each card flips to reveal the same global barcode/QR + merchant-specific points balance.
-- Empty state: "Visit a store on Explore to add your first card."
-- Update `src/pages/AccessCard.tsx` to use the new wallet view.
-
-### What stays the same
-
-- Global `loyalty_card_number` and CRN (still on `customers`)
-- POS integration, Square webhook, `add_points_to_customer`, NFC tap flow
-- `customer_merchants.points_balance` per-merchant accounting
-- Reward redemption (`redeem_reward` RPC) — already merchant-scoped
-- Wallet passes (Apple/Google) — unchanged in this phase
-
-### Phase 2 (not in this plan, deferred)
-
-- Per-merchant Apple/Google Wallet passes (Pro tier)
-- Push updates on points balance change per pass
+**Routing — `src/App.tsx`**
+- Add `<Route path="/merchant/confirmation" element={<MerchantConfirmation />} />`.
 
 ---
 
-## Files to create / edit
+## 2. Story 1.2 — Password Hardening
 
-**New:**
-- `supabase/migrations/<ts>_merchant_card_designs.sql`
-- `src/components/customer/MerchantLoyaltyCard.tsx`
-- `src/components/customer/MerchantCardWallet.tsx`
-- `src/components/merchant/CardDesignTab.tsx`
-- `src/components/merchant/CardDesignPreview.tsx`
+**Auth config (`configure_auth`)**
+- `password_hibp_enabled: true` → enables Have I Been Pwned check.
+- Keep auto-confirm OFF (already off — confirmation email required).
 
-**Edit:**
-- `src/pages/AccessCard.tsx` — swap `LoyaltyCardFlip` for `MerchantCardWallet`
-- `src/pages/MerchantSettings.tsx` — add "Card Design" tab
-- `src/integrations/supabase/types.ts` — auto-regenerated
-
-**Untouched:** `LoyaltyCardFlip.tsx` (kept for backwards-compat / fallback), all POS / wallet / reward code.
+**UI**
+- Bump `minLength={6}` → `minLength={8}` on both `MerchantAuth.tsx` and `ResetPassword.tsx` password inputs.
+- Add a short helper line under the password field: "At least 8 characters. Avoid common or breached passwords."
+- Surface HIBP rejection messages from Supabase verbatim in the existing toast.
 
 ---
 
-## Risks & notes
+## 3. Story 1.3 — Tighten Rewards & Monthly Offers RLS
 
-- **Visual quality control**: Merchants with poor color choices can produce unreadable cards. Include accessibility check (contrast ratio ≥ 4.5:1) on the design tab and warn if failing.
-- **No data migration needed**: Existing customers keep their global card number; new wallet view simply renders merchant-branded *faces* over the same identifier.
-- **Brand identity**: PerkBack logo will appear small in a corner of each card (e.g., "Powered by PerkBack") to preserve network identity — toggleable for Pro merchants.
+Today any authenticated user (including a competing merchant) can `SELECT` every active reward and monthly offer. Replace with merchant-scoped + customer-scoped policies.
 
-Approve this plan and I'll implement Phase 1 (everything above except wallet passes).
+**Migration**
+- Drop `Authenticated users can view active rewards` on `public.rewards`.
+- Drop `Authenticated users can view active monthly_offers` on `public.monthly_offers`.
+- Drop `Authenticated users can view active product offers` on `public.product_offers`.
+- Drop `Authenticated users can view active promotions` on `public.promotion_rules`.
+- Recreate each as: `active = true AND merchant_id IN (SELECT cm.merchant_id FROM customer_merchants cm JOIN customers c ON c.id = cm.customer_id WHERE c.user_id = auth.uid())`.
+- The existing "Merchants can manage own …" policy already covers the owning merchant's reads.
+
+**Impact check**
+- `ExploreTab` shows active rewards from merchants the customer is *not* yet enrolled with. To preserve discovery, create a security-definer RPC `get_public_rewards_for_discovery(_merchant_ids uuid[])` that returns minimal public reward fields (title, description, points_required, image_url) for any merchant. Call it from `ExploreTab` and `MerchantPreview`.
+- Same pattern for monthly offers if they appear in discovery (verify usage).
+
+---
+
+## 4. POS API Key Management (+ Optional MFA)
+
+**Database**
+- Add to `public.merchants`: `api_key_hash TEXT`, `api_key_prefix TEXT`, `api_key_created_at TIMESTAMPTZ`, `api_key_last_used_at TIMESTAMPTZ`. Never store the raw key.
+- New table `merchant_api_key_log` (merchant_id, action `created|rotated|revoked|used`, ip, user_agent, created_at) with merchant-scoped SELECT RLS + service-role insert.
+
+**RPCs (security definer, `set search_path = public`)**
+- `generate_merchant_api_key()` → returns the plaintext key **once** + stores hash; revokes any existing key. Verifies caller owns the merchant.
+- `revoke_merchant_api_key()`.
+- Edge functions verifying a POS request hash the incoming key with the same algorithm and update `api_key_last_used_at`.
+
+**UI — new tab in `MerchantSettings.tsx` ("API Keys")**
+- Show prefix (e.g. `pk_live_a1b2…`), created date, last used.
+- "Generate Key" button (warns existing key will be revoked) → modal showing the plaintext once with copy-to-clipboard.
+- "Revoke" button.
+- Recent API key activity log (last 20 entries from `merchant_api_key_log`).
+
+**MFA (optional toggle)**
+- New "Security" sub-section in the same tab with "Enable two-step verification" using Supabase's built-in TOTP (`supabase.auth.mfa.enroll` / `challenge` / `verify`). Renders a QR code, accepts a 6-digit code, then marks the factor verified.
+- After enrolment, `MerchantAuth` login flow detects `aal: aal1` and prompts for the TOTP code before navigating to dashboard.
+- No DB changes — Supabase handles MFA factors.
+
+---
+
+## Technical Details
+
+**Files to create**
+- `src/pages/MerchantConfirmation.tsx`
+- `src/components/merchant/ApiKeysTab.tsx`
+- `src/components/merchant/MfaEnrollDialog.tsx`
+- `src/components/merchant/MfaChallengeDialog.tsx`
+- 1 migration: schema changes + dropped/recreated policies + new RPCs.
+
+**Files to edit**
+- `src/pages/MerchantAuth.tsx` — owner name field, redirect, MFA challenge on login, password helper.
+- `src/pages/ResetPassword.tsx` — minLength 8.
+- `src/pages/MerchantSettings.tsx` — add "API Keys" tab.
+- `src/components/customer/ExploreTab.tsx` & `MerchantPreview.tsx` — switch reward fetch to new RPC.
+- `src/App.tsx` — register `/merchant/confirmation` route.
+
+**Auth config call**
+- One `configure_auth` invocation with `password_hibp_enabled: true`, leaving other flags as-is.
+
+**Out of scope (explicitly deferred)**
+- Server-side rate-limiting on forgot-password requests (Supabase already throttles).
+- Audit log of unauthorized access attempts (RLS denials are not loggable from the client).
+- Email change re-verification flow.
+
+---
+
+## Acceptance verification after build
+- Sign up new merchant → redirected to `/merchant/confirmation`; record has `owner_name`.
+- Try password "password" → blocked by HIBP.
+- Login as Merchant A, query `rewards` directly → only own rows returned. Customer enrolled with A still sees A's rewards. Discovery RPC still returns rewards for unenrolled merchants.
+- Generate API key → shown once, prefix stored, log entry created. Revoke removes hash.
+- Enable MFA → next login prompts for 6-digit code before dashboard loads.
