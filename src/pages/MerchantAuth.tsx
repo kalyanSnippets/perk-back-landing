@@ -23,6 +23,7 @@ const MerchantAuth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [storeName, setStoreName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [industryType, setIndustryType] = useState("");
@@ -63,6 +64,8 @@ const MerchantAuth = () => {
     try {
       if (isSignUp) {
         if (!agreedToTerms) { toast.error("Please agree to the Terms & Conditions"); setLoading(false); return; }
+        if (!ownerName.trim()) { toast.error("Please enter the owner's name"); setLoading(false); return; }
+        if (password.length < 8) { toast.error("Password must be at least 8 characters"); setLoading(false); return; }
         if (!logoFile) { toast.error("Please upload your store logo"); setLoading(false); return; }
         if (!address.trim()) { toast.error("Please enter your store address"); setLoading(false); return; }
         if (!phone.trim()) { toast.error("Please enter your phone number"); setLoading(false); return; }
@@ -79,6 +82,7 @@ const MerchantAuth = () => {
           options: {
             data: {
               full_name: storeName,
+              owner_name: ownerName.trim(),
               role: "merchant",
               address: address.trim(),
               contact_number: phone.trim(),
@@ -103,9 +107,10 @@ const MerchantAuth = () => {
             logoUrl = urlData.publicUrl;
           }
 
-          // Update merchant record with logo_url (created by trigger)
+          // Update merchant record (created by trigger)
           const updatePayload: Record<string, unknown> = {
             logo_url: logoUrl,
+            owner_name: ownerName.trim(),
             address: address.trim(),
             contact_number: phone.trim(),
             industry_type: industryType,
@@ -121,6 +126,8 @@ const MerchantAuth = () => {
         }
 
         toast.success("Account created! Check your email to confirm.");
+        navigate("/merchant/confirmation");
+        return;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
