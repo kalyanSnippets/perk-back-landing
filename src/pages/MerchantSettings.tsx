@@ -356,6 +356,11 @@ const MerchantSettings = () => {
                 </form>
               </TabsContent>
 
+              {/* API & Security */}
+              <TabsContent value="api">
+                <ApiKeysTab merchantId={merchant.id} />
+              </TabsContent>
+
               {/* POS */}
               <TabsContent value="pos">
                 {canAccess("pos_integration") ? <PosTab merchantId={merchant.id} /> : <LockedFeature featureKey="pos_integration" />}
