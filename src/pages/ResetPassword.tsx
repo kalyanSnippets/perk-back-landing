@@ -32,8 +32,8 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
       return;
     }
     if (password !== confirmPassword) {
@@ -84,14 +84,15 @@ const ResetPassword = () => {
             <Label htmlFor="new-pass">New Password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-              <Input id="new-pass" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required minLength={6} />
+              <Input id="new-pass" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required minLength={8} />
             </div>
+            <p className="text-[10px] text-muted-foreground">At least 8 characters. Avoid common or breached passwords.</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirm-pass">Confirm Password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-              <Input id="confirm-pass" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10" required minLength={6} />
+              <Input id="confirm-pass" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10" required minLength={8} />
             </div>
           </div>
           <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>

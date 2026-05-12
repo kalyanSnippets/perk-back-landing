@@ -29,6 +29,7 @@ const NotFound = React.lazy(() => import("./pages/NotFound.tsx"));
 // Lazy-loaded protected pages
 const ChooseRole = React.lazy(() => import("./pages/ChooseRole.tsx"));
 const CustomerConfirmation = React.lazy(() => import("./pages/CustomerConfirmation.tsx"));
+const MerchantConfirmation = React.lazy(() => import("./pages/MerchantConfirmation.tsx"));
 const AccessCard = React.lazy(() => import("./pages/AccessCard.tsx"));
 const MerchantDashboard = React.lazy(() => import("./pages/MerchantDashboard.tsx"));
 const MerchantCustomers = React.lazy(() => import("./pages/MerchantCustomers.tsx"));
@@ -94,6 +95,9 @@ const App = () => (
               {/* Protected: Customer */}
               <Route path="/customer/confirmation" element={<ProtectedRoute requiredRole="customer"><CustomerConfirmation /></ProtectedRoute>} />
               <Route path="/customer/access-card" element={<ProtectedRoute requiredRole="customer"><AccessCard /></ProtectedRoute>} />
+
+              {/* Merchant signup confirmation (public — user not yet verified) */}
+              <Route path="/merchant/confirmation" element={<MerchantConfirmation />} />
 
               {/* Protected: Merchant — Consolidated */}
               <Route path="/merchant/dashboard" element={<ProtectedRoute requiredRole="merchant"><MerchantDashboard /></ProtectedRoute>} />
