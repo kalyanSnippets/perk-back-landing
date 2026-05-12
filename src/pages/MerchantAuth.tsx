@@ -208,6 +208,14 @@ const MerchantAuth = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="ownerName">Owner Name <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Input id="ownerName" placeholder="Jane Smith" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="pl-10" required />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="address">Store Address <span className="text-destructive">*</span></Label>
                 <AddressAutocomplete
                   id="address"
@@ -259,8 +267,11 @@ const MerchantAuth = () => {
             <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required minLength={6} />
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required minLength={isSignUp ? 8 : 6} />
             </div>
+            {isSignUp && (
+              <p className="text-[10px] text-muted-foreground">At least 8 characters. Avoid common or breached passwords.</p>
+            )}
           </div>
 
           {isSignUp && (
