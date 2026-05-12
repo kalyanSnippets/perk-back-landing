@@ -148,13 +148,13 @@ const AccessCard = () => {
   const fetchOffersData = useCallback(async () => {
     const merchantMap = new Map(merchantDirectory.map((merchant) => [merchant.merchant_id, merchant.store_name]));
     const [rewardsRes, campaignsRes, offersRes] = await Promise.all([
-      supabase.from("rewards").select("*").eq("active", true),
+      supabase.rpc("get_discovery_rewards" as any),
       supabase.from("campaigns").select("*").eq("active", true),
-      supabase.from("monthly_offers").select("*").eq("active", true),
+      supabase.rpc("get_discovery_monthly_offers" as any),
     ]);
-    setRewards((rewardsRes.data || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
+    setRewards(((rewardsRes.data as any[]) || []).map((reward) => ({ ...reward, store_name: merchantMap.get(reward.merchant_id) || "Store" })));
     setCampaigns((campaignsRes.data || []).map((campaign) => ({ ...campaign, store_name: merchantMap.get(campaign.merchant_id) || "Store" })));
-    setMonthlyOffers((offersRes.data || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
+    setMonthlyOffers(((offersRes.data as any[]) || []).map((offer) => ({ ...offer, store_name: merchantMap.get(offer.merchant_id) || "Store" })));
   }, [merchantDirectory]);
 
   useEffect(() => { fetchData(); }, []);
@@ -229,9 +229,9 @@ const AccessCard = () => {
         .eq("customer_id", customerData.id),
       supabase.from("transactions").select("*").eq("customer_id", customerData.id).order("transaction_date", { ascending: false }),
       supabase.from("merchants_public" as any).select("id, store_name, logo_url, industry_type, address, latitude, longitude, profile_image_url"),
-      supabase.from("rewards").select("*").eq("active", true),
+      supabase.rpc("get_discovery_rewards" as any),
       supabase.from("campaigns").select("*").eq("active", true),
-      supabase.from("monthly_offers").select("*").eq("active", true),
+      supabase.rpc("get_discovery_monthly_offers" as any),
       supabase.from("redemptions").select("id, reward_id, reward_title, redemption_code, points_spent, status, redeemed_at, expires_at").eq("customer_id", customerData.id).order("created_at", { ascending: false }),
     ]);
 

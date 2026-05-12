@@ -596,6 +596,33 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_api_key_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip: string | null
+          merchant_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          merchant_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          merchant_id?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       merchant_card_designs: {
         Row: {
           background_image_url: string | null
@@ -779,6 +806,10 @@ export type Database = {
       merchants: {
         Row: {
           address: string | null
+          api_key_created_at: string | null
+          api_key_hash: string | null
+          api_key_last_used_at: string | null
+          api_key_prefix: string | null
           contact_number: string | null
           created_at: string
           id: string
@@ -786,6 +817,7 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          owner_name: string | null
           points_per_dollar: number
           profile_image_url: string | null
           slug: string | null
@@ -795,6 +827,10 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          api_key_created_at?: string | null
+          api_key_hash?: string | null
+          api_key_last_used_at?: string | null
+          api_key_prefix?: string | null
           contact_number?: string | null
           created_at?: string
           id?: string
@@ -802,6 +838,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          owner_name?: string | null
           points_per_dollar?: number
           profile_image_url?: string | null
           slug?: string | null
@@ -811,6 +848,10 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          api_key_created_at?: string | null
+          api_key_hash?: string | null
+          api_key_last_used_at?: string | null
+          api_key_prefix?: string | null
           contact_number?: string | null
           created_at?: string
           id?: string
@@ -818,6 +859,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          owner_name?: string | null
           points_per_dollar?: number
           profile_image_url?: string | null
           slug?: string | null
@@ -1668,6 +1710,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      generate_merchant_api_key: { Args: never; Returns: Json }
       get_all_users_for_admin: {
         Args: never
         Returns: {
@@ -1683,6 +1726,29 @@ export type Database = {
           full_name: string
           id: string
           loyalty_card_number: string
+        }[]
+      }
+      get_discovery_monthly_offers: {
+        Args: never
+        Returns: {
+          description: string
+          id: string
+          merchant_id: string
+          title: string
+          valid_from: string
+          valid_to: string
+        }[]
+      }
+      get_discovery_rewards: {
+        Args: never
+        Returns: {
+          description: string
+          id: string
+          image_url: string
+          merchant_id: string
+          points_required: number
+          reward_type: string
+          title: string
         }[]
       }
       get_merchant_by_slug: {
@@ -1736,6 +1802,7 @@ export type Database = {
         Returns: Json
       }
       refund_transaction: { Args: { _tx_id: string }; Returns: Json }
+      revoke_merchant_api_key: { Args: never; Returns: Json }
       search_customer_by_phone: {
         Args: { _merchant_id: string; _phone: string }
         Returns: {

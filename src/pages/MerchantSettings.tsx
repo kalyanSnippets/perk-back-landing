@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import CounterQrPoster from "@/components/merchant/CounterQrPoster";
 import CardDesignTab from "@/components/merchant/CardDesignTab";
+import ApiKeysTab from "@/components/merchant/ApiKeysTab";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -87,7 +88,7 @@ const MerchantSettings = () => {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     if (newPassword !== confirmPassword) { toast.error("Passwords don't match"); return; }
     setSavingPassword(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -210,6 +211,7 @@ const MerchantSettings = () => {
                 <TabsTrigger value="card-design">Card Design</TabsTrigger>
                 <TabsTrigger value="qr">Counter QR</TabsTrigger>
                 <TabsTrigger value="password">Password</TabsTrigger>
+                <TabsTrigger value="api">API & Security</TabsTrigger>
                 <TabsTrigger value="pos">POS</TabsTrigger>
                 <TabsTrigger value="subscription">Plan</TabsTrigger>
                 <TabsTrigger value="account">Account</TabsTrigger>
@@ -352,6 +354,11 @@ const MerchantSettings = () => {
                   <div className="space-y-2"><Label htmlFor="confirmPassword">Confirm Password</Label><Input id="confirmPassword" type={showPassword ? "text" : "password"} placeholder="Re-enter password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} /></div>
                   <Button type="submit" variant="hero" className="w-full gap-2" disabled={savingPassword}><Lock size={16} /> {savingPassword ? "Updating..." : "Update Password"}</Button>
                 </form>
+              </TabsContent>
+
+              {/* API & Security */}
+              <TabsContent value="api">
+                <ApiKeysTab merchantId={merchant.id} />
               </TabsContent>
 
               {/* POS */}
