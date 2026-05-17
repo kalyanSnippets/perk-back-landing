@@ -8,6 +8,7 @@ export default function AuthLayout() {
       <Stack.Screen name="sign-up" />
       <Stack.Screen name="verify" />
       <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="merchant-sign-up" />
     </Stack>
   );
 }
