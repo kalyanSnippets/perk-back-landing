@@ -22,7 +22,7 @@ const queryClient = new QueryClient({
 });
 
 function RootLayoutNav() {
-  const { session, isLoading, isOnboarding } = useAuth();
+  const { session, isLoading, isOnboarding, customer, merchant } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -31,18 +31,22 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
     const inTabs = segments[0] === '(tabs)';
+    const onChooseAccount = inOnboarding && (segments as string[])[1] === 'choose-account';
 
     if (!session) {
-      // Not signed in → auth screens
+      // Not signed in → auth
       if (!inAuthGroup) router.replace('/(auth)/welcome');
     } else if (isOnboarding) {
-      // Signed in but no customers row → onboarding
+      // Brand new user — no accounts yet
       if (!inOnboarding) router.replace('/(onboarding)/choose-role');
-    } else {
-      // Fully set up → main app
-      if (!inTabs) router.replace('/(tabs)/my-card');
+    } else if (merchant && !inTabs && !onChooseAccount) {
+      // Has merchant account → show account picker
+      router.replace('/(onboarding)/choose-account');
+    } else if (!merchant && !inTabs) {
+      // Customer only → go straight to app
+      router.replace('/(tabs)/my-card');
     }
-  }, [session, isLoading, isOnboarding, segments]);
+  }, [session, isLoading, isOnboarding, customer, merchant, segments]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

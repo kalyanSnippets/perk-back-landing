@@ -10,7 +10,7 @@ import { PB, FONTS } from '../../src/constants/theme';
 
 const { width } = Dimensions.get('window');
 
-// ── Splash phase ─────────────────────────────────────────────────────────
+// ── Splash ────────────────────────────────────────────────────────────────
 function SplashPhase({ onDone }: { onDone: () => void }) {
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -25,22 +25,18 @@ function SplashPhase({ onDone }: { onDone: () => void }) {
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 8 }),
       Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
-
     setTimeout(() => {
       Animated.parallel([
         Animated.timing(textOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
         Animated.timing(textY, { toValue: 0, duration: 500, useNativeDriver: true }),
       ]).start();
     }, 350);
-
     Animated.loop(Animated.timing(ringRotate, { toValue: 1, duration: 18000, useNativeDriver: true, isInteraction: false })).start();
     Animated.loop(Animated.timing(ringRotateRev, { toValue: -1, duration: 22000, useNativeDriver: true, isInteraction: false })).start();
     Animated.loop(Animated.sequence([
       Animated.timing(floatY, { toValue: -8, duration: 1700, useNativeDriver: true, isInteraction: false }),
       Animated.timing(floatY, { toValue: 0, duration: 1700, useNativeDriver: true, isInteraction: false }),
     ])).start();
-
-    // Auto-advance after 2.4s
     setTimeout(onDone, 2400);
   }, []);
 
@@ -62,7 +58,7 @@ function SplashPhase({ onDone }: { onDone: () => void }) {
         </Animated.View>
         <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: textY }], alignItems: 'center' }}>
           <Text style={splash.appName}>PerkBack</Text>
-          <Text style={splash.tagline}>Earn back what you spend</Text>
+          <Text style={splash.tagline}>Every visit, rewarded</Text>
         </Animated.View>
       </View>
     </View>
@@ -79,31 +75,147 @@ const splash = StyleSheet.create({
   logoBox: { width: 88, height: 88, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   logoLetter: { fontSize: 40, fontFamily: FONTS.extraBold, color: '#ffd07a' },
   appName: { fontSize: 32, fontFamily: FONTS.extraBold, color: '#fff', letterSpacing: -0.5 },
-  tagline: { fontSize: 14, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, marginTop: 6, fontFamily: FONTS.regular },
+  tagline: { fontSize: 14, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3, marginTop: 6, fontFamily: FONTS.regular },
 });
 
-// ── Carousel slides ───────────────────────────────────────────────────────
+// ── Slide visuals ─────────────────────────────────────────────────────────
+function WhiteLabelVisual() {
+  const cards = [
+    { bg: '#7c3aed', name: 'Luna Café', rotate: '-11deg', tx: -18, ty: -14 },
+    { bg: '#0a2a6b', name: 'PerkBack HQ', rotate: '1deg', tx: 2, ty: 8 },
+    { bg: '#be185d', name: 'Bloom Florist', rotate: '12deg', tx: 20, ty: -10 },
+  ];
+  return (
+    <View style={{ width: 240, height: 170, alignItems: 'center', justifyContent: 'center' }}>
+      {cards.map((c, i) => (
+        <View key={i} style={[wlv.card, {
+          backgroundColor: c.bg,
+          transform: [{ rotate: c.rotate }, { translateX: c.tx }, { translateY: c.ty }],
+          zIndex: i,
+        }]}>
+          <Text style={wlv.cardLabel}>LOYALTY</Text>
+          <Text style={wlv.cardName}>{c.name}</Text>
+          <View style={wlv.cardDot} />
+          <View style={wlv.cardChip} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const wlv = StyleSheet.create({
+  card: { position: 'absolute', width: 188, height: 108, borderRadius: 16, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 8 },
+  cardLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 7, letterSpacing: 2, fontFamily: FONTS.bold },
+  cardName: { color: '#fff', fontSize: 15, fontFamily: FONTS.bold, marginTop: 6 },
+  cardDot: { position: 'absolute', bottom: 12, right: 14, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.18)' },
+  cardChip: { position: 'absolute', bottom: 14, left: 14, width: 28, height: 20, borderRadius: 4, backgroundColor: 'rgba(255,208,122,0.5)' },
+});
+
+function ScanVisual() {
+  const dots = Array(25).fill(0).map((_, i) => i % 3 !== 1);
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <View style={scv.card}>
+        <View style={scv.qrWrap}>
+          {/* Corners */}
+          {[{ t: 0, l: 0 }, { t: 0, r: 0 }, { b: 0, l: 0 }].map((pos, i) => (
+            <View key={i} style={[scv.corner, pos as any]} />
+          ))}
+          {/* QR dot grid */}
+          <View style={scv.grid}>
+            {dots.map((filled, i) => (
+              <View key={i} style={[scv.dot, { backgroundColor: filled ? PB.primary : 'transparent' }]} />
+            ))}
+          </View>
+        </View>
+        {/* Scan line */}
+        <View style={scv.scanLine} />
+        {/* Gold tick */}
+        <View style={scv.tick}>
+          <Text style={{ fontSize: 13, color: PB.primary }}>✓</Text>
+        </View>
+      </View>
+      <View style={scv.badge}>
+        <Text style={scv.badgeStar}>✦</Text>
+        <Text style={scv.badgeText}>+25 points earned!</Text>
+      </View>
+    </View>
+  );
+}
+
+const scv = StyleSheet.create({
+  card: { width: 150, height: 150, borderRadius: 22, backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#eef0f6' },
+  qrWrap: { width: 100, height: 100, position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  corner: { position: 'absolute', width: 22, height: 22, borderColor: PB.primary, borderRadius: 4, borderWidth: 3 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', width: 60, height: 60, gap: 3 },
+  dot: { width: 9, height: 9, borderRadius: 2 },
+  scanLine: { position: 'absolute', left: 20, right: 20, height: 2, backgroundColor: '#ffd07a', opacity: 0.9 },
+  tick: { position: 'absolute', top: -10, right: -10, width: 30, height: 30, borderRadius: 15, backgroundColor: '#ffd07a', alignItems: 'center', justifyContent: 'center', shadowColor: '#f7b94a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.6, shadowRadius: 6, elevation: 4 },
+  badge: { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: PB.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  badgeStar: { color: '#ffd07a', fontSize: 12 },
+  badgeText: { color: '#fff', fontSize: 13, fontFamily: FONTS.bold },
+});
+
+function NearbyVisual() {
+  const pins = [
+    { top: 14, left: 18, label: '☕ Coffee', color: '#f7b94a' },
+    { top: 60, right: 16, label: '🍜 Lunch', color: '#0a2a6b' },
+    { top: 100, left: 54, label: '🥐 Bakery', color: '#be185d' },
+    { top: 32, left: 118, label: '2× pts', color: '#059669' },
+  ];
+  return (
+    <View style={nbv.map}>
+      {[38, 76, 114].map(y => <View key={y} style={[nbv.gridLine, { top: y }]} />)}
+      {[55, 110, 165].map(x => <View key={x} style={[nbv.gridLineV, { left: x }]} />)}
+      {pins.map((p, i) => (
+        <View key={i} style={[nbv.pinWrap, { top: p.top, left: (p as any).left, right: (p as any).right }]}>
+          <View style={[nbv.pin, { backgroundColor: p.color }]}>
+            <Text style={nbv.pinText}>{p.label}</Text>
+          </View>
+          <View style={[nbv.pinTail, { backgroundColor: p.color }]} />
+        </View>
+      ))}
+      <View style={nbv.youDot}>
+        <View style={nbv.youInner} />
+      </View>
+    </View>
+  );
+}
+
+const nbv = StyleSheet.create({
+  map: { width: 220, height: 150, borderRadius: 20, backgroundColor: '#eef2ff', overflow: 'hidden', position: 'relative' },
+  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#d4daf7' },
+  gridLineV: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#d4daf7' },
+  pinWrap: { position: 'absolute', alignItems: 'center' },
+  pin: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 4 },
+  pinText: { color: '#fff', fontSize: 10, fontFamily: FONTS.bold },
+  pinTail: { width: 5, height: 5, borderRadius: 2.5, marginTop: 2 },
+  youDot: { position: 'absolute', bottom: 24, left: 90, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(63,122,212,0.2)', alignItems: 'center', justifyContent: 'center' },
+  youInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: PB.secondary, borderWidth: 2, borderColor: '#fff' },
+});
+
+// ── Carousel ──────────────────────────────────────────────────────────────
 const SLIDES = [
   {
-    id: 'wallet',
-    title: 'All your loyalty\ncards, unified.',
-    sub: 'Every local store in one place. No more rummaging through paper punch cards.',
-    emoji: '💳',
-    bg: '#f0f4ff',
+    id: 'whitelabel',
+    title: 'Built around\nyour brand.',
+    sub: 'Every local store gets a fully branded loyalty card — their colours, their name, their perks.',
+    bg: '#f0eeff',
+    Visual: WhiteLabelVisual,
   },
   {
     id: 'scan',
     title: 'Scan, earn,\nrepeat.',
     sub: 'Show your QR at the till to earn points instantly — no app fumbling required.',
-    emoji: '📱',
     bg: '#fff8ed',
+    Visual: ScanVisual,
   },
   {
-    id: 'ai',
+    id: 'nearby',
     title: 'Smart deals\nnearby.',
     sub: 'Personalised offers from stores around you, matched to what you actually buy.',
-    emoji: '✨',
-    bg: '#f0fff8',
+    bg: '#f0f4ff',
+    Visual: NearbyVisual,
   },
 ];
 
@@ -132,7 +244,7 @@ function CarouselPhase() {
   };
 
   return (
-    <SafeAreaView style={carousel.container}>
+    <SafeAreaView style={car.container}>
       <StatusBar barStyle="dark-content" />
       <FlatList
         ref={listRef}
@@ -142,44 +254,43 @@ function CarouselPhase() {
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={e => setIdx(Math.round(e.nativeEvent.contentOffset.x / width))}
         renderItem={({ item }) => (
-          <View style={[carousel.slide, { width }]}>
-            <View style={[carousel.visual, { backgroundColor: item.bg }]}>
-              <Text style={carousel.emoji}>{item.emoji}</Text>
+          <View style={[car.slide, { width }]}>
+            <View style={[car.visual, { backgroundColor: item.bg }]}>
+              <item.Visual />
             </View>
           </View>
         )}
       />
-      <View style={carousel.bottom}>
-        <Text style={carousel.title}>{SLIDES[idx].title}</Text>
-        <Text style={carousel.sub}>{SLIDES[idx].sub}</Text>
-        <View style={carousel.dots}>
+      <View style={car.bottom}>
+        <Text style={car.title}>{SLIDES[idx].title}</Text>
+        <Text style={car.sub}>{SLIDES[idx].sub}</Text>
+        <View style={car.dots}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={[carousel.dot, i === idx && carousel.dotActive]} />
+            <View key={i} style={[car.dot, i === idx && car.dotActive]} />
           ))}
         </View>
-        <Animated.View style={[carousel.actions, { opacity: btnsOpacity, transform: [{ translateY: btnsY }] }]}>
-          <TouchableOpacity style={carousel.skipBtn} onPress={() => router.push('/(auth)/sign-in')}>
-            <Text style={carousel.skipText}>Skip</Text>
+        <Animated.View style={[car.actions, { opacity: btnsOpacity, transform: [{ translateY: btnsY }] }]}>
+          <TouchableOpacity style={car.skipBtn} onPress={() => router.push('/(auth)/sign-in')}>
+            <Text style={car.skipText}>Skip</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={carousel.nextBtn} onPress={goNext}>
-            <LinearGradient colors={[PB.primary, '#1a4699']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={carousel.nextBtnGrad}>
-              <Text style={carousel.nextText}>{idx === SLIDES.length - 1 ? 'Get started' : 'Continue'} →</Text>
+          <TouchableOpacity style={car.nextBtn} onPress={goNext}>
+            <LinearGradient colors={[PB.primary, '#1a4699']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={car.nextBtnGrad}>
+              <Text style={car.nextText}>{idx === SLIDES.length - 1 ? 'Get started' : 'Continue'} →</Text>
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
-        <TouchableOpacity style={carousel.signInRow} onPress={() => router.push('/(auth)/sign-in')}>
-          <Text style={carousel.signInText}>Already have an account? <Text style={carousel.signInLink}>Sign in</Text></Text>
+        <TouchableOpacity style={car.signInRow} onPress={() => router.push('/(auth)/sign-in')}>
+          <Text style={car.signInText}>Already have an account? <Text style={car.signInLink}>Sign in</Text></Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-const carousel = StyleSheet.create({
+const car = StyleSheet.create({
   container: { flex: 1, backgroundColor: PB.bg },
   slide: { alignItems: 'center', justifyContent: 'center' },
-  visual: { width: width - 48, height: 260, borderRadius: 24, margin: 24, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 80 },
+  visual: { width: width - 48, height: 240, borderRadius: 24, margin: 24, alignItems: 'center', justifyContent: 'center' },
   bottom: { paddingHorizontal: 28, paddingBottom: 24 },
   title: { fontSize: 28, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.5, lineHeight: 34 },
   sub: { fontSize: 14, fontFamily: FONTS.regular, color: PB.muted, lineHeight: 21, marginTop: 10, marginBottom: 22 },
@@ -197,10 +308,9 @@ const carousel = StyleSheet.create({
   signInLink: { fontFamily: FONTS.bold, color: PB.secondary, textDecorationLine: 'underline' },
 });
 
-// ── Main export ───────────────────────────────────────────────────────────
+// ── Root export ───────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
   const [showCarousel, setShowCarousel] = useState(false);
-
   return (
     <View style={{ flex: 1 }}>
       {!showCarousel && <SplashPhase onDone={() => setShowCarousel(true)} />}

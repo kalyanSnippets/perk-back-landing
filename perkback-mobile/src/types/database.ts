@@ -23,6 +23,7 @@ export interface CustomerMerchant {
 
 export interface Merchant {
   id: string;
+  user_id: string;
   name: string;
   slug: string;
   category: string | null;
