@@ -1,0 +1,55 @@
+export interface Customer {
+  id: string;
+  user_id: string;
+  full_name: string;
+  crn: string;
+  loyalty_card_number: string;
+  points_balance: number;
+  date_of_birth: string | null;
+  phone: string | null;
+  created_at: string;
+}
+
+export interface CustomerMerchant {
+  id: string;
+  customer_id: string;
+  merchant_id: string;
+  points: number;
+  visits: number;
+  total_spend: number;
+  created_at: string;
+  merchants?: Merchant;
+}
+
+export interface Merchant {
+  id: string;
+  name: string;
+  slug: string;
+  category: string | null;
+  logo_url: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  is_active: boolean;
+}
+
+export interface Reward {
+  id: string;
+  merchant_id: string;
+  title: string;
+  description: string | null;
+  points_required: number;
+  is_active: boolean;
+  merchants?: Merchant;
+}
+
+export interface Redemption {
+  id: string;
+  customer_id: string;
+  reward_id: string;
+  code: string;
+  status: 'active' | 'used' | 'expired';
+  expires_at: string;
+  created_at: string;
+  rewards?: Reward;
+}
