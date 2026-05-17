@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "PerkBack",
+    "slug": "perkback-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0a2a6b"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.perkback.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0a2a6b"
+      },
+      "package": "com.perkback.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "scheme": "perkback",
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "newArchEnabled": false
+  }
+}
