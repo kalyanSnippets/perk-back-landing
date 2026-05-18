@@ -49,6 +49,7 @@ const VerifyOtp = () => {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [otpError, setOtpError] = useState<OtpError | null>(null);
 
   const backAuthPath = role === "merchant" ? "/merchant/auth" : "/customer/auth";
 
@@ -64,13 +65,20 @@ const VerifyOtp = () => {
     return () => clearTimeout(t);
   }, [cooldown]);
 
+  // Clear error as soon as user starts editing the code again
+  const handleCodeChange = (value: string) => {
+    setCode(value);
+    if (otpError) setOtpError(null);
+  };
+
   const handleVerify = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (code.length !== 6) {
-      toast.error("Please enter the 6-digit code");
+      setOtpError({ kind: "invalid", message: "Please enter the full 6-digit code." });
       return;
     }
     setLoading(true);
+    setOtpError(null);
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
@@ -86,8 +94,9 @@ const VerifyOtp = () => {
         navigate("/customer/confirmation");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Invalid or expired code";
-      toast.error(message);
+      const classified = classifyOtpError(err);
+      setOtpError(classified);
+      setCode("");
     } finally {
       setLoading(false);
     }
@@ -100,6 +109,8 @@ const VerifyOtp = () => {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       if (error) throw error;
       toast.success("A new code has been sent to your email");
+      setOtpError(null);
+      setCode("");
       setCooldown(45);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Could not resend code";
@@ -108,6 +119,7 @@ const VerifyOtp = () => {
       setResending(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
