@@ -150,7 +150,7 @@ const VerifyOtp = () => {
           className="bg-card rounded-2xl p-8 shadow-card space-y-6 animate-fade-up-delay-1"
         >
           <div className="flex justify-center">
-            <InputOTP maxLength={6} value={code} onChange={setCode} autoFocus>
+            <InputOTP maxLength={6} value={code} onChange={handleCodeChange} autoFocus>
               <InputOTPGroup>
                 <InputOTPSlot index={0} />
                 <InputOTPSlot index={1} />
@@ -161,6 +161,34 @@ const VerifyOtp = () => {
               </InputOTPGroup>
             </InputOTP>
           </div>
+
+          {otpError && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 space-y-3"
+            >
+              <div className="flex gap-2 items-start text-destructive">
+                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                <div className="text-sm leading-relaxed">{otpError.message}</div>
+              </div>
+              {(otpError.kind === "expired" || otpError.kind === "invalid") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResend}
+                  disabled={resending || cooldown > 0}
+                  className="w-full"
+                >
+                  {cooldown > 0
+                    ? `Send a new code in ${cooldown}s`
+                    : resending
+                    ? "Sending new code..."
+                    : "Send a new code"}
+                </Button>
+              )}
+            </div>
+          )}
 
           <Button
             type="submit"
