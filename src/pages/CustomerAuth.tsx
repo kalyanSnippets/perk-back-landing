@@ -34,8 +34,8 @@ const CustomerAuth = () => {
           },
         });
         if (error) throw error;
-        toast.success("Account created! Check your email to confirm.");
-        navigate("/customer/confirmation");
+        toast.success("We sent a 6-digit code to your email.");
+        navigate("/verify", { state: { email, role: "customer" } });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
