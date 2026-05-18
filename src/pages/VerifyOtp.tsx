@@ -4,7 +4,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { ArrowLeft, Mail } from "lucide-react";
+import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
+
+type OtpError = {
+  kind: "expired" | "invalid" | "rate_limited" | "generic";
+  message: string;
+};
+
+function classifyOtpError(err: unknown): OtpError {
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const msg = raw.toLowerCase();
+  if (msg.includes("expired") || msg.includes("otp_expired")) {
+    return {
+      kind: "expired",
+      message: "This code has expired. Request a new one to continue.",
+    };
+  }
+  if (msg.includes("invalid") || msg.includes("token") || msg.includes("not found")) {
+    return {
+      kind: "invalid",
+      message: "That code doesn't match. Double-check the email and try again, or resend a new code.",
+    };
+  }
+  if (msg.includes("rate") || msg.includes("too many")) {
+    return {
+      kind: "rate_limited",
+      message: "Too many attempts. Please wait a moment before trying again.",
+    };
+  }
+  return { kind: "generic", message: raw || "Verification failed. Please try again." };
+}
+
 
 type Role = "customer" | "merchant";
 
