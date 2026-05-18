@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -65,10 +66,15 @@ function Field({
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { height, width } = useWindowDimensions();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const compact = height < 760;
+  const tight = height < 700;
+  const logoWidth = Math.min(width * (tight ? 0.58 : 0.66), tight ? 218 : 260);
+  const logoHeight = logoWidth * 0.26;
 
   const handleEmailSignIn = async () => {
     if (!email || !password) {
@@ -95,73 +101,77 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
-        <View style={styles.header}>
-          <BrandLogo width={176} height={58} />
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to your account</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, tight && styles.screenTight]}>
+        <View style={[styles.header, tight && styles.headerTight]}>
+          <BrandLogo width={logoWidth} height={logoHeight} />
+          <Text style={[styles.title, compact && styles.titleCompact]}>Welcome back</Text>
+          <Text style={[styles.subtitle, compact && styles.subtitleCompact]}>Sign in to your account</Text>
         </View>
 
-        <View style={styles.card}>
-          <Field
-            label="Email"
-            icon="✉"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            keyboardType="email-address"
-          />
-          <Field
-            label="Password"
-            icon="▢"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            secure
-            visible={passwordVisible}
-            onToggleVisible={() => setPasswordVisible((value) => !value)}
-          />
+        <View style={[styles.card, compact && styles.cardCompact]}>
+          <View>
+            <Field
+              label="Email"
+              icon="✉"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+            />
+            <Field
+              label="Password"
+              icon="▢"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              secure
+              visible={passwordVisible}
+              onToggleVisible={() => setPasswordVisible((value) => !value)}
+            />
 
-          <TouchableOpacity onPress={handleEmailSignIn} disabled={loading} activeOpacity={0.9}>
-            <LinearGradient colors={['#062967', '#2f87e6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
-              <Text style={styles.primaryText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={handleEmailSignIn} disabled={loading} activeOpacity={0.9}>
+              <LinearGradient colors={['#062967', '#2f87e6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
+                <Text style={styles.primaryText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
-          <View style={styles.orRow}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>or</Text>
-            <View style={styles.line} />
+            <View style={styles.orRow}>
+              <View style={styles.line} />
+              <Text style={styles.orText}>or</Text>
+              <View style={styles.line} />
+            </View>
+
+            <TouchableOpacity style={styles.oauthBtn} onPress={() => handleOAuth('google')} activeOpacity={0.85}>
+              <Text style={styles.google}>G</Text>
+              <Text style={styles.oauthText}>Continue with Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.oauthBtn} onPress={() => handleOAuth('apple')} activeOpacity={0.85}>
+              <Text style={styles.apple}>●</Text>
+              <Text style={styles.oauthText}>Continue with Apple</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={styles.forgotRow}>
+              <Text style={styles.mutedLink}>Forgot password?</Text>
+            </TouchableOpacity>
+
+            <View style={styles.secureRow}>
+              <Text style={styles.secureIcon}>♢</Text>
+              <Text style={styles.secureText}>Your data is securely encrypted</Text>
+            </View>
           </View>
 
-          <TouchableOpacity style={styles.oauthBtn} onPress={() => handleOAuth('google')} activeOpacity={0.85}>
-            <Text style={styles.google}>G</Text>
-            <Text style={styles.oauthText}>Continue with Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.oauthBtn} onPress={() => handleOAuth('apple')} activeOpacity={0.85}>
-            <Text style={styles.apple}>●</Text>
-            <Text style={styles.oauthText}>Continue with Apple</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={styles.forgotRow}>
-            <Text style={styles.mutedLink}>Forgot password?</Text>
-          </TouchableOpacity>
-
-          <View style={styles.secureRow}>
-            <Text style={styles.secureIcon}>♢</Text>
-            <Text style={styles.secureText}>Your data is securely encrypted</Text>
-          </View>
-
-          <View style={styles.bottomRule} />
-          <Text style={styles.accountPrompt}>Don't have an account?</Text>
-          <View style={styles.signupLinks}>
-            <TouchableOpacity onPress={() => router.push('/(auth)/sign-up')}>
-              <Text style={styles.signupLink}>♙ Sign up as Customer</Text>
-            </TouchableOpacity>
-            <View style={styles.verticalRule} />
-            <TouchableOpacity onPress={() => router.push('/(auth)/merchant-sign-up')}>
-              <Text style={styles.signupLink}>▦ Sign up as Merchant</Text>
-            </TouchableOpacity>
+          <View style={styles.cardBottom}>
+            <View style={styles.bottomRule} />
+            <Text style={styles.accountPrompt}>Don't have an account?</Text>
+            <View style={styles.signupLinks}>
+              <TouchableOpacity onPress={() => router.push('/(auth)/sign-up')}>
+                <Text style={styles.signupLink}>♙ Sign up as Customer</Text>
+              </TouchableOpacity>
+              <View style={styles.verticalRule} />
+              <TouchableOpacity onPress={() => router.push('/(auth)/merchant-sign-up')}>
+                <Text style={styles.signupLink}>▦ Sign up as Merchant</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -171,11 +181,17 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f6f8fc' },
-  screen: { flex: 1, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 10 },
-  header: { alignItems: 'center', marginBottom: 14 },
+  screen: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 10 },
+  screenTight: { paddingTop: 6, paddingBottom: 6 },
+  header: { alignItems: 'center', marginBottom: 10 },
+  headerTight: { marginBottom: 6 },
   title: { textAlign: 'center', color: '#071735', fontSize: 28, fontFamily: FONTS.extraBold, marginTop: 4, marginBottom: 4 },
+  titleCompact: { fontSize: 25, marginTop: 2, marginBottom: 2 },
   subtitle: { textAlign: 'center', color: '#6b768c', fontSize: 15, fontFamily: FONTS.regular },
-  card: { backgroundColor: '#fff', borderRadius: 26, padding: 18, shadowColor: '#20314d', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 7 },
+  subtitleCompact: { fontSize: 13 },
+  card: { flex: 1, minHeight: 0, justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 26, padding: 18, shadowColor: '#20314d', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 7 },
+  cardCompact: { padding: 15, borderRadius: 24 },
+  cardBottom: { paddingTop: 6 },
   fieldBlock: { marginBottom: 11 },
   label: { color: '#071735', fontSize: 14, fontFamily: FONTS.medium, marginBottom: 6 },
   inputWrap: { height: 46, borderRadius: 14, borderWidth: 1, borderColor: '#dfe4ed', backgroundColor: '#f5f7fb', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13 },

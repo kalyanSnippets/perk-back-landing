@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -45,6 +46,7 @@ function Field({
   visible,
   onToggleVisible,
   keyboardType,
+  compact,
 }: {
   label: string;
   icon: string;
@@ -55,14 +57,15 @@ function Field({
   visible?: boolean;
   onToggleVisible?: () => void;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  compact?: boolean;
 }) {
   return (
-    <View style={styles.fieldBlock}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputWrap}>
-        <Text style={styles.fieldIcon}>{icon}</Text>
+    <View style={[styles.fieldBlock, compact && styles.fieldBlockCompact]}>
+      <Text style={[styles.label, compact && styles.labelCompact]}>{label}</Text>
+      <View style={[styles.inputWrap, compact && styles.inputWrapCompact]}>
+        <Text style={[styles.fieldIcon, compact && styles.fieldIconCompact]}>{icon}</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, compact && styles.inputCompact]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -83,6 +86,7 @@ function Field({
 
 export default function MerchantSignUpScreen() {
   const router = useRouter();
+  const { height, width } = useWindowDimensions();
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,6 +96,10 @@ export default function MerchantSignUpScreen() {
   const [industryType, setIndustryType] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const compact = height < 790;
+  const tight = height < 710;
+  const logoWidth = Math.min(width * (tight ? 0.52 : 0.6), tight ? 198 : 238);
+  const logoHeight = logoWidth * 0.26;
 
   const handleSignUp = async () => {
     if (!storeName.trim() || !email.trim() || !password) {
@@ -138,55 +146,60 @@ export default function MerchantSignUpScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
-        <View style={styles.header}>
-          <BrandLogo width={164} height={54} />
-          <Text style={styles.title}>Create your account</Text>
-          <Text style={styles.subtitle}>Sign up as a merchant</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, tight && styles.screenTight]}>
+        <View style={[styles.header, tight && styles.headerTight]}>
+          <BrandLogo width={logoWidth} height={logoHeight} />
+          <Text style={[styles.title, compact && styles.titleCompact]}>Create your account</Text>
+          <Text style={[styles.subtitle, compact && styles.subtitleCompact]}>Sign up as a merchant</Text>
         </View>
         <RoleTabs onCustomer={() => router.push('/(auth)/sign-up')} />
 
-        <View style={styles.card}>
-          <Field label="Store Name" icon="▦" value={storeName} onChangeText={setStoreName} placeholder="My Coffee Shop" />
-          <Field label="Email" icon="✉" value={email} onChangeText={setEmail} placeholder="merchant@example.com" keyboardType="email-address" />
-          <Field
-            label="Password"
-            icon="▢"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            secure
-            visible={passwordVisible}
-            onToggleVisible={() => setPasswordVisible((value) => !value)}
-          />
-          <Field label="Address" icon="⌖" value={address} onChangeText={setAddress} placeholder="123 Main St" />
-          <Field label="Contact Number" icon="☏" value={phone} onChangeText={setPhone} placeholder="+1 234 567 8900" keyboardType="phone-pad" />
-          <Field label="Industry Type" icon="▤" value={industryType} onChangeText={setIndustryType} placeholder="Café, Retail..." />
+        <View style={[styles.card, compact && styles.cardCompact]}>
+          <View>
+            <Field compact={compact} label="Store Name" icon="▦" value={storeName} onChangeText={setStoreName} placeholder="My Coffee Shop" />
+            <Field compact={compact} label="Email" icon="✉" value={email} onChangeText={setEmail} placeholder="merchant@example.com" keyboardType="email-address" />
+            <Field
+              compact={compact}
+              label="Password"
+              icon="▢"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              secure
+              visible={passwordVisible}
+              onToggleVisible={() => setPasswordVisible((value) => !value)}
+            />
+            <Field compact={compact} label="Address" icon="⌖" value={address} onChangeText={setAddress} placeholder="123 Main St" />
+            <Field compact={compact} label="Contact Number" icon="☏" value={phone} onChangeText={setPhone} placeholder="+1 234 567 8900" keyboardType="phone-pad" />
+            <Field compact={compact} label="Industry Type" icon="▤" value={industryType} onChangeText={setIndustryType} placeholder="Café, Retail..." />
 
-          <TouchableOpacity style={styles.termsRow} onPress={() => setTermsAccepted((value) => !value)} activeOpacity={0.8}>
-            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
-              {termsAccepted ? <Text style={styles.checkboxTick}>✓</Text> : null}
-            </View>
-            <Text style={styles.termsText}>
-              I agree to the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={[styles.termsRow, compact && styles.termsRowCompact]} onPress={() => setTermsAccepted((value) => !value)} activeOpacity={0.8}>
+              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                {termsAccepted ? <Text style={styles.checkboxTick}>✓</Text> : null}
+              </View>
+              <Text style={[styles.termsText, compact && styles.termsTextCompact]}>
+                I agree to the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleSignUp} disabled={loading} activeOpacity={0.9}>
-            <LinearGradient colors={['#8aa0c3', '#90c5fb']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
-              <Text style={styles.primaryText}>{loading ? 'Registering...' : 'Register Store'}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.secureRow}>
-            <Text style={styles.secureIcon}>♢</Text>
-            <Text style={styles.secureText}>Your data is securely encrypted</Text>
+            <TouchableOpacity onPress={handleSignUp} disabled={loading} activeOpacity={0.9}>
+              <LinearGradient colors={['#8aa0c3', '#90c5fb']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.primaryBtn, compact && styles.primaryBtnCompact]}>
+                <Text style={styles.primaryText}>{loading ? 'Registering...' : 'Register Store'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.bottomRule} />
-          <TouchableOpacity onPress={() => router.push('/(auth)/sign-in')} style={styles.signInRow}>
-            <Text style={styles.signInText}>Already have an account? <Text style={styles.signInLink}>Sign in</Text></Text>
-          </TouchableOpacity>
+          <View style={styles.cardBottom}>
+            <View style={[styles.secureRow, compact && styles.secureRowCompact]}>
+              <Text style={styles.secureIcon}>♢</Text>
+              <Text style={styles.secureText}>Your data is securely encrypted</Text>
+            </View>
+
+            <View style={styles.bottomRule} />
+            <TouchableOpacity onPress={() => router.push('/(auth)/sign-in')} style={styles.signInRow}>
+              <Text style={styles.signInText}>Already have an account? <Text style={styles.signInLink}>Sign in</Text></Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -196,9 +209,13 @@ export default function MerchantSignUpScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f6f8fc' },
   screen: { flex: 1, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 8 },
+  screenTight: { paddingTop: 5, paddingBottom: 6 },
   header: { alignItems: 'center', marginBottom: 8 },
+  headerTight: { marginBottom: 5 },
   title: { color: '#071735', textAlign: 'center', fontSize: 25, fontFamily: FONTS.extraBold, marginTop: 2, marginBottom: 2 },
+  titleCompact: { fontSize: 22, marginTop: 1 },
   subtitle: { color: '#6b768c', textAlign: 'center', fontSize: 14, fontFamily: FONTS.regular },
+  subtitleCompact: { fontSize: 12 },
   tabs: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   tab: { flex: 1, height: 42, borderRadius: 22, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#dfe4ed', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
   tabActive: { backgroundColor: '#eef3fb', borderColor: PB.primary, borderWidth: 2 },
@@ -206,22 +223,33 @@ const styles = StyleSheet.create({
   tabIconMuted: { color: '#738097', fontSize: 16, fontFamily: FONTS.bold },
   tabActiveText: { color: PB.primary, fontSize: 14, fontFamily: FONTS.bold },
   tabText: { color: '#738097', fontSize: 14, fontFamily: FONTS.bold },
-  card: { backgroundColor: '#fff', borderRadius: 24, padding: 13, shadowColor: '#20314d', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 7 },
+  card: { flex: 1, minHeight: 0, justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 24, padding: 13, shadowColor: '#20314d', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 7 },
+  cardCompact: { padding: 11 },
+  cardBottom: { paddingTop: 3 },
   fieldBlock: { marginBottom: 5 },
+  fieldBlockCompact: { marginBottom: 4 },
   label: { color: '#071735', fontSize: 11, fontFamily: FONTS.medium, marginBottom: 2 },
+  labelCompact: { fontSize: 10 },
   inputWrap: { height: 36, borderRadius: 12, borderWidth: 1, borderColor: '#dfe4ed', backgroundColor: '#f5f7fb', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
+  inputWrapCompact: { height: 33, paddingHorizontal: 9 },
   fieldIcon: { width: 22, color: '#718098', fontSize: 14, fontFamily: FONTS.bold },
+  fieldIconCompact: { width: 20, fontSize: 12 },
   input: { flex: 1, color: PB.fg, fontSize: 13, fontFamily: FONTS.regular, paddingVertical: 0 },
+  inputCompact: { fontSize: 12 },
   toggleText: { color: PB.primary, fontSize: 11, fontFamily: FONTS.bold },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 1, marginBottom: 8 },
+  termsRowCompact: { marginBottom: 6 },
   checkbox: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: PB.primary, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: PB.primary },
   checkboxTick: { color: '#fff', fontSize: 11, fontFamily: FONTS.bold },
   termsText: { flex: 1, color: '#6b768c', fontSize: 11, lineHeight: 15, fontFamily: FONTS.regular },
+  termsTextCompact: { fontSize: 10, lineHeight: 13 },
   termsLink: { color: PB.primary, fontFamily: FONTS.medium },
   primaryBtn: { height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#6aa8e8', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
+  primaryBtnCompact: { height: 39, borderRadius: 15 },
   primaryText: { color: '#fff', fontSize: 15, fontFamily: FONTS.bold },
   secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 9, marginBottom: 8 },
+  secureRowCompact: { marginTop: 6, marginBottom: 6 },
   secureIcon: { color: '#718098', fontSize: 13 },
   secureText: { color: '#7a8495', fontSize: 12, fontFamily: FONTS.regular },
   bottomRule: { height: 1, backgroundColor: '#edf0f5', marginBottom: 8 },
