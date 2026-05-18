@@ -1,103 +1,116 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Linking, Alert } from 'react-native';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../src/context/AuthContext';
 import { PB, FONTS } from '../../src/constants/theme';
 
-const MERCHANT_DASHBOARD_URL = 'https://perkback.com.au/dashboard';
+function BrandHeader() {
+  return (
+    <View style={styles.brandRow}>
+      <View style={styles.giftBox}>
+        <Text style={styles.giftSpark}>✦</Text>
+        <Text style={styles.giftIcon}>✓</Text>
+      </View>
+      <Text style={styles.brandPerk}>Perk</Text>
+      <Text style={styles.brandBack}>Back</Text>
+    </View>
+  );
+}
+
+function ChoiceCard({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.choiceCard} onPress={onPress} activeOpacity={0.86}>
+      <View style={styles.iconCircle}>
+        <Text style={styles.choiceIcon}>{icon}</Text>
+      </View>
+      <View style={styles.choiceText}>
+        <Text style={styles.choiceTitle}>{title}</Text>
+        <Text style={styles.choiceSubtitle}>{subtitle}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function ChooseAccountScreen() {
   const router = useRouter();
-  const { customer, merchant } = useAuth();
-
-  const goCustomer = () => {
-    router.replace('/(tabs)/my-card');
-  };
-
-  const goMerchant = async () => {
-    const supported = await Linking.canOpenURL(MERCHANT_DASHBOARD_URL);
-    if (supported) {
-      await Linking.openURL(MERCHANT_DASHBOARD_URL);
-    } else {
-      Alert.alert('Could not open', 'Visit perkback.com.au to access your merchant dashboard.');
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Text style={styles.logoName}>PerkBack</Text>
-        <Text style={styles.greeting}>
-          Welcome back{customer?.full_name ? `, ${customer.full_name.split(' ')[0]}` : ''}
+      <BrandHeader />
+      <View style={styles.content}>
+        <Text style={styles.title}>Choose your dashboard</Text>
+        <Text style={styles.subtitle}>
+          You have both a customer and merchant account.{'\n'}Where would you like to go?
         </Text>
-        <Text style={styles.sub}>You have multiple accounts. Where would you like to go?</Text>
+
+        <View style={styles.cards}>
+          <ChoiceCard
+            icon="▭"
+            title="Continue as Customer"
+            subtitle="View your loyalty card, points & transactions"
+            onPress={() => router.replace('/(tabs)/my-card')}
+          />
+          <ChoiceCard
+            icon="▦"
+            title="Continue as Merchant"
+            subtitle="Manage your store, transactions & settings"
+            onPress={() => router.replace('/(merchant)/dashboard')}
+          />
+        </View>
       </View>
-
-      <View style={styles.cards}>
-        {/* Customer card */}
-        <TouchableOpacity style={styles.accountCard} onPress={goCustomer} activeOpacity={0.88}>
-          <LinearGradient
-            colors={[PB.primary, '#1a4699']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cardGrad}
-          >
-            <View style={styles.cardIcon}>
-              <Text style={styles.cardIconText}>💳</Text>
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>Customer Account</Text>
-              <Text style={styles.cardSub}>
-                {customer
-                  ? `${(customer.points_balance ?? 0).toLocaleString()} pts · ${customer.crn}`
-                  : 'View your loyalty card & rewards'}
-              </Text>
-            </View>
-            <Text style={styles.cardArrow}>→</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* Merchant card */}
-        <TouchableOpacity style={styles.accountCard} onPress={goMerchant} activeOpacity={0.88}>
-          <View style={styles.merchantCard}>
-            <View style={[styles.cardIcon, styles.merchantIcon]}>
-              <Text style={styles.cardIconText}>🏪</Text>
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={[styles.cardTitle, { color: PB.fg }]}>Merchant Dashboard</Text>
-              <Text style={[styles.cardSub, { color: PB.muted }]}>
-                {merchant?.name ?? 'Manage your store'} · Opens web app
-              </Text>
-            </View>
-            <Text style={[styles.cardArrow, { color: PB.muted }]}>↗</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.hint}>You can switch accounts any time from the Profile tab.</Text>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: PB.bg },
-  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
-  logoName: { fontSize: 16, fontFamily: FONTS.bold, color: PB.secondary, marginBottom: 16 },
-  greeting: { fontSize: 28, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.5, marginBottom: 8 },
-  sub: { fontSize: 14, fontFamily: FONTS.regular, color: PB.muted, lineHeight: 21 },
-  cards: { flex: 1, paddingHorizontal: 24, paddingTop: 32, gap: 14 },
-  accountCard: { borderRadius: 20, overflow: 'hidden', shadowColor: PB.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
-  cardGrad: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 14 },
-  merchantCard: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 14, backgroundColor: '#fff', borderWidth: 1.5, borderColor: PB.border, borderRadius: 20 },
-  cardIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  merchantIcon: { backgroundColor: PB.borderSoft },
-  cardIconText: { fontSize: 24 },
-  cardBody: { flex: 1 },
-  cardTitle: { fontSize: 16, fontFamily: FONTS.bold, color: '#fff', marginBottom: 4 },
-  cardSub: { fontSize: 12, fontFamily: FONTS.regular, color: 'rgba(255,255,255,0.7)', lineHeight: 17 },
-  cardArrow: { fontSize: 20, color: 'rgba(255,255,255,0.8)', fontFamily: FONTS.bold },
-  hint: { textAlign: 'center', fontSize: 12, fontFamily: FONTS.regular, color: PB.muted, paddingHorizontal: 40, paddingBottom: 32 },
+  container: { flex: 1, backgroundColor: '#f6f8fc' },
+  brandRow: {
+    height: 86,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e8ecf3',
+    backgroundColor: '#f8faff',
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  giftBox: { width: 48, height: 42, borderRadius: 9, backgroundColor: '#0d5c9d', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  giftSpark: { position: 'absolute', top: -8, left: -8, color: '#f5b21b', fontSize: 13 },
+  giftIcon: { color: '#fff', fontSize: 29, fontFamily: FONTS.bold },
+  brandPerk: { fontSize: 31, color: PB.primary, fontFamily: FONTS.extraBold },
+  brandBack: { fontSize: 31, color: '#edae18', fontFamily: FONTS.extraBold },
+  content: { flex: 1, paddingHorizontal: 22, paddingTop: 76 },
+  title: { textAlign: 'center', color: '#071735', fontSize: 34, fontFamily: FONTS.extraBold, marginBottom: 28 },
+  subtitle: { textAlign: 'center', color: '#6b768c', fontSize: 24, lineHeight: 35, fontFamily: FONTS.regular, marginBottom: 64 },
+  cards: { gap: 26 },
+  choiceCard: {
+    minHeight: 146,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: '#dfe4ed',
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 34,
+    shadowColor: '#20314d',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#edf1f8', alignItems: 'center', justifyContent: 'center', marginRight: 26 },
+  choiceIcon: { color: PB.primary, fontSize: 32, fontFamily: FONTS.bold },
+  choiceText: { flex: 1 },
+  choiceTitle: { color: '#071735', fontSize: 25, fontFamily: FONTS.extraBold, marginBottom: 10 },
+  choiceSubtitle: { color: '#6b768c', fontSize: 19, lineHeight: 25, fontFamily: FONTS.regular },
 });

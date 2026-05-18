@@ -1,19 +1,78 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, TouchableOpacity,
-  ScrollView, KeyboardAvoidingView, Platform, Alert, StatusBar,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { PB, FONTS } from '../../src/constants/theme';
+
+function BrandLogo() {
+  return (
+    <View style={styles.brand}>
+      <View style={styles.giftBox}>
+        <Text style={styles.giftSpark}>✦</Text>
+        <Text style={styles.giftIcon}>✓</Text>
+      </View>
+      <Text style={styles.brandPerk}>Perk</Text>
+      <Text style={styles.brandBack}>Back</Text>
+    </View>
+  );
+}
+
+function Field({
+  label,
+  icon,
+  value,
+  onChangeText,
+  placeholder,
+  secure,
+  keyboardType,
+}: {
+  label: string;
+  icon: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  secure?: boolean;
+  keyboardType?: 'default' | 'email-address';
+}) {
+  return (
+    <View style={styles.fieldBlock}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputWrap}>
+        <Text style={styles.fieldIcon}>{icon}</Text>
+        <TextInput
+          style={styles.input}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#738097"
+          secureTextEntry={secure}
+          autoCapitalize="none"
+          keyboardType={keyboardType}
+        />
+        {secure ? <Text style={styles.eyeIcon}>◎</Text> : null}
+      </View>
+    </View>
+  );
+}
 
 export default function SignInScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState<string | null>(null);
 
   const handleEmailSignIn = async () => {
     if (!email || !password) {
@@ -27,7 +86,6 @@ export default function SignInScreen() {
     });
     setLoading(false);
     if (error) Alert.alert('Sign-in failed', error.message);
-    // AuthContext onAuthStateChange handles redirect
   };
 
   const handleOAuth = async (provider: 'apple' | 'google') => {
@@ -38,123 +96,75 @@ export default function SignInScreen() {
     if (error) Alert.alert(`${provider} sign-in failed`, error.message);
   };
 
-  const inputStyle = (field: string) => [
-    styles.input,
-    focused === field && styles.inputFocused,
-  ];
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Logo */}
-          <View style={styles.logoArea}>
-            <View style={styles.logoBox}>
-              <Text style={styles.logoLetter}>P</Text>
-            </View>
-            <Text style={styles.logoName}>PerkBack</Text>
-          </View>
-
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <BrandLogo />
           <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.sub}>Sign in to your account.</Text>
+          <Text style={styles.subtitle}>Sign in to your account</Text>
 
-          {/* Email / Password fields */}
-          <View style={styles.fields}>
-            <View>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={inputStyle('email')}
-                value={email}
-                onChangeText={setEmail}
-                onFocus={() => setFocused('email')}
-                onBlur={() => setFocused(null)}
-                placeholder="you@email.com"
-                placeholderTextColor={PB.muted}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-              />
+          <View style={styles.card}>
+            <Field
+              label="Email"
+              icon="✉"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+            />
+            <Field
+              label="Password"
+              icon="▢"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              secure
+            />
+
+            <TouchableOpacity onPress={handleEmailSignIn} disabled={loading} activeOpacity={0.9}>
+              <LinearGradient colors={['#062967', '#2f87e6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
+                <Text style={styles.primaryText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.orRow}>
+              <View style={styles.line} />
+              <Text style={styles.orText}>or</Text>
+              <View style={styles.line} />
             </View>
-            <View>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={inputStyle('password')}
-                value={password}
-                onChangeText={setPassword}
-                onFocus={() => setFocused('password')}
-                onBlur={() => setFocused(null)}
-                placeholder="••••••••"
-                placeholderTextColor={PB.muted}
-                secureTextEntry
-                autoComplete="password"
-              />
+
+            <TouchableOpacity style={styles.oauthBtn} onPress={() => handleOAuth('google')} activeOpacity={0.85}>
+              <Text style={styles.google}>G</Text>
+              <Text style={styles.oauthText}>Continue with Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.oauthBtn} onPress={() => handleOAuth('apple')} activeOpacity={0.85}>
+              <Text style={styles.apple}>●</Text>
+              <Text style={styles.oauthText}>Continue with Apple</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={styles.forgotRow}>
+              <Text style={styles.mutedLink}>Forgot password?</Text>
+            </TouchableOpacity>
+
+            <View style={styles.secureRow}>
+              <Text style={styles.secureIcon}>♢</Text>
+              <Text style={styles.secureText}>Your data is securely encrypted</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/forgot-password')}
-              style={{ alignSelf: 'flex-end' }}
-            >
-              <Text style={styles.forgotLink}>Forgot password?</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* OAuth — below Forgot Password */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.dividerLine} />
+            <View style={styles.bottomRule} />
+            <Text style={styles.accountPrompt}>Don't have an account?</Text>
+            <View style={styles.signupLinks}>
+              <TouchableOpacity onPress={() => router.push('/(auth)/sign-up')}>
+                <Text style={styles.signupLink}>♙  Sign up as Customer</Text>
+              </TouchableOpacity>
+              <View style={styles.verticalRule} />
+              <TouchableOpacity onPress={() => router.push('/(auth)/merchant-sign-up')}>
+                <Text style={styles.signupLink}>▦  Sign up as Merchant</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.oauthSection}>
-            <TouchableOpacity
-              style={styles.appleBtn}
-              onPress={() => handleOAuth('apple')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.appleBtnText}> Continue with Apple</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.googleBtn}
-              onPress={() => handleOAuth('google')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.googleG}>G</Text>
-              <Text style={styles.googleBtnText}>Continue with Google</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.signInBtn, loading && { opacity: 0.6 }]}
-            onPress={handleEmailSignIn}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.signInBtnText}>
-              {loading ? 'Signing in…' : 'Sign in'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.signUpRow}
-            onPress={() => router.push('/(auth)/sign-up')}
-          >
-            <Text style={styles.signUpText}>
-              No account?{' '}
-              <Text style={styles.signUpLink}>Create one</Text>
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -162,61 +172,41 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: PB.bg },
-  topBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: PB.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  backArrow: { fontSize: 18, color: PB.fg },
-  scroll: { paddingHorizontal: 24, paddingBottom: 40 },
-  logoArea: { alignItems: 'center', marginBottom: 28, marginTop: 8 },
-  logoBox: {
-    width: 56, height: 56, borderRadius: 16, backgroundColor: PB.primary,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-    shadowColor: PB.primary, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
-  },
-  logoLetter: { fontSize: 24, fontFamily: FONTS.extraBold, color: '#ffd07a' },
-  logoName: { fontSize: 18, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.3 },
-  title: { fontSize: 26, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.5, marginBottom: 6 },
-  sub: { fontSize: 14, fontFamily: FONTS.regular, color: PB.muted, marginBottom: 24 },
-  fields: { gap: 14, marginBottom: 16 },
-  label: { fontSize: 12, fontFamily: FONTS.bold, color: PB.fg, marginLeft: 4, marginBottom: 6 },
-  input: {
-    height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: PB.border,
-    backgroundColor: '#fff', paddingHorizontal: 16,
-    fontSize: 15, fontFamily: FONTS.regular, color: PB.fg,
-  },
-  inputFocused: {
-    borderColor: PB.secondary,
-    shadowColor: PB.secondary, shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15, shadowRadius: 6, elevation: 2,
-  },
-  forgotLink: { fontSize: 12, fontFamily: FONTS.bold, color: PB.secondary, marginTop: 6 },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: PB.border },
-  dividerText: { fontSize: 11, fontFamily: FONTS.medium, color: PB.muted },
-  oauthSection: { gap: 10, marginBottom: 20 },
-  appleBtn: {
-    height: 52, borderRadius: 14, backgroundColor: '#0b0d12',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-  },
-  appleBtnText: { fontFamily: FONTS.bold, fontSize: 15, color: '#fff' },
-  googleBtn: {
-    height: 52, borderRadius: 14, backgroundColor: '#fff',
-    borderWidth: 1, borderColor: PB.border,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-  },
-  googleG: { fontSize: 16, fontFamily: FONTS.bold, color: '#4285F4' },
-  googleBtnText: { fontFamily: FONTS.bold, fontSize: 15, color: PB.fg },
-  signInBtn: {
-    height: 52, borderRadius: 14, backgroundColor: PB.primary,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
-  },
-  signInBtnText: { fontFamily: FONTS.bold, fontSize: 15, color: '#fff' },
-  signUpRow: { alignItems: 'center' },
-  signUpText: { fontSize: 13, fontFamily: FONTS.regular, color: PB.muted },
-  signUpLink: { fontFamily: FONTS.bold, color: PB.secondary, textDecorationLine: 'underline' },
+  flex: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#f6f8fc' },
+  scroll: { paddingHorizontal: 18, paddingTop: 42, paddingBottom: 34 },
+  brand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 28 },
+  giftBox: { width: 44, height: 40, borderRadius: 9, backgroundColor: '#0d5c9d', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  giftSpark: { position: 'absolute', top: -8, left: -8, color: '#f5b21b', fontSize: 13 },
+  giftIcon: { color: '#fff', fontSize: 28, fontFamily: FONTS.bold },
+  brandPerk: { fontSize: 28, color: PB.primary, fontFamily: FONTS.extraBold },
+  brandBack: { fontSize: 28, color: '#edae18', fontFamily: FONTS.extraBold },
+  title: { textAlign: 'center', color: '#071735', fontSize: 32, fontFamily: FONTS.extraBold, marginBottom: 10 },
+  subtitle: { textAlign: 'center', color: '#6b768c', fontSize: 18, fontFamily: FONTS.regular, marginBottom: 36 },
+  card: { backgroundColor: '#fff', borderRadius: 30, padding: 26, shadowColor: '#20314d', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
+  fieldBlock: { marginBottom: 20 },
+  label: { color: '#071735', fontSize: 18, fontFamily: FONTS.medium, marginBottom: 12 },
+  inputWrap: { height: 60, borderRadius: 17, borderWidth: 1, borderColor: '#dfe4ed', backgroundColor: '#f5f7fb', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18 },
+  fieldIcon: { width: 32, color: '#718098', fontSize: 22, fontFamily: FONTS.bold },
+  input: { flex: 1, color: PB.fg, fontSize: 21, fontFamily: FONTS.regular },
+  eyeIcon: { color: '#718098', fontSize: 24 },
+  primaryBtn: { height: 66, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginTop: 4, shadowColor: PB.primary, shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 10 } },
+  primaryText: { color: '#fff', fontSize: 21, fontFamily: FONTS.bold },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginVertical: 28 },
+  line: { flex: 1, height: 1, backgroundColor: '#e5e8ef' },
+  orText: { color: '#7a8495', fontSize: 18, fontFamily: FONTS.regular },
+  oauthBtn: { height: 62, borderRadius: 17, borderWidth: 1, borderColor: '#dfe4ed', backgroundColor: '#f8f9fc', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 18 },
+  google: { color: '#4285f4', fontSize: 24, fontFamily: FONTS.extraBold },
+  apple: { color: '#071735', fontSize: 20 },
+  oauthText: { color: '#071735', fontSize: 21, fontFamily: FONTS.bold },
+  forgotRow: { alignItems: 'center', marginTop: 4, marginBottom: 28 },
+  mutedLink: { color: '#7a8495', fontSize: 18, fontFamily: FONTS.regular },
+  secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 26 },
+  secureIcon: { color: '#718098', fontSize: 18 },
+  secureText: { color: '#7a8495', fontSize: 16, fontFamily: FONTS.regular },
+  bottomRule: { height: 1, backgroundColor: '#edf0f5', marginBottom: 20 },
+  accountPrompt: { color: '#7a8495', textAlign: 'center', fontSize: 18, fontFamily: FONTS.regular, marginBottom: 16 },
+  signupLinks: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 14, flexWrap: 'wrap' },
+  signupLink: { color: PB.primary, fontSize: 15, fontFamily: FONTS.bold },
+  verticalRule: { width: 1, height: 24, backgroundColor: '#e5e8ef' },
 });

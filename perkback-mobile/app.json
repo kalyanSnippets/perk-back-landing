@@ -26,6 +26,6 @@
       "expo-router",
       "expo-font"
     ],
-    "newArchEnabled": false
+    "newArchEnabled": true
   }
 }
