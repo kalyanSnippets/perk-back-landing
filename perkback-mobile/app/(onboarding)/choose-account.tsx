@@ -2,17 +2,13 @@ import React from 'react';
 import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { BrandLogo } from '../../src/components/BrandLogo';
 import { PB, FONTS } from '../../src/constants/theme';
 
 function BrandHeader() {
   return (
     <View style={styles.brandRow}>
-      <View style={styles.giftBox}>
-        <Text style={styles.giftSpark}>✦</Text>
-        <Text style={styles.giftIcon}>✓</Text>
-      </View>
-      <Text style={styles.brandPerk}>Perk</Text>
-      <Text style={styles.brandBack}>Back</Text>
+      <BrandLogo width={190} height={64} />
     </View>
   );
 }
@@ -76,7 +72,7 @@ export default function ChooseAccountScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f6f8fc' },
   brandRow: {
-    height: 86,
+    height: 82,
     borderBottomWidth: 1,
     borderBottomColor: '#e8ecf3',
     backgroundColor: '#f8faff',
@@ -84,11 +80,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  giftBox: { width: 48, height: 42, borderRadius: 9, backgroundColor: '#0d5c9d', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  giftSpark: { position: 'absolute', top: -8, left: -8, color: '#f5b21b', fontSize: 13 },
-  giftIcon: { color: '#fff', fontSize: 29, fontFamily: FONTS.bold },
-  brandPerk: { fontSize: 31, color: PB.primary, fontFamily: FONTS.extraBold },
-  brandBack: { fontSize: 31, color: '#edae18', fontFamily: FONTS.extraBold },
   content: { flex: 1, paddingHorizontal: 22, paddingTop: 76 },
   title: { textAlign: 'center', color: '#071735', fontSize: 34, fontFamily: FONTS.extraBold, marginBottom: 28 },
   subtitle: { textAlign: 'center', color: '#6b768c', fontSize: 24, lineHeight: 35, fontFamily: FONTS.regular, marginBottom: 64 },

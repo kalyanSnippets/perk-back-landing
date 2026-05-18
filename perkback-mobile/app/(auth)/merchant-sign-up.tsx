@@ -4,7 +4,6 @@ import {
   KeyboardAvoidingView,
   Linking,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -16,22 +15,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
+import { BrandLogo } from '../../src/components/BrandLogo';
 import { PB, FONTS } from '../../src/constants/theme';
 
 const MERCHANT_DASHBOARD_URL = 'https://perkback.com.au/dashboard';
-
-function BrandLogo() {
-  return (
-    <View style={styles.brand}>
-      <View style={styles.giftBox}>
-        <Text style={styles.giftSpark}>✦</Text>
-        <Text style={styles.giftIcon}>✓</Text>
-      </View>
-      <Text style={styles.brandPerk}>Perk</Text>
-      <Text style={styles.brandBack}>Back</Text>
-    </View>
-  );
-}
 
 function RoleTabs({ onCustomer }: { onCustomer: () => void }) {
   return (
@@ -55,6 +42,8 @@ function Field({
   onChangeText,
   placeholder,
   secure,
+  visible,
+  onToggleVisible,
   keyboardType,
 }: {
   label: string;
@@ -63,6 +52,8 @@ function Field({
   onChangeText: (text: string) => void;
   placeholder: string;
   secure?: boolean;
+  visible?: boolean;
+  onToggleVisible?: () => void;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
 }) {
   return (
@@ -76,11 +67,15 @@ function Field({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="#738097"
-          secureTextEntry={secure}
+          secureTextEntry={secure && !visible}
           autoCapitalize={keyboardType === 'email-address' ? 'none' : 'words'}
           keyboardType={keyboardType}
         />
-        {secure ? <Text style={styles.eyeIcon}>◎</Text> : null}
+        {secure ? (
+          <TouchableOpacity onPress={onToggleVisible} hitSlop={10}>
+            <Text style={styles.toggleText}>{visible ? 'Hide' : 'Show'}</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -91,6 +86,7 @@ export default function MerchantSignUpScreen() {
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [industryType, setIndustryType] = useState('');
@@ -142,91 +138,94 @@ export default function MerchantSignUpScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <BrandLogo />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
+        <View style={styles.header}>
+          <BrandLogo width={164} height={54} />
           <Text style={styles.title}>Create your account</Text>
           <Text style={styles.subtitle}>Sign up as a merchant</Text>
-          <RoleTabs onCustomer={() => router.push('/(auth)/sign-up')} />
+        </View>
+        <RoleTabs onCustomer={() => router.push('/(auth)/sign-up')} />
 
-          <View style={styles.card}>
-            <Field label="Store Name" icon="▦" value={storeName} onChangeText={setStoreName} placeholder="My Coffee Shop" />
-            <Field label="Email" icon="✉" value={email} onChangeText={setEmail} placeholder="merchant@example.com" keyboardType="email-address" />
-            <Field label="Password" icon="▢" value={password} onChangeText={setPassword} placeholder="••••••••" secure />
-            <Field label="Address" icon="⌖" value={address} onChangeText={setAddress} placeholder="123 Main St" />
-            <Field label="Contact Number" icon="☏" value={phone} onChangeText={setPhone} placeholder="+1 234 567 8900" keyboardType="phone-pad" />
-            <Field label="Industry Type" icon="▤" value={industryType} onChangeText={setIndustryType} placeholder="Café, Retail, Restaurant..." />
+        <View style={styles.card}>
+          <Field label="Store Name" icon="▦" value={storeName} onChangeText={setStoreName} placeholder="My Coffee Shop" />
+          <Field label="Email" icon="✉" value={email} onChangeText={setEmail} placeholder="merchant@example.com" keyboardType="email-address" />
+          <Field
+            label="Password"
+            icon="▢"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="••••••••"
+            secure
+            visible={passwordVisible}
+            onToggleVisible={() => setPasswordVisible((value) => !value)}
+          />
+          <Field label="Address" icon="⌖" value={address} onChangeText={setAddress} placeholder="123 Main St" />
+          <Field label="Contact Number" icon="☏" value={phone} onChangeText={setPhone} placeholder="+1 234 567 8900" keyboardType="phone-pad" />
+          <Field label="Industry Type" icon="▤" value={industryType} onChangeText={setIndustryType} placeholder="Café, Retail..." />
 
-            <TouchableOpacity style={styles.termsRow} onPress={() => setTermsAccepted((value) => !value)} activeOpacity={0.8}>
-              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
-                {termsAccepted ? <Text style={styles.checkboxTick}>✓</Text> : null}
-              </View>
-              <Text style={styles.termsText}>
-                I agree to the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleSignUp} disabled={loading} activeOpacity={0.9}>
-              <LinearGradient colors={['#8aa0c3', '#90c5fb']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
-                <Text style={styles.primaryText}>{loading ? 'Registering Store...' : 'Register Store'}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <View style={styles.secureRow}>
-              <Text style={styles.secureIcon}>♢</Text>
-              <Text style={styles.secureText}>Your data is securely encrypted</Text>
+          <TouchableOpacity style={styles.termsRow} onPress={() => setTermsAccepted((value) => !value)} activeOpacity={0.8}>
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted ? <Text style={styles.checkboxTick}>✓</Text> : null}
             </View>
+            <Text style={styles.termsText}>
+              I agree to the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
+            </Text>
+          </TouchableOpacity>
 
-            <View style={styles.bottomRule} />
-            <TouchableOpacity onPress={() => router.push('/(auth)/sign-in')} style={styles.signInRow}>
-              <Text style={styles.signInText}>Already have an account? <Text style={styles.signInLink}>Sign in</Text></Text>
-            </TouchableOpacity>
+          <TouchableOpacity onPress={handleSignUp} disabled={loading} activeOpacity={0.9}>
+            <LinearGradient colors={['#8aa0c3', '#90c5fb']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
+              <Text style={styles.primaryText}>{loading ? 'Registering...' : 'Register Store'}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.secureRow}>
+            <Text style={styles.secureIcon}>♢</Text>
+            <Text style={styles.secureText}>Your data is securely encrypted</Text>
           </View>
-        </ScrollView>
+
+          <View style={styles.bottomRule} />
+          <TouchableOpacity onPress={() => router.push('/(auth)/sign-in')} style={styles.signInRow}>
+            <Text style={styles.signInText}>Already have an account? <Text style={styles.signInLink}>Sign in</Text></Text>
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   container: { flex: 1, backgroundColor: '#f6f8fc' },
-  scroll: { paddingHorizontal: 20, paddingTop: 36, paddingBottom: 34 },
-  brand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 26 },
-  giftBox: { width: 42, height: 38, borderRadius: 9, backgroundColor: '#0d5c9d', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  giftSpark: { position: 'absolute', top: -8, left: -8, color: '#f5b21b', fontSize: 13 },
-  giftIcon: { color: '#fff', fontSize: 26, fontFamily: FONTS.bold },
-  brandPerk: { fontSize: 27, color: PB.primary, fontFamily: FONTS.extraBold },
-  brandBack: { fontSize: 27, color: '#edae18', fontFamily: FONTS.extraBold },
-  title: { color: '#071735', textAlign: 'center', fontSize: 30, fontFamily: FONTS.extraBold, marginBottom: 10 },
-  subtitle: { color: '#6b768c', textAlign: 'center', fontSize: 17, fontFamily: FONTS.regular, marginBottom: 30 },
-  tabs: { flexDirection: 'row', gap: 14, marginBottom: 22 },
-  tab: { flex: 1, height: 58, borderRadius: 28, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#dfe4ed', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 },
-  tabActive: { backgroundColor: '#eef3fb', borderColor: PB.primary, borderWidth: 2.5 },
-  tabIcon: { color: PB.primary, fontSize: 21, fontFamily: FONTS.bold },
-  tabIconMuted: { color: '#738097', fontSize: 21, fontFamily: FONTS.bold },
-  tabActiveText: { color: PB.primary, fontSize: 17, fontFamily: FONTS.bold },
-  tabText: { color: '#738097', fontSize: 17, fontFamily: FONTS.bold },
-  card: { backgroundColor: '#fff', borderRadius: 30, padding: 24, shadowColor: '#20314d', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
-  fieldBlock: { marginBottom: 18 },
-  label: { color: '#071735', fontSize: 16, fontFamily: FONTS.medium, marginBottom: 10 },
-  inputWrap: { height: 58, borderRadius: 16, borderWidth: 1, borderColor: '#dfe4ed', backgroundColor: '#f5f7fb', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
-  fieldIcon: { width: 32, color: '#718098', fontSize: 21, fontFamily: FONTS.bold },
-  input: { flex: 1, color: PB.fg, fontSize: 19, fontFamily: FONTS.regular },
-  eyeIcon: { color: '#718098', fontSize: 22 },
-  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 22 },
-  checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.7, borderColor: PB.primary, alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 8 },
+  header: { alignItems: 'center', marginBottom: 8 },
+  title: { color: '#071735', textAlign: 'center', fontSize: 25, fontFamily: FONTS.extraBold, marginTop: 2, marginBottom: 2 },
+  subtitle: { color: '#6b768c', textAlign: 'center', fontSize: 14, fontFamily: FONTS.regular },
+  tabs: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  tab: { flex: 1, height: 42, borderRadius: 22, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#dfe4ed', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+  tabActive: { backgroundColor: '#eef3fb', borderColor: PB.primary, borderWidth: 2 },
+  tabIcon: { color: PB.primary, fontSize: 16, fontFamily: FONTS.bold },
+  tabIconMuted: { color: '#738097', fontSize: 16, fontFamily: FONTS.bold },
+  tabActiveText: { color: PB.primary, fontSize: 14, fontFamily: FONTS.bold },
+  tabText: { color: '#738097', fontSize: 14, fontFamily: FONTS.bold },
+  card: { backgroundColor: '#fff', borderRadius: 24, padding: 13, shadowColor: '#20314d', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 7 },
+  fieldBlock: { marginBottom: 5 },
+  label: { color: '#071735', fontSize: 11, fontFamily: FONTS.medium, marginBottom: 2 },
+  inputWrap: { height: 36, borderRadius: 12, borderWidth: 1, borderColor: '#dfe4ed', backgroundColor: '#f5f7fb', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
+  fieldIcon: { width: 22, color: '#718098', fontSize: 14, fontFamily: FONTS.bold },
+  input: { flex: 1, color: PB.fg, fontSize: 13, fontFamily: FONTS.regular, paddingVertical: 0 },
+  toggleText: { color: PB.primary, fontSize: 11, fontFamily: FONTS.bold },
+  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 1, marginBottom: 8 },
+  checkbox: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: PB.primary, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: PB.primary },
-  checkboxTick: { color: '#fff', fontSize: 13, fontFamily: FONTS.bold },
-  termsText: { flex: 1, color: '#6b768c', fontSize: 14, lineHeight: 20, fontFamily: FONTS.regular },
+  checkboxTick: { color: '#fff', fontSize: 11, fontFamily: FONTS.bold },
+  termsText: { flex: 1, color: '#6b768c', fontSize: 11, lineHeight: 15, fontFamily: FONTS.regular },
   termsLink: { color: PB.primary, fontFamily: FONTS.medium },
-  primaryBtn: { height: 62, borderRadius: 21, alignItems: 'center', justifyContent: 'center', shadowColor: '#6aa8e8', shadowOpacity: 0.24, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
-  primaryText: { color: '#fff', fontSize: 18, fontFamily: FONTS.bold },
-  secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 24, marginBottom: 26 },
-  secureIcon: { color: '#718098', fontSize: 17 },
-  secureText: { color: '#7a8495', fontSize: 15, fontFamily: FONTS.regular },
-  bottomRule: { height: 1, backgroundColor: '#edf0f5', marginBottom: 20 },
+  primaryBtn: { height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#6aa8e8', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
+  primaryText: { color: '#fff', fontSize: 15, fontFamily: FONTS.bold },
+  secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 9, marginBottom: 8 },
+  secureIcon: { color: '#718098', fontSize: 13 },
+  secureText: { color: '#7a8495', fontSize: 12, fontFamily: FONTS.regular },
+  bottomRule: { height: 1, backgroundColor: '#edf0f5', marginBottom: 8 },
   signInRow: { alignItems: 'center' },
-  signInText: { color: PB.primary, fontSize: 15, fontFamily: FONTS.bold },
+  signInText: { color: PB.primary, fontSize: 13, fontFamily: FONTS.bold },
   signInLink: { color: PB.primary, fontFamily: FONTS.extraBold },
 });

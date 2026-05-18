@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
+import { BrandLogo } from '../../src/components/BrandLogo';
 import { PB, FONTS } from '../../src/constants/theme';
 
 const CODE_LENGTH = 6;
@@ -70,7 +71,7 @@ export default function VerifyScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.logoName}>PerkBack</Text>
+        <BrandLogo width={142} height={48} />
       </View>
       <View style={styles.body}>
         <Text style={styles.title}>Enter code</Text>
@@ -116,7 +117,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: PB.border, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 18, color: PB.fg },
-  logoName: { fontSize: 18, fontFamily: FONTS.extraBold, color: PB.fg },
   body: { flex: 1, paddingHorizontal: 24, paddingTop: 8 },
   title: { fontSize: 26, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.5, marginBottom: 10 },
   sub: { fontSize: 13, fontFamily: FONTS.regular, color: PB.muted, lineHeight: 19, marginBottom: 28 },

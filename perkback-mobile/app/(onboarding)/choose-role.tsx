@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { useAuth } from '../../src/context/AuthContext';
+import { BrandLogo } from '../../src/components/BrandLogo';
 import { PB, FONTS } from '../../src/constants/theme';
 
 export default function ChooseRoleScreen() {
@@ -39,7 +40,7 @@ export default function ChooseRoleScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.logoRow}><Text style={styles.logoName}>PerkBack</Text></View>
+      <View style={styles.logoRow}><BrandLogo width={172} height={58} /></View>
       <View style={styles.body}>
         <Text style={styles.title}>How will you use PerkBack?</Text>
         <Text style={styles.sub}>Pick the path — you can switch later.</Text>
@@ -73,7 +74,6 @@ export default function ChooseRoleScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: PB.bg },
   logoRow: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 8 },
-  logoName: { fontSize: 20, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.3 },
   body: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
   title: { fontSize: 26, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.5, lineHeight: 32 },
   sub: { fontSize: 14, fontFamily: FONTS.regular, color: PB.muted, marginTop: 8, marginBottom: 24 },

@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { BrandLogo } from '../../src/components/BrandLogo';
 import { PB, FONTS } from '../../src/constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -52,8 +53,8 @@ function SplashPhase({ onDone }: { onDone: () => void }) {
         <Animated.View style={[splash.logoWrap, { opacity, transform: [{ scale }] }]}>
           <Animated.View style={[splash.ringOuter, { transform: [{ rotate: ringSpin }] }]} />
           <Animated.View style={[splash.ringInner, { transform: [{ rotate: ringSpinRev }] }]} />
-          <Animated.View style={[splash.logoBox, { transform: [{ translateY: floatY }] }]}>
-            <Text style={splash.logoLetter}>P</Text>
+          <Animated.View style={{ transform: [{ translateY: floatY }] }}>
+            <BrandLogo variant="mark" width={106} height={106} />
           </Animated.View>
         </Animated.View>
         <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: textY }], alignItems: 'center' }}>
@@ -72,8 +73,6 @@ const splash = StyleSheet.create({
   logoWrap: { width: 148, height: 148, alignItems: 'center', justifyContent: 'center', marginBottom: 28 },
   ringOuter: { position: 'absolute', width: 148, height: 148, borderRadius: 74, borderWidth: 2, borderColor: 'rgba(255,208,122,0.7)', borderStyle: 'dashed' },
   ringInner: { position: 'absolute', width: 120, height: 120, borderRadius: 60, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
-  logoBox: { width: 88, height: 88, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  logoLetter: { fontSize: 40, fontFamily: FONTS.extraBold, color: '#ffd07a' },
   appName: { fontSize: 32, fontFamily: FONTS.extraBold, color: '#fff', letterSpacing: -0.5 },
   tagline: { fontSize: 14, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3, marginTop: 6, fontFamily: FONTS.regular },
 });

@@ -4,8 +4,11 @@
     "slug": "perkback-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/perkback-favicon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/perkback-favicon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0a2a6b"
     },
     "ios": {
@@ -14,6 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/perkback-favicon.png",
         "backgroundColor": "#0a2a6b"
       },
       "package": "com.perkback.mobile"
