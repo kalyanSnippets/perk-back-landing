@@ -4,7 +4,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { ArrowLeft, Mail } from "lucide-react";
+import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
+
+type OtpError = {
+  kind: "expired" | "invalid" | "rate_limited" | "generic";
+  message: string;
+};
+
+function classifyOtpError(err: unknown): OtpError {
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const msg = raw.toLowerCase();
+  if (msg.includes("expired") || msg.includes("otp_expired")) {
+    return {
+      kind: "expired",
+      message: "This code has expired. Request a new one to continue.",
+    };
+  }
+  if (msg.includes("invalid") || msg.includes("token") || msg.includes("not found")) {
+    return {
+      kind: "invalid",
+      message: "That code doesn't match. Double-check the email and try again, or resend a new code.",
+    };
+  }
+  if (msg.includes("rate") || msg.includes("too many")) {
+    return {
+      kind: "rate_limited",
+      message: "Too many attempts. Please wait a moment before trying again.",
+    };
+  }
+  return { kind: "generic", message: raw || "Verification failed. Please try again." };
+}
+
 
 type Role = "customer" | "merchant";
 
@@ -19,6 +49,7 @@ const VerifyOtp = () => {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [otpError, setOtpError] = useState<OtpError | null>(null);
 
   const backAuthPath = role === "merchant" ? "/merchant/auth" : "/customer/auth";
 
@@ -34,13 +65,20 @@ const VerifyOtp = () => {
     return () => clearTimeout(t);
   }, [cooldown]);
 
+  // Clear error as soon as user starts editing the code again
+  const handleCodeChange = (value: string) => {
+    setCode(value);
+    if (otpError) setOtpError(null);
+  };
+
   const handleVerify = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (code.length !== 6) {
-      toast.error("Please enter the 6-digit code");
+      setOtpError({ kind: "invalid", message: "Please enter the full 6-digit code." });
       return;
     }
     setLoading(true);
+    setOtpError(null);
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
@@ -56,8 +94,9 @@ const VerifyOtp = () => {
         navigate("/customer/confirmation");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Invalid or expired code";
-      toast.error(message);
+      const classified = classifyOtpError(err);
+      setOtpError(classified);
+      setCode("");
     } finally {
       setLoading(false);
     }
@@ -70,6 +109,8 @@ const VerifyOtp = () => {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       if (error) throw error;
       toast.success("A new code has been sent to your email");
+      setOtpError(null);
+      setCode("");
       setCooldown(45);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Could not resend code";
@@ -78,6 +119,7 @@ const VerifyOtp = () => {
       setResending(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -108,7 +150,7 @@ const VerifyOtp = () => {
           className="bg-card rounded-2xl p-8 shadow-card space-y-6 animate-fade-up-delay-1"
         >
           <div className="flex justify-center">
-            <InputOTP maxLength={6} value={code} onChange={setCode} autoFocus>
+            <InputOTP maxLength={6} value={code} onChange={handleCodeChange} autoFocus>
               <InputOTPGroup>
                 <InputOTPSlot index={0} />
                 <InputOTPSlot index={1} />
@@ -119,6 +161,34 @@ const VerifyOtp = () => {
               </InputOTPGroup>
             </InputOTP>
           </div>
+
+          {otpError && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 space-y-3"
+            >
+              <div className="flex gap-2 items-start text-destructive">
+                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                <div className="text-sm leading-relaxed">{otpError.message}</div>
+              </div>
+              {(otpError.kind === "expired" || otpError.kind === "invalid") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResend}
+                  disabled={resending || cooldown > 0}
+                  className="w-full"
+                >
+                  {cooldown > 0
+                    ? `Send a new code in ${cooldown}s`
+                    : resending
+                    ? "Sending new code..."
+                    : "Send a new code"}
+                </Button>
+              )}
+            </div>
+          )}
 
           <Button
             type="submit"
