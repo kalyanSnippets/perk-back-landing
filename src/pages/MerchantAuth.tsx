@@ -125,8 +125,8 @@ const MerchantAuth = () => {
             .eq("user_id", authData.user.id);
         }
 
-        toast.success("Account created! Check your email to confirm.");
-        navigate("/merchant/confirmation");
+        toast.success("We sent a 6-digit code to your email.");
+        navigate("/verify", { state: { email, role: "merchant" } });
         return;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
