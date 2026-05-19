@@ -44,6 +44,20 @@ export interface Reward {
   merchants?: Merchant;
 }
 
+export interface MerchantCardDesign {
+  id: string;
+  merchant_id: string;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  accent_color?: string | null;
+  background_color?: string | null;
+  text_color?: string | null;
+  card_style?: string | null;
+  logo_url?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface Redemption {
   id: string;
   customer_id: string;
