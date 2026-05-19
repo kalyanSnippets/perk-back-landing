@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheet } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import {
   useFonts,
   DMSans_400Regular,
@@ -25,17 +26,22 @@ function RootLayoutNav() {
   const { session, isLoading, isOnboarding, customer, merchant } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const routeKey = segments.join('/');
 
   useEffect(() => {
     if (isLoading) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    const inOnboarding = segments[0] === '(onboarding)';
-    const inTabs = segments[0] === '(tabs)';
-    const inMerchant = segments[0] === '(merchant)';
-    const inCustomerFlow = ['rewards', 'scan', 'join', 'merchant'].includes(String(segments[0]));
-    const onChooseAccount = inOnboarding && (segments as string[])[1] === 'choose-account';
+    const [root, child] = segments as string[];
+    const inAuthGroup = root === '(auth)';
+    const inOnboarding = root === '(onboarding)';
+    const inTabs = root === '(tabs)';
+    const inMerchant = root === '(merchant)';
+    const inCustomerFlow = ['rewards', 'scan', 'join', 'merchant'].includes(String(root));
+    const onChooseAccount = inOnboarding && child === 'choose-account';
 
     if (!session) {
+      if (root === 'join' && child) {
+        SecureStore.setItemAsync('pending_merchant_slug', child);
+      }
       // Not signed in → auth
       if (!inAuthGroup) router.replace('/(auth)/welcome');
     } else if (isOnboarding) {
@@ -51,7 +57,24 @@ function RootLayoutNav() {
       // Customer only → go straight to app
       router.replace('/(tabs)/my-card');
     }
-  }, [session, isLoading, isOnboarding, customer, merchant, segments]);
+  }, [session, isLoading, isOnboarding, customer, merchant, routeKey, router]);
+
+  useEffect(() => {
+    if (isLoading || !session || !customer) return;
+    let active = true;
+    const [root, child] = segments as string[];
+
+    SecureStore.getItemAsync('pending_merchant_slug').then((slug) => {
+      if (!active || !slug) return;
+      if (root === 'join' && child === slug) return;
+      SecureStore.deleteItemAsync('pending_merchant_slug');
+      router.replace(`/join/${slug}`);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [session, customer?.id, isLoading, routeKey, router]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -59,6 +82,14 @@ function RootLayoutNav() {
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(merchant)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="join/[slug]" />
+      <Stack.Screen name="merchant/[id]" />
+      <Stack.Screen name="rewards/[id]" />
+      <Stack.Screen name="rewards/active-code" />
+      <Stack.Screen name="rewards/marketplace" />
+      <Stack.Screen name="rewards/spin" />
+      <Stack.Screen name="scan/index" />
+      <Stack.Screen name="scan/success" />
     </Stack>
   );
 }

@@ -138,6 +138,8 @@ export function useJoinMerchant(customerId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-wallet', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['customer-rewards', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['customer-stamps', customerId] });
       queryClient.invalidateQueries({ queryKey: ['explore-merchants'] });
     },
   });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PB, FONTS } from '../../constants/theme';
 import { WalletMerchant } from '../../hooks/useCustomerWallet';
@@ -32,52 +32,64 @@ function getTheme(item: WalletMerchant, index: number) {
   };
 }
 
-export function MerchantWalletCard({ item, index }: { item: WalletMerchant; index: number }) {
+export function MerchantWalletCard({
+  item,
+  index,
+  onPress,
+  compact = false,
+}: {
+  item: WalletMerchant;
+  index: number;
+  onPress?: () => void;
+  compact?: boolean;
+}) {
   const merchant = item.merchant;
   const theme = getTheme(item, index);
   const spend = Number(item.total_spend ?? 0);
 
   return (
-    <LinearGradient
-      colors={[theme.primary, theme.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.card}
-    >
-      <View style={[styles.glow, { backgroundColor: theme.accent }]} />
-      <View style={styles.topRow}>
-        <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
-          <Text style={styles.avatarText}>{getInitials(merchant?.name)}</Text>
+    <TouchableOpacity activeOpacity={onPress ? 0.86 : 1} onPress={onPress} disabled={!onPress}>
+      <LinearGradient
+        colors={[theme.primary, theme.secondary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.card, compact && styles.cardCompact]}
+      >
+        <View style={[styles.glow, { backgroundColor: theme.accent }]} />
+        <View style={styles.topRow}>
+          <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
+            <Text style={styles.avatarText}>{getInitials(merchant?.name)}</Text>
+          </View>
+          <View style={styles.statusPill}>
+            <Text style={styles.statusText}>{merchant?.is_active === false ? 'Paused' : 'Joined'}</Text>
+          </View>
         </View>
-        <View style={styles.statusPill}>
-          <Text style={styles.statusText}>{merchant?.is_active === false ? 'Paused' : 'Joined'}</Text>
-        </View>
-      </View>
 
-      <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-        {merchant?.name ?? 'PerkBack merchant'}
-      </Text>
-      <Text style={styles.category} numberOfLines={1}>
-        {merchant?.category || merchant?.address || 'Local rewards'}
-      </Text>
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+          {merchant?.name ?? 'PerkBack merchant'}
+        </Text>
+        <Text style={styles.category} numberOfLines={1}>
+          {merchant?.category || merchant?.address || 'Local rewards'}
+        </Text>
 
-      <View style={styles.statsRow}>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{Number(item.points_balance ?? item.points ?? 0).toLocaleString()}</Text>
-          <Text style={styles.statLabel}>points</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{Number(item.points_balance ?? item.points ?? 0).toLocaleString()}</Text>
+            <Text style={styles.statLabel}>points</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{Number(item.visit_count ?? item.visits ?? 0).toLocaleString()}</Text>
+            <Text style={styles.statLabel}>visits</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>${spend.toFixed(0)}</Text>
+            <Text style={styles.statLabel}>spent</Text>
+          </View>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{Number(item.visit_count ?? item.visits ?? 0).toLocaleString()}</Text>
-          <Text style={styles.statLabel}>visits</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>${spend.toFixed(0)}</Text>
-          <Text style={styles.statLabel}>spent</Text>
-        </View>
-      </View>
-    </LinearGradient>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 }
 
@@ -94,6 +106,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 18,
     elevation: 8,
+  },
+  cardCompact: {
+    width: '100%',
+    marginRight: 0,
+    marginBottom: 14,
   },
   glow: {
     position: 'absolute',

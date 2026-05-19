@@ -87,12 +87,9 @@ export function useRewardsData(customerId?: string) {
         if (!error && data) joinedRewards = data.map(normalizeReward);
       }
 
-      const { data: discovery } = await supabase.rpc('get_discovery_rewards');
-      const discoveryRewards = Array.isArray(discovery) ? discovery.map(normalizeReward) : [];
-      const merged = [...joinedRewards, ...discoveryRewards];
-      const unique = merged.filter((reward, index, list) => list.findIndex((item) => item.id === reward.id) === index);
+      const unique = joinedRewards.filter((reward, index, list) => list.findIndex((item) => item.id === reward.id) === index);
 
-      if (unique.length === 0) return FALLBACK_REWARDS;
+      if (unique.length === 0) return [] as RewardWithMeta[];
 
       return unique.map((reward) => {
         const membership = wallet.data?.find((item) => item.merchant_id === reward.merchant_id);

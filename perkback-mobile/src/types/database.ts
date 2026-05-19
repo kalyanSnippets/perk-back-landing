@@ -64,6 +64,7 @@ export interface Reward {
   expires_at?: string | null;
   image_url?: string | null;
   is_active: boolean;
+  active?: boolean | null;
   merchants?: Merchant;
 }
 
@@ -75,6 +76,8 @@ export interface Campaign {
   starts_at?: string | null;
   ends_at?: string | null;
   is_active?: boolean | null;
+  active?: boolean | null;
+  created_at?: string | null;
   merchants?: Merchant;
 }
 
@@ -122,7 +125,7 @@ export interface Redemption {
   redemption_code?: string;
   reward_title?: string;
   points_spent?: number;
-  status: 'active' | 'used' | 'expired';
+  status: 'active' | 'pending' | 'used' | 'expired';
   expires_at: string;
   created_at: string;
   redeemed_at?: string | null;
