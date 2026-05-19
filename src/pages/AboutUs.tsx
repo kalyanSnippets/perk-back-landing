@@ -55,7 +55,7 @@ const AboutUs = () => {
               { icon: Users, title: "Customer First", desc: "Every feature is designed with the customer experience in mind." },
               { icon: Store, title: "Local Business Love", desc: "We empower merchants with tools to grow and retain customers." },
               { icon: Shield, title: "Privacy & Security", desc: "Your data is encrypted and never shared with third parties." },
-              { icon: Zap, title: "Simplicity", desc: "One card, one wallet — no complexity, just rewards." },
+              { icon: Zap, title: "Simplicity", desc: "Every brand, beautifully presented — no generic cards, just rewards." },
             ].map((item, i) => (
               <ScrollReveal key={i} delay={i * 100}>
                 <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-card transition-transform duration-200 hover:-translate-y-1 sm:p-6">
