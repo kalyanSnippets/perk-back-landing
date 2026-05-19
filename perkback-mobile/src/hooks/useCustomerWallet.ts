@@ -15,7 +15,7 @@ async function fetchMerchantsByIds(merchantIds: string[]) {
     .select('*')
     .in('id', merchantIds);
 
-  if (!publicRes.error && publicRes.data) return publicRes.data as Merchant[];
+  if (!publicRes.error && publicRes.data) return publicRes.data.map(normalizeMerchant) as Merchant[];
 
   const merchantRes = await supabase
     .from('merchants')
@@ -23,7 +23,22 @@ async function fetchMerchantsByIds(merchantIds: string[]) {
     .in('id', merchantIds);
 
   if (merchantRes.error) throw merchantRes.error;
-  return (merchantRes.data ?? []) as Merchant[];
+  return (merchantRes.data ?? []).map(normalizeMerchant) as Merchant[];
+}
+
+function normalizeMerchant(raw: any): Merchant {
+  return {
+    ...raw,
+    user_id: raw.user_id ?? '',
+    name: raw.name ?? raw.store_name ?? raw.business_name ?? 'PerkBack Store',
+    slug: raw.slug ?? raw.id,
+    category: raw.category ?? raw.industry_type ?? null,
+    logo_url: raw.logo_url ?? raw.profile_image_url ?? null,
+    address: raw.address ?? null,
+    lat: raw.lat ?? raw.latitude ?? null,
+    lng: raw.lng ?? raw.longitude ?? null,
+    is_active: raw.is_active ?? true,
+  };
 }
 
 async function fetchCardDesigns(merchantIds: string[]) {
@@ -47,13 +62,17 @@ export function useCustomerWallet(customerId?: string) {
 
       const { data: customerMerchants, error } = await supabase
         .from('customer_merchants')
-        .select('id, customer_id, merchant_id, points, visits, total_spend, created_at')
+        .select('id, customer_id, merchant_id, points_balance, visit_count, total_spend, joined_at, last_visit_at, created_at')
         .eq('customer_id', customerId)
-        .order('created_at', { ascending: false });
+        .order('joined_at', { ascending: false });
 
       if (error) throw error;
 
-      const memberships = (customerMerchants ?? []) as CustomerMerchant[];
+      const memberships = (customerMerchants ?? []).map((item: any) => ({
+        ...item,
+        points: item.points_balance,
+        visits: item.visit_count,
+      })) as CustomerMerchant[];
       const merchantIds = [...new Set(memberships.map((item) => item.merchant_id).filter(Boolean))];
       const [merchants, designs] = await Promise.all([
         fetchMerchantsByIds(merchantIds),

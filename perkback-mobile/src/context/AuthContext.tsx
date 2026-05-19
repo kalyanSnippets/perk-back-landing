@@ -41,12 +41,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle(),
       supabase
         .from('merchants')
-        .select('id, user_id, name, slug, category, logo_url, address, lat, lng, is_active')
+        .select('id, user_id, store_name, slug, industry_type, logo_url, profile_image_url, address, latitude, longitude')
         .eq('user_id', userId)
         .maybeSingle(),
     ]);
     setCustomer(customerRes.data ?? null);
-    setMerchant(merchantRes.data ?? null);
+    setMerchant(merchantRes.data ? {
+      ...merchantRes.data,
+      name: (merchantRes.data as any).store_name ?? 'PerkBack Store',
+      category: (merchantRes.data as any).industry_type ?? null,
+      logo_url: (merchantRes.data as any).logo_url ?? (merchantRes.data as any).profile_image_url ?? null,
+      lat: (merchantRes.data as any).latitude ?? null,
+      lng: (merchantRes.data as any).longitude ?? null,
+      is_active: true,
+    } as Merchant : null);
     setIsOnboarding(!customerRes.data && !merchantRes.data);
   }, []);
 

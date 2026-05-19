@@ -31,7 +31,19 @@
     "scheme": "perkback",
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow PerkBack to scan merchant QR codes."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow PerkBack to show nearby stores and offers."
+        }
+      ]
     ],
     "newArchEnabled": true,
     "extra": {

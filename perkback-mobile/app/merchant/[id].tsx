@@ -41,8 +41,8 @@ export default function MerchantDetailScreen() {
           <Text style={styles.address}>{merchant.address || '237 Campbell Pde, Bondi'} · {merchant.distanceLabel || '140m'}</Text>
         </LinearGradient>
         <View style={styles.stats}>
-          <View style={styles.stat}><Text style={styles.statValue}>{Number(membership?.points ?? 480).toLocaleString()}</Text><Text style={styles.statLabel}>your points</Text></View>
-          <View style={styles.stat}><Text style={styles.statValue}>{Number(membership?.visits ?? 18).toLocaleString()}</Text><Text style={styles.statLabel}>visits</Text></View>
+          <View style={styles.stat}><Text style={styles.statValue}>{Number(membership?.points_balance ?? membership?.points ?? 480).toLocaleString()}</Text><Text style={styles.statLabel}>your points</Text></View>
+          <View style={styles.stat}><Text style={styles.statValue}>{Number(membership?.visit_count ?? membership?.visits ?? 18).toLocaleString()}</Text><Text style={styles.statLabel}>visits</Text></View>
           <View style={styles.stat}><Text style={styles.statValue}>${Number(membership?.total_spend ?? 486).toFixed(0)}</Text><Text style={styles.statLabel}>spent</Text></View>
         </View>
         <View style={styles.card}>

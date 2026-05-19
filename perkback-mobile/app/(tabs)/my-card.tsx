@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import {
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -7,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -16,6 +18,7 @@ import { MerchantWalletCard } from '../../src/components/ui/MerchantWalletCard';
 import { WalletScanCard } from '../../src/components/ui/WalletScanCard';
 import { EmptyWalletState, WalletErrorState, WalletSkeleton } from '../../src/components/ui/WalletStates';
 import { useCustomerWallet } from '../../src/hooks/useCustomerWallet';
+import { useCustomerActivity } from '../../src/hooks/useCustomerActivity';
 import { PB, FONTS } from '../../src/constants/theme';
 
 function formatCurrency(value?: number) {
@@ -32,17 +35,28 @@ function StatCard({ label, value, tone = 'blue' }: { label: string; value: strin
   );
 }
 
+function formatMemberSince(value?: string | null) {
+  if (!value) return 'Today';
+  return new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(value));
+}
+
+function formatActivityTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
+}
+
 export default function MyCardScreen() {
   const router = useRouter();
   const { customer, refreshCustomer } = useAuth();
   const wallet = useCustomerWallet(customer?.id);
+  const activity = useCustomerActivity(customer?.id);
+  const [codeVisible, setCodeVisible] = React.useState(false);
   const nameParts = customer?.full_name?.split(' ') ?? ['', ''];
   const totalMerchantPoints = useMemo(
-    () => wallet.data?.reduce((sum, item) => sum + Number(item.points ?? 0), 0) ?? 0,
+    () => wallet.data?.reduce((sum, item) => sum + Number(item.points_balance ?? item.points ?? 0), 0) ?? 0,
     [wallet.data]
   );
   const totalVisits = useMemo(
-    () => wallet.data?.reduce((sum, item) => sum + Number(item.visits ?? 0), 0) ?? 0,
+    () => wallet.data?.reduce((sum, item) => sum + Number(item.visit_count ?? item.visits ?? 0), 0) ?? 0,
     [wallet.data]
   );
   const totalSpend = useMemo(
@@ -51,11 +65,12 @@ export default function MyCardScreen() {
   );
 
   const handleRefresh = async () => {
-    await Promise.all([refreshCustomer(), wallet.refetch()]);
+    await Promise.all([refreshCustomer(), wallet.refetch(), activity.refetch()]);
   };
 
   const cardNumber = customer?.loyalty_card_number ?? '0000000000';
-  const isRefreshing = wallet.isRefetching;
+  const isRefreshing = wallet.isRefetching || activity.isRefetching;
+  const recentActivity = activity.data?.slice(0, 10) ?? [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -68,9 +83,10 @@ export default function MyCardScreen() {
           <View>
             <Text style={styles.kicker}>PerkBack Wallet</Text>
             <Text style={styles.heading}>My Card</Text>
+            <Text style={styles.memberSince}>Member since {formatMemberSince(customer?.created_at)}</Text>
           </View>
-          <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() => router.push('/(tabs)/explore')}>
-            <Text style={styles.scanBtnText}>Explore</Text>
+          <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() => router.push('/scan')}>
+            <Text style={styles.scanBtnText}>Scan</Text>
           </TouchableOpacity>
         </View>
 
@@ -90,7 +106,17 @@ export default function MyCardScreen() {
 
             <View style={styles.statsGrid}>
               <StatCard label="global points" value={(customer?.points_balance ?? 0).toLocaleString()} tone="blue" />
-              <StatCard label="store points" value={totalMerchantPoints.toLocaleString()} tone="gold" />
+              <StatCard label="visits" value={totalVisits.toLocaleString()} tone="gold" />
+              <StatCard label="member since" value={formatMemberSince(customer?.created_at)} tone="green" />
+            </View>
+
+            <TouchableOpacity style={styles.showCodeBtn} activeOpacity={0.9} onPress={() => setCodeVisible(true)}>
+              <Text style={styles.showCodeText}>Show loyalty code</Text>
+              <Text style={styles.showCodeArrow}>→</Text>
+            </TouchableOpacity>
+
+            <View style={styles.statsGrid}>
+              <StatCard label="store points" value={totalMerchantPoints.toLocaleString()} tone="blue" />
               <StatCard label="visits" value={totalVisits.toLocaleString()} tone="green" />
             </View>
 
@@ -126,6 +152,40 @@ export default function MyCardScreen() {
               <EmptyWalletState />
             )}
 
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Recent Activity</Text>
+                <Text style={styles.sectionSub}>Your latest points and visits</Text>
+              </View>
+            </View>
+
+            {recentActivity.length > 0 ? (
+              <View style={styles.activityCard}>
+                {recentActivity.map((item) => {
+                  const earned = Number(item.points_awarded ?? 0) >= 0;
+                  return (
+                    <View key={item.id} style={styles.activityRow}>
+                      <View style={[styles.activityDot, earned ? styles.activityEarn : styles.activityRedeem]}>
+                        <Text style={styles.activityDotText}>{earned ? '+' : '-'}</Text>
+                      </View>
+                      <View style={styles.activityCopy}>
+                        <Text style={styles.activityTitle}>{item.merchant_name}</Text>
+                        <Text style={styles.activityMeta}>{item.source || 'purchase'} · {formatActivityTime(item.transaction_date)}</Text>
+                      </View>
+                      <Text style={[styles.activityPoints, earned ? styles.pointsEarn : styles.pointsRedeem]}>
+                        {earned ? '+' : ''}{Number(item.points_awarded ?? 0)} pts
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={styles.emptyActivity}>
+                <Text style={styles.emptyActivityTitle}>No transactions yet</Text>
+                <Text style={styles.emptyActivityText}>Scan your code at a store to start earning points.</Text>
+              </View>
+            )}
+
             <View style={styles.helperCard}>
               <View style={styles.helperIcon}>
                 <Text style={styles.helperIconText}>i</Text>
@@ -140,6 +200,30 @@ export default function MyCardScreen() {
           </>
         )}
       </ScrollView>
+      <Modal visible={codeVisible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setCodeVisible(false)}>
+        <SafeAreaView style={styles.modal}>
+          <View style={styles.modalTop}>
+            <TouchableOpacity onPress={() => setCodeVisible(false)} activeOpacity={0.8}>
+              <Text style={styles.closeText}>× Close</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitle}>Your PerkBack Code</Text>
+            <Text style={styles.modalSub}>Show this at the counter to earn points</Text>
+            <WalletScanCard value={cardNumber} />
+            <Text style={styles.modalCrn}>{customer?.crn ?? 'CRN pending'}</Text>
+            <Text style={styles.modalHint}>Increase brightness for easier scanning</Text>
+            <TouchableOpacity
+              style={styles.copyBtn}
+              onPress={async () => {
+                await Clipboard.setStringAsync(cardNumber);
+              }}
+            >
+              <Text style={styles.copyText}>Copy card number</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -157,6 +241,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   heading: { fontSize: 31, fontFamily: FONTS.extraBold, color: PB.fg, letterSpacing: -0.8 },
+  memberSince: { color: PB.muted, fontFamily: FONTS.medium, fontSize: 12, marginTop: 2 },
   scanBtn: {
     height: 40,
     paddingHorizontal: 15,
@@ -170,6 +255,18 @@ const styles = StyleSheet.create({
   scanBtnText: { color: PB.primary, fontFamily: FONTS.bold, fontSize: 13 },
   heroWrap: { marginBottom: 16 },
   statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  showCodeBtn: {
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: PB.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  showCodeText: { color: '#fff', fontFamily: FONTS.extraBold, fontSize: 15 },
+  showCodeArrow: { color: PB.accent, fontFamily: FONTS.extraBold, fontSize: 20 },
   statCard: {
     flex: 1,
     minHeight: 82,
@@ -225,4 +322,29 @@ const styles = StyleSheet.create({
   helperCopy: { flex: 1 },
   helperTitle: { color: PB.fg, fontFamily: FONTS.bold, fontSize: 14, marginBottom: 3 },
   helperText: { color: PB.muted, fontFamily: FONTS.regular, fontSize: 12, lineHeight: 18 },
+  activityCard: { backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: PB.borderSoft, overflow: 'hidden' },
+  activityRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: PB.borderSoft },
+  activityDot: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  activityEarn: { backgroundColor: '#eaf8f2' },
+  activityRedeem: { backgroundColor: '#fff4d8' },
+  activityDotText: { color: PB.primary, fontFamily: FONTS.extraBold, fontSize: 17 },
+  activityCopy: { flex: 1 },
+  activityTitle: { color: PB.fg, fontFamily: FONTS.bold, fontSize: 14 },
+  activityMeta: { color: PB.muted, fontFamily: FONTS.medium, fontSize: 11, marginTop: 2, textTransform: 'capitalize' },
+  activityPoints: { fontFamily: FONTS.extraBold, fontSize: 13 },
+  pointsEarn: { color: PB.success },
+  pointsRedeem: { color: PB.accentStrong },
+  emptyActivity: { backgroundColor: '#fff', borderRadius: 22, padding: 18, borderWidth: 1, borderColor: PB.borderSoft },
+  emptyActivityTitle: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 16 },
+  emptyActivityText: { color: PB.muted, fontFamily: FONTS.regular, fontSize: 12, marginTop: 4 },
+  modal: { flex: 1, backgroundColor: '#fff' },
+  modalTop: { paddingHorizontal: 22, paddingTop: 10 },
+  closeText: { color: PB.primary, fontFamily: FONTS.bold, fontSize: 15 },
+  modalBody: { flex: 1, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', gap: 18 },
+  modalTitle: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 27, letterSpacing: -0.6, textAlign: 'center' },
+  modalSub: { color: PB.muted, fontFamily: FONTS.regular, fontSize: 14, textAlign: 'center', marginTop: -12 },
+  modalCrn: { color: PB.primary, fontFamily: FONTS.monoMedium, fontSize: 18, letterSpacing: 2 },
+  modalHint: { color: PB.muted, fontFamily: FONTS.medium, fontSize: 12 },
+  copyBtn: { height: 48, paddingHorizontal: 22, borderRadius: 16, backgroundColor: PB.primary, justifyContent: 'center' },
+  copyText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
 });

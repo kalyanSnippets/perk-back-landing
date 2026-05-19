@@ -14,9 +14,13 @@ export interface CustomerMerchant {
   id: string;
   customer_id: string;
   merchant_id: string;
-  points: number;
-  visits: number;
+  points_balance: number;
+  points?: number;
+  visit_count: number;
+  visits?: number;
   total_spend: number;
+  joined_at?: string | null;
+  last_visit_at?: string | null;
   created_at: string;
   merchants?: Merchant;
 }
@@ -36,12 +40,17 @@ export interface Merchant {
   id: string;
   user_id: string;
   name: string;
+  store_name?: string | null;
   slug: string;
   category: string | null;
+  industry_type?: string | null;
   logo_url: string | null;
+  profile_image_url?: string | null;
   address: string | null;
   lat: number | null;
   lng: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 
@@ -108,9 +117,27 @@ export interface Redemption {
   id: string;
   customer_id: string;
   reward_id: string;
-  code: string;
+  merchant_id?: string;
+  code?: string;
+  redemption_code?: string;
+  reward_title?: string;
+  points_spent?: number;
   status: 'active' | 'used' | 'expired';
   expires_at: string;
   created_at: string;
+  redeemed_at?: string | null;
   rewards?: Reward;
+}
+
+export interface Transaction {
+  id: string;
+  customer_id: string;
+  merchant_id: string | null;
+  merchant_name: string;
+  purchase_amount: number;
+  points_awarded: number;
+  source: string | null;
+  transaction_date: string;
+  created_at: string;
+  refunded_at?: string | null;
 }

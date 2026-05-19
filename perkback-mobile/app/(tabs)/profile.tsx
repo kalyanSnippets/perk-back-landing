@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -13,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../src/context/AuthContext';
 import { useCustomerWallet } from '../../src/hooks/useCustomerWallet';
+import { supabase } from '../../src/lib/supabase';
 import { PB, FONTS } from '../../src/constants/theme';
 
 function initials(name?: string | null) {
@@ -68,15 +71,20 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { customer, user, signOut } = useAuth();
+  const { customer, merchant, user, signOut, refreshCustomer } = useAuth();
   const wallet = useCustomerWallet(customer?.id);
   const [pushOn, setPushOn] = useState(true);
   const [emailOn, setEmailOn] = useState(false);
   const [birthdayOn, setBirthdayOn] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [fullName, setFullName] = useState(customer?.full_name ?? '');
+  const [phone, setPhone] = useState(customer?.phone ?? '');
+  const [birthday, setBirthday] = useState(customer?.date_of_birth ?? '');
 
   const joinedStores = wallet.data?.length ?? 0;
   const totalVisits = useMemo(
-    () => wallet.data?.reduce((sum, item) => sum + Number(item.visits ?? 0), 0) ?? 0,
+    () => wallet.data?.reduce((sum, item) => sum + Number(item.visit_count ?? item.visits ?? 0), 0) ?? 0,
     [wallet.data]
   );
 
@@ -85,6 +93,45 @@ export default function ProfileScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign out', style: 'destructive', onPress: signOut },
     ]);
+  };
+
+  const startEdit = () => {
+    setFullName(customer?.full_name ?? '');
+    setPhone(customer?.phone ?? '');
+    setBirthday(customer?.date_of_birth ?? '');
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setFullName(customer?.full_name ?? '');
+    setPhone(customer?.phone ?? '');
+    setBirthday(customer?.date_of_birth ?? '');
+  };
+
+  const saveProfile = async () => {
+    if (!customer?.id) return;
+    if (!fullName.trim()) {
+      Alert.alert('Name required', 'Please enter your full name.');
+      return;
+    }
+    setSaving(true);
+    const normalizedBirthday = birthday.trim() || null;
+    const { error } = await supabase
+      .from('customers')
+      .update({
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        date_of_birth: normalizedBirthday,
+      })
+      .eq('id', customer.id);
+    setSaving(false);
+    if (error) {
+      Alert.alert('Save failed', error.message);
+      return;
+    }
+    await refreshCustomer();
+    setEditing(false);
   };
 
   return (
@@ -139,14 +186,80 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Section title="Account">
-          <SettingRow icon="♙" title="Personal details" subtitle={user?.email ?? 'Email and phone'} />
-          <SettingRow icon="♧" title="Birthday & preferences" subtitle="Jul 14 · 4 categories" />
+        <View style={styles.sectionHeaderLine}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          {editing ? (
+            <View style={styles.editActions}>
+              <TouchableOpacity onPress={cancelEdit}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity onPress={saveProfile} disabled={saving}><Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text></TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={startEdit}><Text style={styles.saveText}>Edit</Text></TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.sectionCard}>
+          {editing ? (
+            <>
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Full name</Text>
+                <TextInput value={fullName} onChangeText={setFullName} style={styles.fieldInput} placeholder="Your name" />
+              </View>
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Phone</Text>
+                <TextInput value={phone} onChangeText={setPhone} style={styles.fieldInput} placeholder="+61" keyboardType="phone-pad" />
+              </View>
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Birthday</Text>
+                <TextInput value={birthday} onChangeText={setBirthday} style={styles.fieldInput} placeholder="YYYY-MM-DD" />
+              </View>
+              <View style={styles.readOnlyRow}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <Text style={styles.readOnlyText}>{user?.email ?? 'No email'}</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <SettingRow icon="♙" title="Personal details" subtitle={`${user?.email ?? 'Email'} · ${customer?.phone || 'Add phone'}`} />
+              <SettingRow icon="♧" title="Birthday & preferences" subtitle={customer?.date_of_birth || 'Add birthday for birthday rewards'} />
+              <SettingRow
+                icon="▦"
+                title="Linked stores"
+                subtitle={`${joinedStores} ${joinedStores === 1 ? 'store' : 'stores'}`}
+                onPress={() => router.push('/(tabs)/my-card')}
+              />
+            </>
+          )}
+        </View>
+
+        {merchant ? (
+          <Section title="Merchant">
+            <SettingRow
+              icon="▣"
+              title={merchant.name ?? 'Merchant dashboard'}
+              subtitle="Open perkback.com.au/dashboard"
+              onPress={() => Linking.openURL('https://perkback.com.au/dashboard')}
+            />
+          </Section>
+        ) : null}
+
+        <Section title="Account links">
           <SettingRow
-            icon="▦"
-            title="Linked stores"
-            subtitle={`${joinedStores} ${joinedStores === 1 ? 'store' : 'stores'}`}
-            onPress={() => router.push('/(tabs)/my-card')}
+            icon="?"
+            title="Help & FAQ"
+            subtitle="Get support"
+            onPress={() => Linking.openURL('https://perkback.com.au/help')}
+          />
+          <SettingRow
+            icon="§"
+            title="Terms & privacy"
+            subtitle="PerkBack customer policy"
+            onPress={() => Linking.openURL('https://perkback.com.au/terms')}
+          />
+          <SettingRow
+            icon="i"
+            title="About PerkBack"
+            subtitle="Visit perkback.com.au"
+            onPress={() => Linking.openURL('https://perkback.com.au')}
           />
         </Section>
 
@@ -166,11 +279,6 @@ export default function ProfileScreen() {
             title="Birthday alerts"
             right={<Switch value={birthdayOn} onValueChange={setBirthdayOn} trackColor={{ true: PB.primary, false: '#dce2eb' }} />}
           />
-        </Section>
-
-        <Section title="Support & legal">
-          <SettingRow icon="?" title="Help centre" subtitle="FAQs and contact support" />
-          <SettingRow icon="§" title="Terms & privacy" subtitle="PerkBack customer policy" />
         </Section>
 
         <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
@@ -251,15 +359,18 @@ const styles = StyleSheet.create({
   statValue: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 19 },
   statLabel: { color: PB.muted, fontFamily: FONTS.bold, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.7 },
   section: { marginTop: 22 },
+  sectionHeaderLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 9, paddingHorizontal: 4 },
   sectionTitle: {
     color: PB.muted,
     fontFamily: FONTS.bold,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    marginBottom: 9,
-    marginLeft: 4,
+    marginLeft: 0,
   },
+  editActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  cancelText: { color: PB.muted, fontFamily: FONTS.bold, fontSize: 13 },
+  saveText: { color: PB.primary, fontFamily: FONTS.extraBold, fontSize: 13 },
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -288,6 +399,11 @@ const styles = StyleSheet.create({
   rowCopy: { flex: 1 },
   rowTitle: { color: PB.fg, fontFamily: FONTS.bold, fontSize: 14 },
   rowSubtitle: { color: PB.muted, fontFamily: FONTS.medium, fontSize: 11, marginTop: 2 },
+  fieldRow: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: PB.borderSoft },
+  fieldLabel: { color: PB.muted, fontFamily: FONTS.bold, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 7 },
+  fieldInput: { minHeight: 42, borderRadius: 13, backgroundColor: '#f7f9fd', borderWidth: 1, borderColor: PB.border, paddingHorizontal: 12, color: PB.fg, fontFamily: FONTS.bold, fontSize: 14 },
+  readOnlyRow: { paddingHorizontal: 16, paddingVertical: 14 },
+  readOnlyText: { color: PB.muted, fontFamily: FONTS.medium, fontSize: 14 },
   signOutBtn: {
     height: 52,
     borderRadius: 18,

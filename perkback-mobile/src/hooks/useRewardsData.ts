@@ -59,10 +59,10 @@ function normalizeReward(raw: any): RewardWithMeta {
     reward_type: raw.reward_type ?? raw.type ?? null,
     expires_at: raw.expires_at ?? raw.end_date ?? null,
     image_url: raw.image_url ?? null,
-    is_active: raw.is_active ?? true,
+    is_active: raw.is_active ?? raw.active ?? true,
     merchants: merchant ?? undefined,
-    merchant_name: merchant?.name ?? raw.merchant_name ?? null,
-    merchant_category: merchant?.category ?? raw.merchant_category ?? null,
+    merchant_name: merchant?.name ?? merchant?.store_name ?? raw.merchant_name ?? null,
+    merchant_category: merchant?.category ?? merchant?.industry_type ?? raw.merchant_category ?? null,
   };
 }
 
@@ -79,9 +79,9 @@ export function useRewardsData(customerId?: string) {
       if (merchantIds.length > 0) {
         const { data, error } = await supabase
           .from('rewards')
-          .select('id, merchant_id, title, description, points_required, reward_type, expires_at, image_url, is_active, merchants(id, name, category, logo_url, address, slug, is_active)')
+          .select('id, merchant_id, title, description, points_required, reward_type, expires_at, image_url, active, merchants(id, store_name, industry_type, logo_url, address, slug)')
           .in('merchant_id', merchantIds)
-          .eq('is_active', true)
+          .eq('active', true)
           .limit(24);
 
         if (!error && data) joinedRewards = data.map(normalizeReward);
@@ -100,7 +100,7 @@ export function useRewardsData(customerId?: string) {
           ...reward,
           merchant_name: reward.merchant_name ?? membership?.merchant?.name,
           merchant_category: reward.merchant_category ?? membership?.merchant?.category,
-          customer_points: Number(membership?.points ?? 0),
+          customer_points: Number(membership?.points_balance ?? membership?.points ?? 0),
         };
       });
     },
@@ -113,7 +113,7 @@ export function useRewardsData(customerId?: string) {
       if (!customerId) return [] as Redemption[];
       const { data, error } = await supabase
         .from('redemptions')
-        .select('id, customer_id, reward_id, code, status, expires_at, created_at, rewards(id, merchant_id, title, description, points_required, is_active)')
+        .select('id, customer_id, merchant_id, reward_id, redemption_code, reward_title, points_spent, status, expires_at, created_at, redeemed_at, rewards(id, merchant_id, title, description, points_required, active)')
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false })
         .limit(10);

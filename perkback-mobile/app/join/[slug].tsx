@@ -3,9 +3,11 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
+import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useExploreData, useJoinMerchant } from '../../src/hooks/useExploreData';
+import { supabase } from '../../src/lib/supabase';
 import { PB, FONTS } from '../../src/constants/theme';
 
 export default function JoinMerchantScreen() {
@@ -14,12 +16,37 @@ export default function JoinMerchantScreen() {
   const { customer } = useAuth();
   const { merchants, fallbackMerchants } = useExploreData();
   const join = useJoinMerchant(customer?.id);
-  const merchant = [...(merchants.data ?? []), ...fallbackMerchants].find((item) => item.slug === slug) ?? fallbackMerchants[0];
+  const merchantLookup = useQuery({
+    queryKey: ['merchant-by-slug', slug],
+    enabled: Boolean(slug),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_merchant_by_slug', { _slug: slug });
+      if (error || !Array.isArray(data) || !data[0]) return null;
+      const row = data[0] as any;
+      return {
+        id: row.id,
+        user_id: '',
+        name: row.store_name ?? 'PerkBack Store',
+        slug,
+        category: row.industry_type ?? null,
+        logo_url: row.logo_url ?? null,
+        address: row.address ?? null,
+        lat: null,
+        lng: null,
+        is_active: true,
+      };
+    },
+  });
+  const merchant = merchantLookup.data
+    ?? [...(merchants.data ?? []), ...fallbackMerchants].find((item) => item.slug === slug || item.id === slug)
+    ?? fallbackMerchants[0];
 
   const add = async () => {
     try {
       await join.mutateAsync({ slug: merchant.slug });
-      Alert.alert('Added to wallet', `${merchant.name} is now in your wallet.`);
+      Alert.alert('Added to wallet', `${merchant.name} is now in your wallet.`, [
+        { text: 'View card', onPress: () => router.replace('/(tabs)/my-card') },
+      ]);
     } catch (error) {
       Alert.alert('Could not add card', error instanceof Error ? error.message : 'Please try again.');
     }

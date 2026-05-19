@@ -58,15 +58,16 @@ const FALLBACK_MERCHANTS: ExploreMerchant[] = [
 
 function normalizeMerchant(raw: any): ExploreMerchant {
   return {
+    ...raw,
     id: raw.id,
     user_id: raw.user_id ?? '',
-    name: raw.name ?? raw.business_name ?? raw.merchant_name ?? raw.display_name ?? 'PerkBack Store',
+    name: raw.name ?? raw.store_name ?? raw.business_name ?? raw.merchant_name ?? raw.display_name ?? 'PerkBack Store',
     slug: raw.slug ?? raw.id,
-    category: raw.category ?? null,
-    logo_url: raw.logo_url ?? null,
+    category: raw.category ?? raw.industry_type ?? null,
+    logo_url: raw.logo_url ?? raw.profile_image_url ?? null,
     address: raw.address ?? null,
-    lat: raw.lat ?? null,
-    lng: raw.lng ?? null,
+    lat: raw.lat ?? raw.latitude ?? null,
+    lng: raw.lng ?? raw.longitude ?? null,
     is_active: raw.is_active ?? true,
     distanceLabel: raw.distance_label ?? raw.distanceLabel ?? null,
     campaignTitle: raw.campaign_title ?? null,
@@ -81,7 +82,6 @@ export function useExploreData() {
       const publicRes = await supabase
         .from('merchants_public')
         .select('*')
-        .eq('is_active', true)
         .limit(20);
 
       let rows = publicRes.data ?? [];
@@ -89,7 +89,6 @@ export function useExploreData() {
         const merchantRes = await supabase
           .from('merchants')
           .select('*')
-          .eq('is_active', true)
           .limit(20);
         rows = merchantRes.data ?? [];
       }
@@ -104,8 +103,8 @@ export function useExploreData() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
-        .select('id, merchant_id, title, description, starts_at, ends_at, is_active')
-        .eq('is_active', true)
+        .select('id, merchant_id, title, description, active')
+        .eq('active', true)
         .limit(10);
       if (error) return [] as Campaign[];
       return (data ?? []) as Campaign[];

@@ -1,18 +1,52 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useExploreData } from '../../src/hooks/useExploreData';
 import { ConnectionError, ScreenSkeleton } from '../../src/components/ui/AppStates';
 import { PB, FONTS } from '../../src/constants/theme';
 
+function distanceKm(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }) {
+  const radius = 6371;
+  const dLat = (to.latitude - from.latitude) * Math.PI / 180;
+  const dLon = (to.longitude - from.longitude) * Math.PI / 180;
+  const lat1 = from.latitude * Math.PI / 180;
+  const lat2 = to.latitude * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(km?: number | null) {
+  if (km == null) return 'nearby';
+  if (km < 1) return `${Math.round(km * 1000)}m`;
+  return `${km.toFixed(km < 10 ? 1 : 0)}km`;
+}
+
 export default function ExploreScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('For you');
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationLabel, setLocationLabel] = useState('Locating nearby stores...');
   const { merchants, campaigns, fallbackMerchants } = useExploreData();
-  const list = merchants.data?.length ? merchants.data : fallbackMerchants;
+  const list = useMemo(() => {
+    const source = merchants.data?.length ? merchants.data : fallbackMerchants;
+    return source
+      .map((merchant) => {
+        const lat = merchant.lat ?? merchant.latitude ?? null;
+        const lng = merchant.lng ?? merchant.longitude ?? null;
+        const km = location && lat != null && lng != null ? distanceKm(location, { latitude: Number(lat), longitude: Number(lng) }) : null;
+        return { ...merchant, distanceKm: km, distanceLabel: formatDistance(km) || merchant.distanceLabel };
+      })
+      .sort((a, b) => {
+        if (a.distanceKm == null && b.distanceKm == null) return a.name.localeCompare(b.name);
+        if (a.distanceKm == null) return 1;
+        if (b.distanceKm == null) return -1;
+        return a.distanceKm - b.distanceKm;
+      });
+  }, [fallbackMerchants, location, merchants.data]);
   const filtered = useMemo(
     () => list.filter((merchant) => {
       const matchesQuery = !query || merchant.name.toLowerCase().includes(query.toLowerCase()) || merchant.category?.toLowerCase().includes(query.toLowerCase());
@@ -22,9 +56,23 @@ export default function ExploreScreen() {
     [category, list, query]
   );
 
-  const refresh = () => {
-    merchants.refetch();
-    campaigns.refetch();
+  const loadLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setLocationLabel('Location off - showing all stores');
+      return;
+    }
+    const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    setLocation({ latitude: current.coords.latitude, longitude: current.coords.longitude });
+    setLocationLabel('Stores sorted by distance');
+  };
+
+  useEffect(() => {
+    loadLocation().catch(() => setLocationLabel('Location unavailable - showing all stores'));
+  }, []);
+
+  const refresh = async () => {
+    await Promise.all([merchants.refetch(), campaigns.refetch(), loadLocation()]);
   };
 
   return (
@@ -37,7 +85,7 @@ export default function ExploreScreen() {
         <View style={styles.header}>
           <Text style={styles.kicker}>Discover</Text>
           <Text style={styles.title}>Explore</Text>
-          <Text style={styles.sub}>Stores nearby earning your points</Text>
+          <Text style={styles.sub}>{locationLabel}</Text>
         </View>
         <View style={styles.search}>
           <Text style={styles.searchIcon}>⌕</Text>
@@ -50,7 +98,7 @@ export default function ExploreScreen() {
           />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {['For you', 'Coffee', 'Eats', 'Beauty', 'Retail'].map((item) => {
+          {['For you', 'Coffee', 'Food', 'Retail', 'Beauty', 'Health', 'Other'].map((item) => {
             const active = item === category;
             return (
               <TouchableOpacity key={item} style={[styles.chip, active && styles.chipActive]} onPress={() => setCategory(item)}>

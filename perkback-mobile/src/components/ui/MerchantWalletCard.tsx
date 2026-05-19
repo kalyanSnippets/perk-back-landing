@@ -63,12 +63,12 @@ export function MerchantWalletCard({ item, index }: { item: WalletMerchant; inde
 
       <View style={styles.statsRow}>
         <View style={styles.stat}>
-          <Text style={styles.statValue}>{Number(item.points ?? 0).toLocaleString()}</Text>
+          <Text style={styles.statValue}>{Number(item.points_balance ?? item.points ?? 0).toLocaleString()}</Text>
           <Text style={styles.statLabel}>points</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.stat}>
-          <Text style={styles.statValue}>{Number(item.visits ?? 0).toLocaleString()}</Text>
+          <Text style={styles.statValue}>{Number(item.visit_count ?? item.visits ?? 0).toLocaleString()}</Text>
           <Text style={styles.statLabel}>visits</Text>
         </View>
         <View style={styles.statDivider} />
