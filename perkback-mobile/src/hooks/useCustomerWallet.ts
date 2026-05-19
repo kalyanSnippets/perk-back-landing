@@ -12,14 +12,14 @@ async function fetchMerchantsByIds(merchantIds: string[]) {
 
   const publicRes = await supabase
     .from('merchants_public')
-    .select('id, name, slug, category, logo_url, address, lat, lng, is_active')
+    .select('*')
     .in('id', merchantIds);
 
   if (!publicRes.error && publicRes.data) return publicRes.data as Merchant[];
 
   const merchantRes = await supabase
     .from('merchants')
-    .select('id, user_id, name, slug, category, logo_url, address, lat, lng, is_active')
+    .select('*')
     .in('id', merchantIds);
 
   if (merchantRes.error) throw merchantRes.error;

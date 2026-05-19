@@ -58,6 +58,10 @@ function RootLayoutNav() {
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(merchant)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="rewards" />
+      <Stack.Screen name="scan" />
+      <Stack.Screen name="join" />
+      <Stack.Screen name="merchant" />
     </Stack>
   );
 }
