@@ -1,8 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Linking, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Clipboard from 'expo-clipboard';
+import QRCode from 'react-native-qrcode-svg';
 import { PB, FONTS } from '../../constants/theme';
 import { WalletMerchant } from '../../hooks/useCustomerWallet';
+import { supabase } from '../../lib/supabase';
 
 const FALLBACK_THEMES = [
   ['#2a1a0e', '#7b4f2d', '#ffd07a'],
@@ -46,9 +49,29 @@ export function MerchantWalletCard({
   const merchant = item.merchant;
   const theme = getTheme(item, index);
   const spend = Number(item.total_spend ?? 0);
+  const [flipped, setFlipped] = useState(false);
+  const cardNumber = `${item.customer_id.slice(0, 8).toUpperCase()}-${item.merchant_id.slice(0, 8).toUpperCase()}`;
+
+  const copyCardNumber = async () => {
+    await Clipboard.setStringAsync(cardNumber);
+    Alert.alert('Copied', 'Card number copied.');
+  };
+
+  const addWallet = async (walletType: 'apple' | 'google') => {
+    const functionName = walletType === 'apple' ? 'apple-wallet-pass' : 'google-wallet-pass';
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: { customer_id: item.customer_id, merchant_id: item.merchant_id },
+    });
+    if (error) {
+      Alert.alert('Wallet unavailable', error.message);
+      return;
+    }
+    const url = (data as any)?.url ?? (data as any)?.save_url;
+    if (url) Linking.openURL(url);
+  };
 
   return (
-    <TouchableOpacity activeOpacity={onPress ? 0.86 : 1} onPress={onPress} disabled={!onPress}>
+    <TouchableOpacity activeOpacity={0.88} onPress={() => setFlipped((value) => !value)}>
       <LinearGradient
         colors={[theme.primary, theme.secondary]}
         start={{ x: 0, y: 0 }}
@@ -56,38 +79,83 @@ export function MerchantWalletCard({
         style={[styles.card, compact && styles.cardCompact]}
       >
         <View style={[styles.glow, { backgroundColor: theme.accent }]} />
-        <View style={styles.topRow}>
-          <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
-            <Text style={styles.avatarText}>{getInitials(merchant?.name)}</Text>
-          </View>
-          <View style={styles.statusPill}>
-            <Text style={styles.statusText}>{merchant?.is_active === false ? 'Paused' : 'Joined'}</Text>
-          </View>
-        </View>
+        {!flipped ? (
+          <>
+            <View style={styles.topRow}>
+              <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
+                <Text style={styles.avatarText}>{getInitials(merchant?.name)}</Text>
+              </View>
+              <View style={styles.statusPill}>
+                <Text style={styles.statusText}>{merchant?.is_active === false ? 'Paused' : 'Joined'}</Text>
+              </View>
+            </View>
 
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-          {merchant?.name ?? 'PerkBack merchant'}
-        </Text>
-        <Text style={styles.category} numberOfLines={1}>
-          {merchant?.category || merchant?.address || 'Local rewards'}
-        </Text>
+            <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+              {merchant?.name ?? 'Merchant details unavailable'}
+            </Text>
+            <Text style={styles.category} numberOfLines={1}>
+              {merchant?.category || merchant?.address || 'Local rewards'}
+            </Text>
 
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{Number(item.points_balance ?? item.points ?? 0).toLocaleString()}</Text>
-            <Text style={styles.statLabel}>points</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{Number(item.points_balance ?? item.points ?? 0).toLocaleString()}</Text>
+                <Text style={styles.statLabel}>points</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{Number(item.visit_count ?? item.visits ?? 0).toLocaleString()}</Text>
+                <Text style={styles.statLabel}>visits</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>${spend.toFixed(0)}</Text>
+                <Text style={styles.statLabel}>spent</Text>
+              </View>
+            </View>
+            <Text style={styles.tapHint}>Tap card to show QR and barcode</Text>
+          </>
+        ) : (
+          <View style={styles.backContent}>
+            <View style={styles.backTop}>
+              <View>
+                <Text style={styles.backLabel}>SCAN AT TILL</Text>
+                <Text style={styles.backName} numberOfLines={1}>{merchant?.name ?? 'Merchant card'}</Text>
+              </View>
+              <View style={styles.qrBox}>
+                <QRCode value={cardNumber} size={70} color={PB.primary} backgroundColor="#fff" />
+              </View>
+            </View>
+            <View style={styles.barcode}>
+              {Array.from({ length: 34 }).map((_, barIndex) => (
+                <View
+                  key={barIndex}
+                  style={[
+                    styles.bar,
+                    { height: 24 + ((barIndex * 7) % 18), width: barIndex % 4 === 0 ? 3 : 2 },
+                  ]}
+                />
+              ))}
+            </View>
+            <Text style={styles.cardNumber}>{cardNumber}</Text>
+            <View style={styles.backActions}>
+              <TouchableOpacity style={styles.backAction} onPress={copyCardNumber}>
+                <Text style={styles.backActionText}>Copy number</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.backAction} onPress={onPress}>
+                <Text style={styles.backActionText}>View rewards</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.walletRow}>
+              <TouchableOpacity style={styles.walletButton} onPress={() => addWallet('apple')}>
+                <Text style={styles.walletText}>Apple Wallet</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.walletButton} onPress={() => addWallet('google')}>
+                <Text style={styles.walletText}>Google Wallet</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{Number(item.visit_count ?? item.visits ?? 0).toLocaleString()}</Text>
-            <Text style={styles.statLabel}>visits</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>${spend.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>spent</Text>
-          </View>
-        </View>
+        )}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -149,4 +217,19 @@ const styles = StyleSheet.create({
   statValue: { color: '#fff', fontFamily: FONTS.extraBold, fontSize: 17 },
   statLabel: { color: 'rgba(255,255,255,0.62)', fontFamily: FONTS.medium, fontSize: 10, marginTop: 2 },
   statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.16)', marginHorizontal: 10 },
+  tapHint: { color: 'rgba(255,255,255,0.58)', fontFamily: FONTS.medium, fontSize: 10, marginTop: 10 },
+  backContent: { flex: 1 },
+  backTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  backLabel: { color: 'rgba(255,255,255,0.62)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 1.2 },
+  backName: { color: '#fff', fontFamily: FONTS.extraBold, fontSize: 17, marginTop: 3, maxWidth: 160 },
+  qrBox: { width: 84, height: 84, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  barcode: { height: 58, borderRadius: 14, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, marginTop: 13 },
+  bar: { backgroundColor: PB.primary, borderRadius: 1 },
+  cardNumber: { color: '#fff', fontFamily: FONTS.mono, fontSize: 12, letterSpacing: 1.2, textAlign: 'center', marginTop: 9 },
+  backActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  backAction: { flex: 1, height: 34, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
+  backActionText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  walletRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  walletButton: { flex: 1, height: 34, borderRadius: 13, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  walletText: { color: PB.primary, fontFamily: FONTS.bold, fontSize: 11 },
 });

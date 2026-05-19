@@ -37,11 +37,25 @@ export default function MerchantDetailScreen() {
   const merchant = useMemo(() => {
     const walletMerchant = loyalty.membership?.merchant;
     const exploreMerchant = [...(merchants.data ?? []), ...fallbackMerchants].find((item) => item.id === id);
-    return walletMerchant ?? exploreMerchant ?? fallbackMerchants[0];
+    return walletMerchant ?? exploreMerchant ?? null;
   }, [fallbackMerchants, id, loyalty.membership?.merchant, merchants.data]);
   const membership = loyalty.membership;
   const stamp = loyalty.stamps.data?.[0];
   const joined = Boolean(membership);
+
+  if (!merchant) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.missingState}>
+          <Text style={styles.emptyTitle}>Merchant details unavailable</Text>
+          <Text style={styles.emptyText}>This card is linked, but the merchant profile is not readable from Supabase yet. Ask Lovable to expose this merchant through merchants_public or the customer wallet relationship.</Text>
+          <TouchableOpacity style={styles.joinInlineBtn} onPress={() => router.replace('/(tabs)/my-card')}>
+            <Text style={styles.joinInlineText}>Back to Wallet</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const refresh = async () => {
     await Promise.all([loyalty.wallet.refetch(), loyalty.rewards.refetch(), loyalty.campaigns.refetch(), loyalty.stamps.refetch()]);
@@ -248,4 +262,5 @@ const styles = StyleSheet.create({
   emptyBox: { backgroundColor: '#fff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: PB.borderSoft },
   emptyTitle: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 15 },
   emptyText: { color: PB.muted, fontFamily: FONTS.regular, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  missingState: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 14 },
 });

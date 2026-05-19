@@ -12,15 +12,15 @@ export default function ScanSuccessScreen() {
       <LinearGradient colors={['#071f50', '#0a2a6b', '#123b91']} style={styles.fill}>
         <View style={styles.check}><Text style={styles.checkText}>✓</Text></View>
         <Text style={styles.title}>+20 points</Text>
-        <Text style={styles.sub}>at Bondi Beans · receipt #4PXQ-21</Text>
+        <Text style={styles.sub}>Your merchant points have been added.</Text>
         <View style={styles.balanceCard}>
           <View style={styles.balanceTop}>
             <Text style={styles.balanceLabel}>BALANCE NOW</Text>
-            <Text style={styles.balanceLabel}>BONDI BEANS</Text>
+            <Text style={styles.balanceLabel}>MERCHANT</Text>
           </View>
           <Text style={styles.balance}>500<Text style={styles.balanceUnit}> pts</Text></Text>
           <View style={styles.track}><View style={styles.fillTrack} /></View>
-          <Text style={styles.trackText}>+100 pts to unlock free flat white</Text>
+          <Text style={styles.trackText}>Keep earning with this merchant to unlock rewards.</Text>
         </View>
         <View style={styles.actions}>
           <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace('/(tabs)/rewards')}><Text style={styles.doneText}>Done</Text></TouchableOpacity>

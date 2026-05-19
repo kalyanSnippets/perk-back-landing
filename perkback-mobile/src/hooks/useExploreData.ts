@@ -8,54 +8,6 @@ export type ExploreMerchant = Merchant & {
   rewardTitle?: string | null;
 };
 
-const FALLBACK_MERCHANTS: ExploreMerchant[] = [
-  {
-    id: 'sample-bondi-beans',
-    user_id: '',
-    name: 'Bondi Beans',
-    slug: 'bondi-beans',
-    category: 'Coffee',
-    logo_url: null,
-    address: '237 Campbell Pde, Bondi',
-    lat: null,
-    lng: null,
-    is_active: true,
-    distanceLabel: '140m',
-    campaignTitle: 'Double points all weekend',
-    rewardTitle: 'Free Flat White',
-  },
-  {
-    id: 'sample-maison',
-    user_id: '',
-    name: 'Maison Patisserie',
-    slug: 'maison-patisserie',
-    category: 'Bakery',
-    logo_url: null,
-    address: 'Local favourite',
-    lat: null,
-    lng: null,
-    is_active: true,
-    distanceLabel: '450m',
-    campaignTitle: 'Birthday cake bonus',
-    rewardTitle: 'Buy 1 get 1 pastry',
-  },
-  {
-    id: 'sample-field-vine',
-    user_id: '',
-    name: 'Field & Vine',
-    slug: 'field-vine',
-    category: 'Eats',
-    logo_url: null,
-    address: 'Dinner rewards',
-    lat: null,
-    lng: null,
-    is_active: true,
-    distanceLabel: '1.2km',
-    campaignTitle: '$15 off dinner',
-    rewardTitle: '$15 voucher',
-  },
-];
-
 function normalizeMerchant(raw: any): ExploreMerchant {
   return {
     ...raw,
@@ -93,8 +45,7 @@ export function useExploreData() {
         rows = merchantRes.data ?? [];
       }
 
-      const normalized = rows.map(normalizeMerchant);
-      return normalized.length > 0 ? normalized : FALLBACK_MERCHANTS;
+      return rows.map(normalizeMerchant);
     },
   });
 
@@ -119,7 +70,7 @@ export function useExploreData() {
     },
   });
 
-  return { merchants, campaigns, discoveryRewards, fallbackMerchants: FALLBACK_MERCHANTS };
+  return { merchants, campaigns, discoveryRewards, fallbackMerchants: [] as ExploreMerchant[] };
 }
 
 export function useJoinMerchant(customerId?: string) {
@@ -127,8 +78,6 @@ export function useJoinMerchant(customerId?: string) {
   return useMutation({
     mutationFn: async ({ merchantId, slug }: { merchantId?: string; slug?: string }) => {
       if (!customerId) throw new Error('Sign in as a customer before joining stores.');
-      if (merchantId?.startsWith('sample-') || slug?.startsWith('sample-')) return { ok: true };
-
       const { data, error } = slug
         ? await supabase.rpc('join_merchant_by_slug', { _slug: slug, _source: 'mobile' })
         : await supabase.rpc('join_merchant', { _merchant_id: merchantId, _source: 'mobile' });

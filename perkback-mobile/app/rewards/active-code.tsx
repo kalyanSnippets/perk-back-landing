@@ -20,8 +20,8 @@ export default function ActiveCodeScreen() {
           <View style={{ width: 34 }} />
         </View>
         <Text style={styles.pill}>▣ Active reward</Text>
-        <Text style={styles.title}>{rewardTitle || 'Free Flat White'}</Text>
-        <Text style={styles.sub}>at {merchantName || 'Bondi Beans'} · expires today 5pm</Text>
+        <Text style={styles.title}>{rewardTitle || 'Active reward'}</Text>
+        <Text style={styles.sub}>at {merchantName || 'Merchant'} · expires today 5pm</Text>
         <Text style={styles.timer}>0:38</Text>
         <View style={styles.qrWrap}>
           <QRCode value={code} size={188} color={PB.primaryDark} backgroundColor="#ffffff" />

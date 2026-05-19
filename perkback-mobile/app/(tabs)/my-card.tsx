@@ -50,9 +50,9 @@ export default function MyCardScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.kicker}>Customer wallet</Text>
-            <Text style={styles.heading}>My loyalty cards</Text>
-            <Text style={styles.sub}>All merchant programmes linked to your PerkBack account.</Text>
+            <Text style={styles.kicker}>Welcome{customer?.full_name ? `, ${customer.full_name.split(' ')[0]}` : ''}</Text>
+            <Text style={styles.heading}>Wallet</Text>
+            <Text style={styles.sub}>All your merchant loyalty cards live here.</Text>
           </View>
           <TouchableOpacity style={styles.scanBtn} onPress={() => router.push('/scan')} activeOpacity={0.86}>
             <Text style={styles.scanText}>Scan</Text>

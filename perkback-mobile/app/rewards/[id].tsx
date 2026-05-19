@@ -11,16 +11,22 @@ export default function RewardDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { customer } = useAuth();
-  const { rewards, fallbackRewards } = useRewardsData(customer?.id);
+  const { rewards } = useRewardsData(customer?.id);
   const redeem = useRedeemReward(customer?.id);
   const reward = useMemo(
-    () => [...(rewards.data ?? []), ...fallbackRewards].find((item) => item.id === id) ?? fallbackRewards[0],
-    [rewards.data, fallbackRewards, id]
+    () => (rewards.data ?? []).find((item) => item.id === id) ?? null,
+    [rewards.data, id]
   );
-  const balance = Number(reward.customer_points ?? customer?.points_balance ?? 480);
-  const afterClaim = Math.max(0, balance - Number(reward.points_required ?? 0));
+  const balance = Number(reward?.customer_points ?? 0);
+  const hasEnoughPoints = reward ? balance >= Number(reward.points_required ?? 0) : false;
+  const afterClaim = Math.max(0, balance - Number(reward?.points_required ?? 0));
 
   const claim = async () => {
+    if (!reward) return;
+    if (!hasEnoughPoints) {
+      Alert.alert('Not enough merchant points', 'Earn more points with this merchant before claiming this reward.');
+      return;
+    }
     try {
       await redeem.mutateAsync(reward.id);
       router.replace({ pathname: '/rewards/active-code', params: { rewardTitle: reward.title, merchantName: reward.merchant_name ?? 'PerkBack store' } });
@@ -28,6 +34,20 @@ export default function RewardDetailScreen() {
       Alert.alert('Could not claim reward', error instanceof Error ? error.message : 'Please try again.');
     }
   };
+
+  if (!reward) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.missingState}>
+          <Text style={styles.title}>Reward unavailable</Text>
+          <Text style={styles.description}>This reward is not currently readable from Supabase.</Text>
+          <TouchableOpacity style={styles.claimBtn} onPress={() => router.back()}>
+            <Text style={styles.claimText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,9 +57,9 @@ export default function RewardDetailScreen() {
           <View style={styles.glow} />
           <Text style={styles.pill}>Ready to claim</Text>
         </LinearGradient>
-        <Text style={styles.merchant}>{reward.merchant_name || 'Bondi Beans'}</Text>
+        <Text style={styles.merchant}>{reward.merchant_name || 'Merchant reward'}</Text>
         <Text style={styles.title}>{reward.title}</Text>
-        <Text style={styles.description}>{reward.description || 'Any size, any milk. One per visit.'}</Text>
+        <Text style={styles.description}>{reward.description || 'Tap claim when you have enough points with this merchant.'}</Text>
 
         <View style={styles.metaRow}>
           <Text style={styles.meta}>★ {reward.points_required} pts</Text>
@@ -55,8 +75,8 @@ export default function RewardDetailScreen() {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <TouchableOpacity style={[styles.claimBtn, redeem.isPending && styles.disabled]} onPress={claim} disabled={redeem.isPending}>
-          <Text style={styles.claimText}>{redeem.isPending ? 'Claiming...' : `Claim for ${reward.points_required} pts`}</Text>
+        <TouchableOpacity style={[styles.claimBtn, (redeem.isPending || !hasEnoughPoints) && styles.disabled]} onPress={claim} disabled={redeem.isPending}>
+          <Text style={styles.claimText}>{redeem.isPending ? 'Claiming...' : hasEnoughPoints ? `Claim for ${reward.points_required} pts` : `Need ${Math.max(0, Number(reward.points_required ?? 0) - balance)} more pts`}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -82,6 +102,7 @@ const styles = StyleSheet.create({
   balance: { color: PB.primary, fontFamily: FONTS.extraBold, fontSize: 28 },
   after: { color: PB.muted, fontFamily: FONTS.regular, fontSize: 12, marginBottom: 5 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 20, paddingBottom: 32, backgroundColor: 'rgba(250,251,253,.95)' },
+  missingState: { flex: 1, padding: 24, justifyContent: 'center', gap: 14 },
   claimBtn: { height: 54, borderRadius: 17, backgroundColor: PB.accentStrong, alignItems: 'center', justifyContent: 'center' },
   disabled: { opacity: 0.65 },
   claimText: { color: PB.primary, fontFamily: FONTS.extraBold, fontSize: 15 },

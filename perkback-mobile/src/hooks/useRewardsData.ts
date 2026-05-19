@@ -9,45 +9,6 @@ export type RewardWithMeta = Reward & {
   customer_points?: number;
 };
 
-const FALLBACK_REWARDS: RewardWithMeta[] = [
-  {
-    id: 'sample-flat-white',
-    merchant_id: 'sample-bondi-beans',
-    title: 'Free Flat White',
-    description: 'Any size, any milk. One per visit.',
-    points_required: 300,
-    reward_type: 'coffee',
-    is_active: true,
-    merchant_name: 'Bondi Beans',
-    merchant_category: 'Coffee Shop',
-    customer_points: 480,
-  },
-  {
-    id: 'sample-pastry',
-    merchant_id: 'sample-maison',
-    title: 'Buy 1 get 1 pastry',
-    description: 'A sweet little treat for your next visit.',
-    points_required: 420,
-    reward_type: 'bakery',
-    is_active: true,
-    merchant_name: 'Maison Patisserie',
-    merchant_category: 'Bakery',
-    customer_points: 220,
-  },
-  {
-    id: 'sample-voucher',
-    merchant_id: 'sample-field-vine',
-    title: '$15 off Field & Vine',
-    description: 'A cashback-style voucher for dinner.',
-    points_required: 1200,
-    reward_type: 'cashback',
-    is_active: true,
-    merchant_name: 'Field & Vine',
-    merchant_category: 'Restaurant',
-    customer_points: 980,
-  },
-];
-
 function normalizeReward(raw: any): RewardWithMeta {
   const merchant = raw.merchants ?? raw.merchant ?? null;
   return {
@@ -74,20 +35,17 @@ export function useRewardsData(customerId?: string) {
     queryKey: ['customer-rewards', customerId, merchantIds.join(',')],
     enabled: Boolean(customerId),
     queryFn: async () => {
-      let joinedRewards: RewardWithMeta[] = [];
+      let allRewards: RewardWithMeta[] = [];
 
-      if (merchantIds.length > 0) {
-        const { data, error } = await supabase
-          .from('rewards')
-          .select('id, merchant_id, title, description, points_required, reward_type, expires_at, image_url, active, merchants(id, store_name, industry_type, logo_url, address, slug)')
-          .in('merchant_id', merchantIds)
-          .eq('active', true)
-          .limit(24);
+      const { data, error } = await supabase
+        .from('rewards')
+        .select('id, merchant_id, title, description, points_required, reward_type, expires_at, image_url, active, merchants(id, store_name, industry_type, logo_url, address, slug)')
+        .eq('active', true)
+        .limit(50);
 
-        if (!error && data) joinedRewards = data.map(normalizeReward);
-      }
+      if (!error && data) allRewards = data.map(normalizeReward);
 
-      const unique = joinedRewards.filter((reward, index, list) => list.findIndex((item) => item.id === reward.id) === index);
+      const unique = allRewards.filter((reward, index, list) => list.findIndex((item) => item.id === reward.id) === index);
 
       if (unique.length === 0) return [] as RewardWithMeta[];
 
@@ -139,7 +97,7 @@ export function useRewardsData(customerId?: string) {
     rewards,
     redemptions,
     stamps,
-    fallbackRewards: FALLBACK_REWARDS,
+    fallbackRewards: [] as RewardWithMeta[],
   };
 }
 
@@ -148,17 +106,6 @@ export function useRedeemReward(customerId?: string) {
   return useMutation({
     mutationFn: async (rewardId: string) => {
       if (!customerId) throw new Error('Customer profile is required before redeeming.');
-      if (rewardId.startsWith('sample-')) {
-        return {
-          id: 'sample-redemption',
-          code: '4PXQ-21',
-          status: 'active',
-          reward_id: rewardId,
-          customer_id: customerId,
-          expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date().toISOString(),
-        } as Redemption;
-      }
       const { data, error } = await supabase.rpc('redeem_reward', {
         _customer_id: customerId,
         _reward_id: rewardId,

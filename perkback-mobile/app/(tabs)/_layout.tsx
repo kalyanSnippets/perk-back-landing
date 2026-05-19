@@ -37,7 +37,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="my-card"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="💳" label="My Card" focused={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="👛" label="Wallet" focused={focused} /> }}
       />
       <Tabs.Screen
         name="rewards"

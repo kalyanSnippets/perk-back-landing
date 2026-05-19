@@ -15,7 +15,7 @@ async function fetchMerchantsByIds(merchantIds: string[]) {
     .select('*')
     .in('id', merchantIds);
 
-  if (!publicRes.error && publicRes.data) return publicRes.data.map(normalizeMerchant) as Merchant[];
+  if (!publicRes.error && publicRes.data) return publicRes.data.map(normalizeMerchant).filter(Boolean) as Merchant[];
 
   const merchantRes = await supabase
     .from('merchants')
@@ -23,10 +23,11 @@ async function fetchMerchantsByIds(merchantIds: string[]) {
     .in('id', merchantIds);
 
   if (merchantRes.error) throw merchantRes.error;
-  return (merchantRes.data ?? []).map(normalizeMerchant) as Merchant[];
+  return (merchantRes.data ?? []).map(normalizeMerchant).filter(Boolean) as Merchant[];
 }
 
-function normalizeMerchant(raw: any): Merchant {
+function normalizeMerchant(raw: any): Merchant | null {
+  if (!raw) return null;
   return {
     ...raw,
     user_id: raw.user_id ?? '',
@@ -60,15 +61,26 @@ export function useCustomerWallet(customerId?: string) {
     queryFn: async () => {
       if (!customerId) return [] as WalletMerchant[];
 
-      const { data: customerMerchants, error } = await supabase
+      let { data: customerMerchants, error } = await supabase
         .from('customer_merchants')
-        .select('id, customer_id, merchant_id, points_balance, visit_count, total_spend, joined_at, last_visit_at, created_at')
+        .select('id, customer_id, merchant_id, points_balance, visit_count, total_spend, joined_at, last_visit_at, created_at, merchants(id, user_id, store_name, business_name, slug, industry_type, logo_url, profile_image_url, address, latitude, longitude, is_active)')
         .eq('customer_id', customerId)
         .order('joined_at', { ascending: false });
+      let walletRows = customerMerchants as any[] | null;
+
+      if (error) {
+        const fallback = await supabase
+          .from('customer_merchants')
+          .select('id, customer_id, merchant_id, points_balance, visit_count, total_spend, joined_at, last_visit_at, created_at')
+          .eq('customer_id', customerId)
+          .order('joined_at', { ascending: false });
+        walletRows = fallback.data as any[] | null;
+        error = fallback.error;
+      }
 
       if (error) throw error;
 
-      const memberships = (customerMerchants ?? []).map((item: any) => ({
+      const memberships = (walletRows ?? []).map((item: any) => ({
         ...item,
         points: item.points_balance,
         visits: item.visit_count,
@@ -81,7 +93,7 @@ export function useCustomerWallet(customerId?: string) {
 
       return memberships.map((membership) => ({
         ...membership,
-        merchant: merchants.find((merchant) => merchant.id === membership.merchant_id) ?? null,
+        merchant: normalizeMerchant((membership as any).merchants) ?? merchants.find((merchant) => merchant.id === membership.merchant_id) ?? null,
         cardDesign: designs.find((design) => design.merchant_id === membership.merchant_id) ?? null,
       }));
     },

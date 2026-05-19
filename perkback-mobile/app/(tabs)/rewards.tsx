@@ -47,20 +47,26 @@ export default function RewardsScreen() {
 
   const groups = useMemo(() => {
     const cards = wallet.data ?? [];
-    return cards.map((card) => {
-      const merchantRewards = (rewards.data ?? []).filter((reward) => reward.merchant_id === card.merchant_id);
+    const rewardMerchantIds = [...new Set((rewards.data ?? []).map((reward) => reward.merchant_id).filter(Boolean))];
+    return rewardMerchantIds.map((merchantId) => {
+      const card = cards.find((item) => item.merchant_id === merchantId) ?? null;
+      const merchantRewards = (rewards.data ?? []).filter((reward) => reward.merchant_id === merchantId);
+      const firstReward = merchantRewards[0];
       return {
         membership: card,
-        merchant: card.merchant,
+        merchant_id: merchantId,
+        merchant: card?.merchant ?? firstReward?.merchants ?? null,
+        merchantName: card?.merchant?.name ?? firstReward?.merchant_name ?? 'Merchant',
+        merchantCategory: card?.merchant?.category ?? firstReward?.merchant_category ?? 'Local rewards',
         rewards: merchantRewards,
-        stamps: (stamps.data ?? []).filter((stamp) => stamp.merchant_id === card.merchant_id),
+        stamps: (stamps.data ?? []).filter((stamp) => stamp.merchant_id === merchantId),
       };
     });
   }, [rewards.data, stamps.data, wallet.data]);
 
   const visibleGroups = merchantFilter === 'all'
     ? groups
-    : groups.filter((group) => group.membership.merchant_id === merchantFilter);
+    : groups.filter((group) => group.merchant_id === merchantFilter);
 
   const activeRedemptions = redemptions.data?.filter((item) => ['active', 'pending'].includes(item.status)) ?? [];
   const isLoading = rewards.isLoading || wallet.isLoading;
@@ -101,11 +107,11 @@ export default function RewardsScreen() {
               </TouchableOpacity>
               {groups.map((group) => (
                 <TouchableOpacity
-                  key={group.membership.id}
-                  style={[styles.chip, merchantFilter === group.membership.merchant_id && styles.chipActive]}
-                  onPress={() => setMerchantFilter(group.membership.merchant_id)}
+                  key={group.merchant_id}
+                  style={[styles.chip, merchantFilter === group.merchant_id && styles.chipActive]}
+                  onPress={() => setMerchantFilter(group.merchant_id)}
                 >
-                  <Text style={[styles.chipText, merchantFilter === group.membership.merchant_id && styles.chipTextActive]}>{group.merchant?.name ?? 'Merchant'}</Text>
+                  <Text style={[styles.chipText, merchantFilter === group.merchant_id && styles.chipTextActive]}>{group.merchantName}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -123,16 +129,17 @@ export default function RewardsScreen() {
             ) : null}
 
             {visibleGroups.length > 0 ? visibleGroups.map((group) => {
-              const balance = Number(group.membership.points_balance ?? group.membership.points ?? 0);
+              const balance = Number(group.membership?.points_balance ?? group.membership?.points ?? 0);
+              const joined = Boolean(group.membership);
               return (
-                <View key={group.membership.id} style={styles.group}>
-                  <TouchableOpacity style={styles.groupHeader} onPress={() => router.push(`/merchant/${group.membership.merchant_id}`)}>
+                <View key={group.merchant_id} style={styles.group}>
+                  <TouchableOpacity style={styles.groupHeader} onPress={() => router.push(`/merchant/${group.merchant_id}`)}>
                     <View style={styles.groupAvatar}>
-                      <Text style={styles.groupAvatarText}>{(group.merchant?.name ?? 'PB').slice(0, 2).toUpperCase()}</Text>
+                      <Text style={styles.groupAvatarText}>{group.merchantName.slice(0, 2).toUpperCase()}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.groupTitle}>{group.merchant?.name ?? 'Merchant rewards'}</Text>
-                      <Text style={styles.groupSub}>{balance.toLocaleString()} pts · {Number(group.membership.visit_count ?? 0)} visits</Text>
+                      <Text style={styles.groupTitle}>{group.merchantName}</Text>
+                      <Text style={styles.groupSub}>{joined ? `${balance.toLocaleString()} pts · ${Number(group.membership?.visit_count ?? 0)} visits` : `${group.merchantCategory} · join to earn points`}</Text>
                     </View>
                     <Text style={styles.chevron}>›</Text>
                   </TouchableOpacity>
@@ -142,7 +149,7 @@ export default function RewardsScreen() {
                       key={reward.id}
                       reward={reward}
                       balance={balance}
-                      merchantName={group.merchant?.name ?? 'Merchant'}
+                      merchantName={group.merchantName}
                       onPress={() => router.push(`/rewards/${reward.id}`)}
                     />
                   )) : (

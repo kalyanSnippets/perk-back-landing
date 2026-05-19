@@ -14,7 +14,7 @@ export default function JoinMerchantScreen() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { customer } = useAuth();
-  const { merchants, fallbackMerchants } = useExploreData();
+  const { merchants } = useExploreData();
   const join = useJoinMerchant(customer?.id);
   const merchantLookup = useQuery({
     queryKey: ['merchant-by-slug', slug],
@@ -38,10 +38,11 @@ export default function JoinMerchantScreen() {
     },
   });
   const merchant = merchantLookup.data
-    ?? [...(merchants.data ?? []), ...fallbackMerchants].find((item) => item.slug === slug || item.id === slug)
-    ?? fallbackMerchants[0];
+    ?? (merchants.data ?? []).find((item) => item.slug === slug || item.id === slug)
+    ?? null;
 
   const add = async () => {
+    if (!merchant) return;
     try {
       await join.mutateAsync({ slug: merchant.slug });
       Alert.alert('Added to wallet', `${merchant.name} is now in your wallet.`, [
@@ -51,6 +52,20 @@ export default function JoinMerchantScreen() {
       Alert.alert('Could not add card', error instanceof Error ? error.message : 'Please try again.');
     }
   };
+
+  if (!merchant) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.missingState}>
+          <Text style={styles.heroTitle}>Merchant not found</Text>
+          <Text style={styles.heroSub}>This QR code opened, but Supabase did not return a merchant for this slug yet.</Text>
+          <TouchableOpacity style={styles.blueBtn} onPress={() => router.replace('/(tabs)/my-card')}>
+            <Text style={styles.blueText}>Back to Wallet</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -107,6 +122,7 @@ const styles = StyleSheet.create({
   unlockText: { flex: 1, color: PB.fg, fontFamily: FONTS.bold, fontSize: 14 },
   unlockPts: { color: PB.primary, fontFamily: FONTS.bold, fontSize: 12 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 12, padding: 18, paddingBottom: 30, backgroundColor: 'rgba(250,251,253,.95)' },
+  missingState: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 16 },
   darkBtn: { flex: 1, height: 52, borderRadius: 16, backgroundColor: '#0b0d12', alignItems: 'center', justifyContent: 'center' },
   blueBtn: { flex: 1, height: 52, borderRadius: 16, backgroundColor: PB.primary, alignItems: 'center', justifyContent: 'center' },
   darkText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
