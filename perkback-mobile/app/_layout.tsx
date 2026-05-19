@@ -32,6 +32,7 @@ function RootLayoutNav() {
     const inOnboarding = segments[0] === '(onboarding)';
     const inTabs = segments[0] === '(tabs)';
     const inMerchant = segments[0] === '(merchant)';
+    const inCustomerFlow = ['rewards', 'scan', 'join', 'merchant'].includes(String(segments[0]));
     const onChooseAccount = inOnboarding && (segments as string[])[1] === 'choose-account';
 
     if (!session) {
@@ -40,13 +41,13 @@ function RootLayoutNav() {
     } else if (isOnboarding) {
       // Brand new user — no accounts yet
       if (!inOnboarding) router.replace('/(onboarding)/choose-role');
-    } else if (customer && merchant && !inTabs && !inMerchant && !onChooseAccount) {
+    } else if (customer && merchant && !inTabs && !inMerchant && !inCustomerFlow && !onChooseAccount) {
       // Both roles → user chooses a dashboard
       router.replace('/(onboarding)/choose-account');
-    } else if (merchant && !inMerchant) {
+    } else if (merchant && !customer && !inMerchant) {
       // Merchant only → merchant dashboard
       router.replace('/(merchant)/dashboard');
-    } else if (customer && !inTabs) {
+    } else if (customer && !inTabs && !inCustomerFlow) {
       // Customer only → go straight to app
       router.replace('/(tabs)/my-card');
     }
@@ -58,10 +59,6 @@ function RootLayoutNav() {
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(merchant)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="rewards" />
-      <Stack.Screen name="scan" />
-      <Stack.Screen name="join" />
-      <Stack.Screen name="merchant" />
     </Stack>
   );
 }
