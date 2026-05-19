@@ -11,9 +11,9 @@ interface OnboardingCarouselProps {
 const SLIDES = [
   {
     icon: Wallet,
-    eyebrow: "One card",
-    title: "Every loyalty program in your pocket",
-    body: "Carry a single PerkBack card across cafés, restaurants and shops — no more plastic clutter.",
+    eyebrow: "Your store's card",
+    title: "Branded loyalty cards in one app",
+    body: "Each store you join gives you their own branded card — collected together in one wallet.",
   },
   {
     icon: Gift,

@@ -56,14 +56,14 @@ const HeroSection = () => {
             <span>Australia's smartest loyalty platform</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground animate-fade-up">
-            Earn rewards everywhere.{" "}
+            Your store. Your card.{" "}
             <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              One card. One wallet.
+              Your customers.
             </span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground leading-relaxed animate-fade-up-delay-1 max-w-2xl mx-auto">
-            Perk Back helps customers earn points, stamps, and perks across partner stores — and
-            helps merchants turn first-time buyers into regulars.
+            PerkBack gives every business a fully branded digital loyalty card — and gives
+            customers one app to carry them all.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 justify-center animate-fade-up-delay-2">
             <Button variant="hero" size="xl" asChild>

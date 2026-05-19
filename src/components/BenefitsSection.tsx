@@ -2,8 +2,8 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { Wallet, BarChart3, Megaphone, CreditCard, TrendingUp, Sparkles } from "lucide-react";
 
 const customerBenefits = [
-  { icon: CreditCard, title: "One card for everything", desc: "All your loyalty programs in a single digital wallet.", iconBg: "bg-secondary/15", iconColor: "text-secondary" },
-  { icon: TrendingUp, title: "Track your progress", desc: "See points, stamps, and rewards in real time.", iconBg: "bg-teal/15", iconColor: "text-teal" },
+  { icon: CreditCard, title: "Every store, beautifully branded", desc: "Each merchant's card looks and feels like their brand — all in one app.", iconBg: "bg-secondary/15", iconColor: "text-secondary" },
+  { icon: TrendingUp, title: "Track your progress", desc: "See points, stamps, and rewards in real time, per store.", iconBg: "bg-teal/15", iconColor: "text-teal" },
   { icon: Sparkles, title: "Simple & rewarding", desc: "No more paper cards. Earn automatically at checkout.", iconBg: "bg-accent/20", iconColor: "text-accent-foreground" },
 ];
 

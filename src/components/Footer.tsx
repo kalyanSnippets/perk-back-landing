@@ -12,7 +12,7 @@ const Footer = () => {
               <img src={perkbackLogo} alt="Perk Back" width={500} height={125} loading="lazy" decoding="async" className="h-9 w-auto brightness-0 invert" />
             </div>
             <p className="text-sm text-primary-foreground/70 leading-relaxed">
-              Earn rewards everywhere. One card. One wallet.
+              Branded loyalty cards for every business. One app for every customer.
             </p>
           </div>
 
