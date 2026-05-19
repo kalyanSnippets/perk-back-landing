@@ -18,7 +18,24 @@ const CustomerAuth = () => {
   const [fullName, setFullName] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const handleForgotPassword = async () => {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your inbox (and spam folder).");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send reset link");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setLoading(true);
 
