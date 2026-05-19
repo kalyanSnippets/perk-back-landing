@@ -15,19 +15,31 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
 
+  const [checking, setChecking] = useState(true);
+
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get("type") === "recovery") {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const searchParams = new URLSearchParams(window.location.search);
+    if (hashParams.get("type") === "recovery" || searchParams.get("type") === "recovery") {
       setIsRecovery(true);
+      setChecking(false);
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsRecovery(true);
+        setChecking(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Fallback: if a session already exists from the recovery link, allow reset.
+    const timer = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) setIsRecovery(true);
+      setChecking(false);
+    }, 1500);
+
+    return () => { subscription.unsubscribe(); clearTimeout(timer); };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,7 +57,8 @@ const ResetPassword = () => {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast.success("Password updated successfully!");
+      await supabase.auth.signOut();
+      toast.success("Password updated. Please sign in with your new password.");
       navigate("/get-started");
     } catch (error: any) {
       toast.error(error.message || "Failed to update password");
@@ -53,6 +66,14 @@ const ResetPassword = () => {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <p className="text-muted-foreground text-sm">Checking your reset link…</p>
+      </div>
+    );
+  }
 
   if (!isRecovery) {
     return (
@@ -66,6 +87,7 @@ const ResetPassword = () => {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">

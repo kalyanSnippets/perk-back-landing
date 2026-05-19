@@ -1,70 +1,33 @@
-# Plan: 6-Digit OTP Verification for Signup (Customer + Merchant)
+## Problem
 
-## Goal
-After clicking "Create Account" (customer or merchant), the user is taken to a verification page where they enter the 6-digit code emailed to them. On success, they get logged in and continue through the normal post-signup flow (customer → access card / merchant → dashboard).
+Looking at the auth logs, the recovery email is sent, the link works, and `PUT /user` returns 200 — so the password update technically succeeds. The real issues are:
 
-Login (returning users) stays as email + password. Only signup verification changes.
+1. **After resetting, the user is left signed in** (recovery flow auto-creates a session). The current code navigates to `/get-started` but does not sign out, so they are silently logged in with the recovery session instead of being asked to log in again with the new password.
+2. **`CustomerAuth.tsx` has no "Forgot password?" link.** Customers landing on that page (e.g. from older links) can't trigger a reset. Only `MerchantAuth.tsx` and `GetStarted.tsx` expose it.
+3. **`ResetPassword.tsx` recovery detection is fragile.** It reads `window.location.hash` once on mount, but Supabase's `detectSessionInUrl` clears the hash quickly. If the listener hasn't fired yet, the page can flash "Invalid or expired reset link." We should also accept an active session whose user came from a recovery event, and avoid the false-negative.
 
-## How Supabase OTP works (technical note)
-Supabase's standard email signup already generates a 6-digit token (`{{ .Token }}`) in addition to the confirmation link. The token is passed to our custom `auth-email-hook` as `payload.data.token` (already mapped in `auth-email-hook/index.ts`). We just need to:
-1. Show the code in the signup email instead of (or alongside) the button.
-2. Verify it client-side with `supabase.auth.verifyOtp({ email, token, type: 'signup' })`.
+## Fix
 
-No Supabase auth config change required. No magic-link setup required.
+### 1. `src/pages/ResetPassword.tsx`
+- On successful `updateUser({ password })`:
+  - `await supabase.auth.signOut()` to clear the recovery session.
+  - `toast.success("Password updated. Please sign in with your new password.")`
+  - `navigate("/get-started")`.
+- Make recovery detection more reliable:
+  - Keep the `onAuthStateChange("PASSWORD_RECOVERY")` listener.
+  - Also check `window.location.hash` AND `window.location.search` for `type=recovery` immediately.
+  - Add a small "checking…" state instead of immediately showing the "Invalid link" screen — only show the invalid screen if no recovery event arrives within ~1.5s AND there's no active session.
+- Keep existing password length + match validation.
 
-## Changes
+### 2. `src/pages/CustomerAuth.tsx`
+- Add a `handleForgotPassword` that mirrors `MerchantAuth.tsx`: validates the email field, calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: \`${window.location.origin}/reset-password\` })`, shows a success toast.
+- Render a "Forgot password?" text button under the Sign In button when `!isSignUp`.
 
-### 1. Update signup email template
-File: `supabase/functions/_shared/email-templates/signup.tsx`
-- Add `token` to `SignupEmailProps`.
-- Replace the "Get Started" button with a large, bold, letter-spaced 6-digit code block (styled in PerkBack navy `#0a1f5c`).
-- Keep welcome heading and the "if you didn't sign up, ignore" footer.
-- Add a short line: "Enter this code in the app to verify your email. It expires in 1 hour."
-- Keep logo + DM Sans / brand colors.
+### 3. No changes to
+- `auth-email-hook` or `recovery.tsx` email template (already correct — logs confirm the email is sent and the link works).
+- `GetStarted.tsx` forgot-password flow (already correct).
+- Database / RPCs / Supabase config.
 
-File: `supabase/functions/auth-email-hook/index.ts`
-- Already passes `token: payload.data.token` in `templateProps` — no change needed.
-
-Deploy `auth-email-hook` after edits.
-
-### 2. Create a shared verification page
-New file: `src/pages/VerifyOtp.tsx`
-- Route: `/verify` (handles both customer and merchant).
-- Reads `email` and `role` (`customer` | `merchant`) from `location.state` (passed by the auth pages).
-- Uses `<InputOTP>` (already in `src/components/ui/input-otp.tsx`) for a clean 6-digit input.
-- On submit: `supabase.auth.verifyOtp({ email, token: code, type: 'signup' })`.
-- On success: 
-  - `customer` → navigate to `/customer/confirmation` (existing post-signup flow that issues loyalty card).
-  - `merchant` → navigate to `/merchant/confirmation` (existing onboarding flow).
-- "Resend code" button → `supabase.auth.resend({ type: 'signup', email })`.
-- "Wrong email?" link → back to the relevant auth page.
-- Branded UI matching PerkBack (navy header, rounded-2xl card, DM Sans).
-
-Register route in `src/App.tsx`.
-
-### 3. Update auth pages to route to verification
-File: `src/pages/CustomerAuth.tsx` (signup branch)
-- After `signUp()` succeeds, instead of `navigate("/customer/confirmation")`, do:
-  `navigate("/verify", { state: { email, role: "customer" } })`.
-- Replace the toast to: "We sent a 6-digit code to your email."
-
-File: `src/pages/MerchantAuth.tsx` (signup branch, line ~129)
-- Same change: `navigate("/verify", { state: { email, role: "merchant" } })`.
-
-Login branches (existing email + password) are unchanged.
-
-### 4. No database changes
-No migrations. No new tables. No Supabase auth config changes.
-
-## Out of scope (for this change)
-- Login OTP (returning users keep password login).
-- Password reset templates (already handled by `recovery.tsx`).
-- Disabling password signup entirely.
-
-## Files touched
-- `supabase/functions/_shared/email-templates/signup.tsx` (edit)
-- `src/pages/VerifyOtp.tsx` (new)
-- `src/App.tsx` (add route)
-- `src/pages/CustomerAuth.tsx` (redirect after signup)
-- `src/pages/MerchantAuth.tsx` (redirect after signup)
-- Deploy: `auth-email-hook`
+## Out of scope
+- Mobile (`perkback-mobile/app/(auth)/forgot-password.tsx`) — already implemented and not mentioned by the user.
+- Changing the email template design.
