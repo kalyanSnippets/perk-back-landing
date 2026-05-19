@@ -161,6 +161,14 @@ const CustomerAuth = () => {
             {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
 
+          {!isSignUp && (
+            <button type="button" onClick={handleForgotPassword} className="text-xs text-muted-foreground hover:text-secondary hover:underline w-full text-center">
+              Forgot password?
+            </button>
+          )}
+
+
+
           <div className="text-center">
             <button
               type="button"
