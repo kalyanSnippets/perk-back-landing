@@ -114,10 +114,12 @@ export type Database = {
           confidence_score: number | null
           created_at: string
           description: string | null
+          ends_at: string | null
           expected_impact: string | null
           id: string
           image_url: string | null
           merchant_id: string
+          starts_at: string | null
           target_segment: string | null
           title: string
           updated_at: string
@@ -128,10 +130,12 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string
           description?: string | null
+          ends_at?: string | null
           expected_impact?: string | null
           id?: string
           image_url?: string | null
           merchant_id: string
+          starts_at?: string | null
           target_segment?: string | null
           title: string
           updated_at?: string
@@ -142,10 +146,12 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string
           description?: string | null
+          ends_at?: string | null
           expected_impact?: string | null
           id?: string
           image_url?: string | null
           merchant_id?: string
+          starts_at?: string | null
           target_segment?: string | null
           title?: string
           updated_at?: string

@@ -1,106 +1,69 @@
+# Merchant-specific loyalty backend — audit & migration plan
 
-## Background
+## Good news: most of this already exists
 
-The product has already moved technically to white-label cards: each merchant has a `merchant_card_designs` row, customers see a wallet of branded `MerchantLoyaltyCard`s in `MerchantCardWallet`, and merchants edit their card in `CardDesignTab`. What is still stuck in the old "one card / one wallet" world is (a) the public marketing copy and (b) a handful of supporting features that were designed around a single PerkBack-branded card.
+After auditing the current Supabase schema, **the backend is already merchant-scoped**. Customer loyalty is not on a global points balance — it's already tracked per merchant in `customer_merchants`, and `sync_points_on_transaction` already routes points into that per-merchant row. The customer global `points_balance` on `customers` is only kept as a backward-compat mirror.
 
-Below is everything I'd change, grouped by area.
+Here is what's already in place vs. what's missing.
 
----
+## What already exists (no work needed)
 
-## 1. Marketing & content rewrites (copy-only)
+- **`customer_merchants`** — has `id`, `customer_id`, `merchant_id`, `points_balance`, `visit_count`, `total_spend`, `joined_at`, `last_visit_at`, `created_at`, `updated_at`, `source`. ✓
+- **`rewards`** — merchant-scoped via `merchant_id`, RLS restricts customer reads to merchants they've joined. ✓
+- **`campaigns`** — merchant-scoped, RLS restricts customer reads to joined merchants. ✓
+- **`redemptions`** — has `customer_id`, `merchant_id`, `reward_id`, `redemption_code`, `reward_title`, `points_spent`, `status`, `expires_at`, `redeemed_at`, `created_at`. ✓
+- **`transactions`** — has `merchant_id`, `points_awarded`, `purchase_amount`, `transaction_date`, `refunded_at`, `source`. ✓
+- **`customer_stamps`** — has `customer_id`, `merchant_id`, stamp progress, completion, reward text. ✓ (uses `stamps_collected` / `stamps_required` / `reward_text` instead of the names in your spec — see Decision 1).
+- **RPCs already deployed**:
+  - `join_merchant(_merchant_id, _source)` ✓
+  - `join_merchant_by_slug(_slug, _source)` ✓ (creates `customer_merchants` row, generates CRN/card number)
+  - `redeem_reward` — deducts from per-merchant balance ✓
+  - `process_stamp` — per-merchant stamp progression ✓
+  - `refund_transaction` — reverses per-merchant points ✓
+  - `add_points_to_customer` — awards via transaction insert ✓
+  - `verify_redemption`, `search_customer_*` ✓
+- **Trigger `sync_points_on_transaction`** — already updates `customer_merchants.points_balance` as the source of truth on every transaction. ✓
+- **RLS** — already matches the spec: customers read only their own `customer_merchants` / `customer_stamps` / `redemptions` / `transactions`, and only rewards/campaigns/monthly offers/promotions for merchants they've joined; merchants manage only their own data. ✓
 
-Every place that says "One card. One wallet." needs to be reframed around "your store's own branded loyalty card, in one app."
+## Gaps to close (the only real migration work)
 
-Files and exact phrases:
+Two small additive changes:
 
-- `src/components/HeroSection.tsx` (line 59–66)
-  - Headline: "Earn rewards everywhere. **One card. One wallet.**"
-  - Subhead positions PerkBack as a consumer wallet.
-  - New direction: "**Your store. Your card. Your customers.**" with merchant-led subhead, e.g. "PerkBack gives every business a fully branded digital loyalty card — and gives customers one app to carry them all."
-- `src/components/Footer.tsx` (line 15) — "Earn rewards everywhere. One card. One wallet." → "Branded loyalty cards for every business. One app for every customer."
-- `src/components/BenefitsSection.tsx` (line 5) — "One card for everything / All your loyalty programs in a single digital wallet" → reframe customer benefit as "**Every store, beautifully branded** — each merchant's card looks and feels like their brand."
-- `src/pages/AboutUs.tsx` (line 58) — Simplicity copy "One card, one wallet — no complexity" → "Every brand, beautifully presented — no generic cards."
-- `src/components/onboarding/OnboardingCarousel.tsx` (line 14) — eyebrow "One card" → "Your store's card" (and rewrite the slide body).
-- `src/pages/CustomerJoin.tsx` and `src/components/prototype/CustomerJoinPrototype.tsx` — review the join hero text; customer should expect "you're getting **{StoreName}**'s loyalty card", not a generic PerkBack card.
-- `src/components/prototype/MobileCustomerPrototype.tsx` — same; prototype mockups should show a branded card, not the generic PerkBack one.
+### Gap 1 — `campaigns` missing scheduling columns
+The current `campaigns` table has no `starts_at` / `ends_at`. Add them as nullable timestamps so existing rows stay valid. The customer-visible RLS already filters on `active = true`; merchants can use these new fields to schedule.
 
-Add a new merchant-facing benefit (replacing or sitting alongside customer benefits in `BenefitsSection`):
-- "Fully branded card" — your colours, logo, background image.
-- "Owned customer relationship" — customers see your brand, not ours.
-- "Works with your POS / Square / NFC out of the box."
+### Gap 2 — Stamp card naming alignment (decision needed)
+Your spec asks for `stamps_count`, `total_stamps`, `reward_name`. The table has `stamps_collected`, `stamps_required`, `reward_text` — semantically identical but different names. See Decision 1 below.
 
-SEO follow-ups in `index.html` and per-page `<title>` / meta description: shift from "digital loyalty wallet" keywords to "white-label / branded digital loyalty card for small business."
+## Decisions I need from you
 
----
+1. **Stamp card column names** — keep current `stamps_collected` / `stamps_required` / `reward_text` (no app code changes, no risk), **or** rename to `stamps_count` / `total_stamps` / `reward_name` (matches your spec but requires touching `process_stamp`, `refund_transaction`, and several frontend components). Recommend keeping current names.
 
-## 2. Visual assets that still show the old unified card
+2. **Global `customers.points_balance`** — currently mirrored by `sync_points_on_transaction`, `redeem_reward`, `refund_transaction`, and `process_stamp` for backward compat. Options:
+   - (a) **Leave as-is** as a lifetime/summary mirror (zero risk).
+   - (b) **Stop writing to it** going forward (functions updated, column kept).
+   - (c) **Drop the column** (requires auditing frontend usage first).
+   Recommend (a) or (b).
 
-- `src/components/HeroSection.tsx` hero illustration / `LoyaltyCard` previews — anywhere a generic navy PerkBack card is rendered as a marketing visual, swap to a small carousel or stack of 2–3 differently branded cards (cafe / retail / restaurant) to communicate "white-label" at a glance.
-- `RewardsShowcase`, `HowItWorks`, prototype screens — same treatment: show multiple coloured cards, not one.
-- Onboarding carousel illustrations and screenshots in `MobileCustomerPrototype` / `CustomerJoinPrototype`.
-- OG/social share image (whatever `index.html` references) — regenerate showing several branded cards.
+## Proposed migration (after you confirm)
 
-This is the single biggest perception change. Copy alone won't shift the story.
+```sql
+-- Gap 1: campaign scheduling
+ALTER TABLE public.campaigns
+  ADD COLUMN IF NOT EXISTS starts_at timestamptz,
+  ADD COLUMN IF NOT EXISTS ends_at   timestamptz;
 
----
+-- (Optional Gap 2) Stamp column rename — only if you choose to rename
+-- ALTER TABLE public.customer_stamps RENAME COLUMN stamps_collected TO stamps_count;
+-- ALTER TABLE public.customer_stamps RENAME COLUMN stamps_required  TO total_stamps;
+-- ALTER TABLE public.customer_stamps RENAME COLUMN reward_text      TO reward_name;
+-- + update process_stamp(), refund_transaction(), and frontend references.
 
-## 3. Customer-side product gaps
+-- (Optional Decision 2b) Stop mirroring to customers.points_balance
+-- Update sync_points_on_transaction, redeem_reward, refund_transaction,
+-- process_stamp to remove the UPDATE public.customers ... lines.
+```
 
-Most of the runtime is already white-labelled, but a few touch points still feel "PerkBack-first":
+## Summary
 
-- **AccessCard "My Card" tab**: confirm it uses `MerchantCardWallet` everywhere and that the empty state ("Visit a store on Explore to add your first loyalty card") is the primary message for new customers. Today the legacy `LoyaltyCardFlip` (single PerkBack card) is still present as a fallback — recommend deleting it so we never accidentally render the unified card.
-- **Customer dashboard hero / points widget** (`HeroPointsCard`, etc.): currently shows a single global points number. Under white-label this should default to **points per merchant**, with global only as a secondary roll-up — otherwise customers ask "why does my Cafe X balance not match the big number?"
-- **Mobile app (`perkback-mobile/`)**: `app/(tabs)/my-card.tsx` and `src/components/ui/LoyaltyCard.tsx` still render the old unified PerkBack card with global `points_balance`. Needs the same `MerchantCardWallet` treatment + per-merchant points.
-- **Wallet passes (Apple/Google)**: today they are unified PerkBack-branded. Memory already flags this as Phase 2. For white-label to feel real to the customer, this is the next big build — one wallet pass per enrolled merchant, using that merchant's colours/logo. Until then, add UI copy that explains the wallet pass is the "universal" version.
-- **Loyalty card number / CRN**: we kept one global card number so POS/NFC/Square keep working. Worth documenting on the marketing site ("one scannable code, every store's card visually") so customers don't expect a different barcode per merchant.
-
----
-
-## 4. Merchant-side product gaps
-
-- **Onboarding**: after the existing branding step (logo, address, industry), add a "**Design your card**" step that walks the merchant through `CardDesignTab` before they land in the dashboard. First impression should be "I just made my own card."
-- **Card Design tab polish**: ensure live preview, contrast warning, and a "Reset to PerkBack default" exist. Add a "Preview as customer" link.
-- **Merchant share / QR poster** (`CounterQrPoster`): currently generic. Should render with the merchant's card design so the printed poster matches what the customer sees in-app.
-- **Plan gating**: decide whether custom backgrounds / advanced card styling are a Pro/Growth feature. If yes, wire it through `merchant_feature_overrides` + `LockedFeature`.
-- **Email templates** (`supabase/functions/_shared/email-templates/*`): welcome/recovery emails currently use PerkBack branding only. For white-label, customer-facing transactional emails sent in the context of a specific merchant (e.g. reward redeemed, points earned) should co-brand with the merchant's colours/logo. This needs a small templating pass.
-
----
-
-## 5. New things to build (recommended, not yet in repo)
-
-1. **Per-merchant wallet pass** (Apple + Google) — biggest gap; requires generating one pass per `customer_merchants` row with that merchant's design.
-2. **Merchant card preview share link** — public URL `/card-preview/{slug}` that renders the branded card so the merchant can show it off / share on socials.
-3. **Branded customer landing page per merchant** (`/m/{slug}` or `/join/{slug}`): already partly there via `CustomerJoin`, but it should be skinned in the merchant's colours, not PerkBack navy.
-4. **"Designed by {Store}" footer** in customer views when looking at a specific merchant's context, with a soft "Powered by PerkBack" line — the inverse of today's hierarchy.
-5. **Marketing page section: "How white-label works"** — 3-step explainer (Upload logo → Pick colours → Customers get your card) on the home page and a dedicated `/white-label` page for SEO.
-6. **Case study / testimonials rewrite** — current testimonials likely talk about "one wallet." Rewrite around "my customers see *my* brand."
-
----
-
-## 6. Cleanup
-
-- Delete or archive `src/components/customer/LoyaltyCardFlip.tsx` once nothing imports it (memory already notes it's safe to remove).
-- Remove the generic PerkBack `LoyaltyCard` in `perkback-mobile/src/components/ui/LoyaltyCard.tsx` once the mobile wallet view is in place.
-- Audit any blog posts in `blogs` table for unified-card language.
-
----
-
-## What this plan does *not* include
-
-- No database schema changes — `merchant_card_designs` already exists and is sufficient.
-- No changes to POS/Square/NFC integration — the shared global `loyalty_card_number` stays (this is by design, per memory).
-- No pricing changes — only flagged as a question (should card customisation be plan-gated?).
-
----
-
-## Suggested execution order
-
-1. **Copy + hero visual swap** on `HeroSection`, `BenefitsSection`, `Footer`, `AboutUs`, onboarding carousel. (1 pass, high impact.)
-2. **Customer dashboard**: make per-merchant points the primary number, delete `LoyaltyCardFlip`.
-3. **Mobile app `my-card.tsx`** white-label parity.
-4. **Merchant onboarding "Design your card" step** + branded QR poster.
-5. **New `/white-label` marketing page + SEO meta updates.**
-6. **Phase 2 — per-merchant wallet passes** (largest engineering effort).
-7. **Co-branded transactional emails.**
-
-Want me to start with step 1 (copy + visuals across the marketing site), or would you prefer I tackle a different slice first?
+There is **no large backend migration needed** — the merchant-scoped model is already live. Please pick options for Decisions 1 and 2 and I'll run a small migration covering just the campaign scheduling columns (and any rename / cleanup you approve).
