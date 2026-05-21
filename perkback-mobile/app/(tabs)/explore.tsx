@@ -55,6 +55,10 @@ export default function ExploreScreen() {
     }),
     [category, list, query]
   );
+  const categories = useMemo(() => {
+    const realCategories = [...new Set(list.map((merchant) => merchant.category).filter(Boolean))] as string[];
+    return ['For you', ...realCategories.slice(0, 6)];
+  }, [list]);
 
   const loadLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -98,7 +102,7 @@ export default function ExploreScreen() {
           />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {['For you', 'Coffee', 'Food', 'Retail', 'Beauty', 'Health', 'Other'].map((item) => {
+          {categories.map((item) => {
             const active = item === category;
             return (
               <TouchableOpacity key={item} style={[styles.chip, active && styles.chipActive]} onPress={() => setCategory(item)}>

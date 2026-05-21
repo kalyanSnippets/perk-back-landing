@@ -47,8 +47,10 @@ export default function RewardsScreen() {
 
   const groups = useMemo(() => {
     const cards = wallet.data ?? [];
-    const rewardMerchantIds = [...new Set((rewards.data ?? []).map((reward) => reward.merchant_id).filter(Boolean))];
-    return rewardMerchantIds.map((merchantId) => {
+    const rewardMerchantIds = (rewards.data ?? []).map((reward) => reward.merchant_id).filter(Boolean);
+    const walletMerchantIds = cards.map((card) => card.merchant_id).filter(Boolean);
+    const merchantIds = [...new Set([...walletMerchantIds, ...rewardMerchantIds])];
+    return merchantIds.map((merchantId) => {
       const card = cards.find((item) => item.merchant_id === merchantId) ?? null;
       const merchantRewards = (rewards.data ?? []).filter((reward) => reward.merchant_id === merchantId);
       const firstReward = merchantRewards[0];
@@ -103,7 +105,7 @@ export default function RewardsScreen() {
           <>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
               <TouchableOpacity style={[styles.chip, merchantFilter === 'all' && styles.chipActive]} onPress={() => setMerchantFilter('all')}>
-                <Text style={[styles.chipText, merchantFilter === 'all' && styles.chipTextActive]}>All cards</Text>
+                <Text style={[styles.chipText, merchantFilter === 'all' && styles.chipTextActive]}>All merchants</Text>
               </TouchableOpacity>
               {groups.map((group) => (
                 <TouchableOpacity

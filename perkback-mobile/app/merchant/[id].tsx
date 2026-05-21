@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
@@ -27,6 +27,14 @@ function stampTotal(stamp: any) {
   return Number(stamp?.total_stamps ?? stamp?.stamps_required ?? stamp?.required_stamps ?? 10);
 }
 
+function formatCurrency(value?: number | null) {
+  return `$${Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(value));
+}
+
 export default function MerchantDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,6 +50,9 @@ export default function MerchantDetailScreen() {
   const membership = loyalty.membership;
   const stamp = loyalty.stamps.data?.[0];
   const joined = Boolean(membership);
+  const points = Number(membership?.points_balance ?? 0);
+  const visits = Number(membership?.visit_count ?? 0);
+  const spend = Number(membership?.total_spend ?? 0);
 
   if (!merchant) {
     return (
@@ -58,7 +69,7 @@ export default function MerchantDetailScreen() {
   }
 
   const refresh = async () => {
-    await Promise.all([loyalty.wallet.refetch(), loyalty.rewards.refetch(), loyalty.campaigns.refetch(), loyalty.stamps.refetch()]);
+    await Promise.all([loyalty.wallet.refetch(), loyalty.rewards.refetch(), loyalty.campaigns.refetch(), loyalty.stamps.refetch(), loyalty.activity.refetch()]);
   };
 
   const handleJoin = async () => {
@@ -99,7 +110,9 @@ export default function MerchantDetailScreen() {
               <Text style={styles.shareText}>↗</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.logo}><Text style={styles.logoText}>{merchant.name.slice(0, 2).toUpperCase()}</Text></View>
+          <View style={styles.logo}>
+            {merchant.logo_url ? <Image source={{ uri: merchant.logo_url }} style={styles.logoImage} /> : <Text style={styles.logoText}>{merchant.name.slice(0, 2).toUpperCase()}</Text>}
+          </View>
           <Text style={styles.category}>{merchant.category || 'Local rewards'}</Text>
           <Text style={styles.name}>{merchant.name}</Text>
           <Text style={styles.address}>{merchant.address || 'Merchant loyalty programme'}</Text>
@@ -118,6 +131,10 @@ export default function MerchantDetailScreen() {
                   <QRCode value={`${customer?.loyalty_card_number ?? customer?.crn ?? customer?.id}:${merchant.id}`} size={72} color={PB.primary} backgroundColor="#fff" />
                 </View>
               </View>
+              <View style={styles.cardNumberRow}>
+                <Text style={styles.cardNumberLabel}>Card number</Text>
+                <Text style={styles.cardNumber}>{customer?.loyalty_card_number ?? customer?.crn ?? customer?.id?.slice(0, 12).toUpperCase()}</Text>
+              </View>
               <View style={styles.walletActions}>
                 <TouchableOpacity style={styles.walletBtnDark} onPress={() => addWallet('apple')}><Text style={styles.walletDarkText}>Add to Apple Wallet</Text></TouchableOpacity>
                 <TouchableOpacity style={styles.walletBtnLight} onPress={() => addWallet('google')}><Text style={styles.walletLightText}>Add to Google Wallet</Text></TouchableOpacity>
@@ -125,9 +142,9 @@ export default function MerchantDetailScreen() {
             </View>
 
             <View style={styles.stats}>
-              <Stat label="points" value={Number(membership?.points_balance ?? 0).toLocaleString()} />
-              <Stat label="visits" value={Number(membership?.visit_count ?? 0).toLocaleString()} />
-              <Stat label="spent" value={`$${Number(membership?.total_spend ?? 0).toFixed(0)}`} />
+              <Stat label="points" value={points.toLocaleString()} />
+              <Stat label="visits" value={visits.toLocaleString()} />
+              <Stat label="spent" value={formatCurrency(spend)} />
             </View>
           </>
         ) : (
@@ -141,7 +158,10 @@ export default function MerchantDetailScreen() {
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Stamp card</Text>
+          <View style={styles.sectionTop}>
+            <Text style={styles.sectionTitle}>Stamp card</Text>
+            {stamp ? <Text style={styles.sectionMeta}>{stampCount(stamp)} / {stampTotal(stamp)}</Text> : null}
+          </View>
           {stamp ? (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{(stamp as any).reward_name ?? (stamp as any).stamp_reward ?? 'Merchant stamp reward'}</Text>
@@ -162,14 +182,18 @@ export default function MerchantDetailScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rewards from {merchant.name}</Text>
+          <View style={styles.sectionTop}>
+            <Text style={styles.sectionTitle}>Rewards</Text>
+            <Text style={styles.sectionMeta}>{(loyalty.rewards.data ?? []).length} active</Text>
+          </View>
           {(loyalty.rewards.data ?? []).length > 0 ? (
             loyalty.rewards.data?.map((reward) => {
-              const canClaim = Number(membership?.points_balance ?? 0) >= Number(reward.points_required ?? 0);
+              const canClaim = points >= Number(reward.points_required ?? 0);
+              const remaining = Math.max(0, Number(reward.points_required ?? 0) - points);
               return (
                 <TouchableOpacity key={reward.id} style={styles.rewardCard} onPress={() => router.push(`/rewards/${reward.id}`)} activeOpacity={0.86}>
                   <LinearGradient colors={['#3b2418', '#8a561f']} style={styles.rewardArt}>
-                    <Text style={styles.pill}>{canClaim ? 'Ready to claim' : `${reward.points_required} pts`}</Text>
+                    <Text style={styles.pill}>{canClaim ? 'Ready to claim' : `${remaining} pts to go`}</Text>
                   </LinearGradient>
                   <View style={styles.rewardBody}>
                     <Text style={styles.rewardTitle}>{reward.title}</Text>
@@ -203,6 +227,32 @@ export default function MerchantDetailScreen() {
             </View>
           )}
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionTop}>
+            <Text style={styles.sectionTitle}>Recent activity</Text>
+            <Text style={styles.sectionMeta}>{merchant.name}</Text>
+          </View>
+          {(loyalty.activity.data ?? []).length > 0 ? (
+            <View style={styles.activityCard}>
+              {loyalty.activity.data?.map((item) => (
+                <View key={item.id} style={styles.activityRow}>
+                  <View style={styles.activityDot}><Text style={styles.activityDotText}>+</Text></View>
+                  <View style={styles.activityCopy}>
+                    <Text style={styles.activityTitle}>{formatCurrency(item.purchase_amount)}</Text>
+                    <Text style={styles.activityMeta}>{formatTime(item.transaction_date)}</Text>
+                  </View>
+                  <Text style={styles.activityPoints}>+{Number(item.points_awarded ?? 0)} pts</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyTitle}>No visits recorded yet</Text>
+              <Text style={styles.emptyText}>When {merchant.name} awards points, activity will appear here.</Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -217,6 +267,7 @@ const styles = StyleSheet.create({
   roundText: { color: PB.primary, fontFamily: FONTS.extraBold, fontSize: 24, lineHeight: 26 },
   shareText: { color: PB.primary, fontFamily: FONTS.extraBold, fontSize: 18 },
   logo: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.18)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  logoImage: { width: 52, height: 52, borderRadius: 16 },
   logoText: { color: PB.accent, fontFamily: FONTS.extraBold, fontSize: 17 },
   category: { color: 'rgba(255,255,255,.7)', fontFamily: FONTS.bold, fontSize: 11 },
   name: { color: '#fff', fontFamily: FONTS.extraBold, fontSize: 25, letterSpacing: -0.6, marginTop: 4 },
@@ -227,6 +278,9 @@ const styles = StyleSheet.create({
   cardName: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 20, marginTop: 4 },
   cardCustomer: { color: PB.muted, fontFamily: FONTS.medium, fontSize: 12, marginTop: 4 },
   qrBox: { width: 88, height: 88, borderRadius: 18, borderWidth: 1, borderColor: PB.border, alignItems: 'center', justifyContent: 'center' },
+  cardNumberRow: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: PB.borderSoft },
+  cardNumberLabel: { color: PB.muted, fontFamily: FONTS.bold, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 },
+  cardNumber: { color: PB.primary, fontFamily: FONTS.monoMedium, fontSize: 13, letterSpacing: 0.7, marginTop: 3 },
   walletActions: { gap: 10, marginTop: 14 },
   walletBtnDark: { height: 44, borderRadius: 15, backgroundColor: '#0b0d12', alignItems: 'center', justifyContent: 'center' },
   walletBtnLight: { height: 44, borderRadius: 15, backgroundColor: '#f7f9fd', borderWidth: 1, borderColor: PB.border, alignItems: 'center', justifyContent: 'center' },
@@ -242,7 +296,9 @@ const styles = StyleSheet.create({
   joinInlineBtn: { height: 48, borderRadius: 16, backgroundColor: PB.primary, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
   joinInlineText: { color: '#fff', fontFamily: FONTS.extraBold, fontSize: 14 },
   section: { marginHorizontal: 18, marginTop: 22 },
+  sectionTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   sectionTitle: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 20, marginBottom: 12, letterSpacing: -0.4 },
+  sectionMeta: { color: PB.muted, fontFamily: FONTS.bold, fontSize: 11 },
   card: { backgroundColor: '#fff', borderRadius: 22, padding: 16, borderWidth: 1, borderColor: PB.borderSoft },
   cardTitle: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 16 },
   stamps: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 14 },
@@ -262,5 +318,13 @@ const styles = StyleSheet.create({
   emptyBox: { backgroundColor: '#fff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: PB.borderSoft },
   emptyTitle: { color: PB.fg, fontFamily: FONTS.extraBold, fontSize: 15 },
   emptyText: { color: PB.muted, fontFamily: FONTS.regular, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  activityCard: { backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: PB.borderSoft, overflow: 'hidden' },
+  activityRow: { minHeight: 62, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: PB.borderSoft },
+  activityDot: { width: 34, height: 34, borderRadius: 12, backgroundColor: '#eaf8f2', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  activityDotText: { color: PB.success, fontFamily: FONTS.extraBold, fontSize: 15 },
+  activityCopy: { flex: 1 },
+  activityTitle: { color: PB.fg, fontFamily: FONTS.bold, fontSize: 14 },
+  activityMeta: { color: PB.muted, fontFamily: FONTS.medium, fontSize: 11, marginTop: 2 },
+  activityPoints: { color: PB.success, fontFamily: FONTS.extraBold, fontSize: 13 },
   missingState: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 14 },
 });

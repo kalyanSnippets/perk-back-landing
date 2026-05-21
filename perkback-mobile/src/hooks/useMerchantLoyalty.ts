@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { Campaign, CustomerStamp, Reward } from '../types/database';
+import { Campaign, CustomerStamp, Transaction } from '../types/database';
 import { useCustomerWallet } from './useCustomerWallet';
 import { RewardWithMeta } from './useRewardsData';
 
@@ -77,5 +77,22 @@ export function useMerchantLoyalty(customerId?: string, merchantId?: string) {
     },
   });
 
-  return { wallet, membership, rewards, campaigns, stamps };
+  const activity = useQuery({
+    queryKey: ['merchant-activity', customerId, merchantId],
+    enabled: Boolean(customerId && merchantId),
+    queryFn: async () => {
+      if (!customerId || !merchantId) return [] as Transaction[];
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, customer_id, merchant_id, merchant_name, purchase_amount, points_awarded, source, transaction_date, created_at, refunded_at')
+        .eq('customer_id', customerId)
+        .eq('merchant_id', merchantId)
+        .order('transaction_date', { ascending: false })
+        .limit(12);
+      if (error) return [] as Transaction[];
+      return (data ?? []) as Transaction[];
+    },
+  });
+
+  return { wallet, membership, rewards, campaigns, stamps, activity };
 }

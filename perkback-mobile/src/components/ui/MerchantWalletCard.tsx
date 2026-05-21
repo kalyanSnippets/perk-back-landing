@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Linking, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, Image, Linking, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
@@ -83,7 +83,11 @@ export function MerchantWalletCard({
           <>
             <View style={styles.topRow}>
               <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
-                <Text style={styles.avatarText}>{getInitials(merchant?.name)}</Text>
+                {merchant?.logo_url ? (
+                  <Image source={{ uri: merchant.logo_url }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarText}>{getInitials(merchant?.name)}</Text>
+                )}
               </View>
               <View style={styles.statusPill}>
                 <Text style={styles.statusText}>{merchant?.is_active === false ? 'Paused' : 'Joined'}</Text>
@@ -191,6 +195,7 @@ const styles = StyleSheet.create({
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   avatar: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: 46, height: 46, borderRadius: 15 },
   avatarText: { color: PB.primary, fontFamily: FONTS.extraBold, fontSize: 15 },
   statusPill: {
     height: 28,
